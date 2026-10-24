@@ -20,7 +20,7 @@ export async function EditorPage({ kind, id, customerId }) {
   }
   const showCosts = can(ctx.member, "costs.view");
   const [{ data: customers }, { data: presets }] = await Promise.all([
-    ctx.supabase.from("customers").select("id, name, company, email, phone").eq("business_id", ctx.business.id).is("archived_at", null).order("name"),
+    ctx.supabase.from("customers").select("id, name, company, email, phone, address").eq("business_id", ctx.business.id).is("archived_at", null).order("name"),
     showCosts ? ctx.supabase.from("cost_presets").select("*").eq("business_id", ctx.business.id).order("label") : Promise.resolve({ data: [] }),
   ]);
   const b = ctx.business;
@@ -41,7 +41,9 @@ export async function EditorPage({ kind, id, customerId }) {
         costs={full?.costs}
         customers={customers || []}
         presets={presets || []}
-        business={{ currency: b.currency, tax_rate: Number(b.tax_rate), tax_label: b.tax_label, default_terms: b.default_terms, quote_validity_days: b.quote_validity_days, invoice_due_days: b.invoice_due_days, require_approval: b.require_approval }}
+        business={{ currency: b.currency, tax_rate: Number(b.tax_rate), tax_label: b.tax_label, default_terms: b.default_terms, quote_validity_days: b.quote_validity_days, invoice_due_days: b.invoice_due_days, require_approval: b.require_approval,
+          name: b.name, legal_name: b.legal_name, email: b.email, phone: b.phone, website: b.website, address: b.address, city: b.city, country: b.country, tax_id: b.tax_id,
+          logo_path: b.logo_path, brand_color: b.brand_color, footer_note: b.footer_note, bank_name: b.bank_name, bank_account_name: b.bank_account_name, bank_account_number: b.bank_account_number, document_prefs: b.document_prefs }}
         perms={{ canViewCosts: showCosts, isJunior: ctx.member.role === "junior_finance" }}
         emailReady={emailConfigured()}
       />

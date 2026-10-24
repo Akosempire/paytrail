@@ -176,3 +176,26 @@ export async function emailReceipt(receiptId) {
   });
   return r.sent ? { message: "Receipt emailed." } : { error: "The email could not be sent." };
 }
+
+// template, paper, visible sections and payment instructions for one document;
+// optionally also saved as the business default for that document type
+export async function saveDocumentLayout(id, input, { asDefault = false } = {}) {
+  const ctx = await requireBusiness();
+  const { fits, cleanLayout } = await import("@/lib/doc-templates");
+  const { data: doc } = await ctx.supabase.from("documents").select("id, kind, status").eq("id", id).eq("business_id", ctx.business.id).maybeSingle();
+  if (!doc) return { error: "Document not found." };
+  if (!fits(doc.kind, input.template, input.paper)) return { error: "That template isn't available for this paper size." };
+  const layout = cleanLayout(input.layout);
+  const { error } = await ctx.supabase.rpc("set_document_layout", {
+    doc_id: id, tpl: input.template, paper_size: input.paper, new_layout: layout, instructions: String(input.payment_instructions || "").slice(0, 2000),
+  });
+  if (error) return { error: friendlyError(error) };
+  if (asDefault) {
+    if (!can(ctx.member, "settings.business")) return { error: "Saved for this document. Only owners and managers can change the defaults." };
+    const prefs = { ...(ctx.business.document_prefs || {}), [doc.kind]: { template: input.template, paper: input.paper, layout } };
+    const { error: e } = await ctx.supabase.from("businesses").update({ document_prefs: prefs }).eq("id", ctx.business.id);
+    if (e) return { error: "Saved for this document, but the default couldn't be saved." };
+  }
+  refresh(id);
+  return { message: asDefault ? "Saved, and set as your default." : "Layout saved." };
+}

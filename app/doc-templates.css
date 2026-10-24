@@ -1,0 +1,180 @@
+/* ==========================================================================
+   Document templates (preview + print). Sizes are in physical units so the
+   printed page matches the chosen paper. lib/pdf.js mirrors these rules.
+   ========================================================================== */
+
+@font-face { font-family: "PT Sans Doc"; src: url("/fonts/Lato-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "PT Sans Doc"; src: url("/fonts/Lato-Bold.woff2") format("woff2"); font-weight: 700; font-display: swap; }
+@font-face { font-family: "PT Serif Doc"; src: url("/fonts/SourceSerif4-Regular.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+@font-face { font-family: "PT Serif Doc"; src: url("/fonts/SourceSerif4-Semibold.woff2") format("woff2"); font-weight: 600 700; font-display: swap; }
+
+.pt-doc {
+  --pt-ink: #151515; --pt-ink-2: #4a4a4a; --pt-ink-3: #8a8a8a; --pt-line: #e3e3e3; --pt-tint: #f6f6f4;
+  position: relative; box-sizing: border-box; width: var(--pt-w); background: #fff; color: var(--pt-ink);
+  font-family: "PT Sans Doc", Lato, ui-sans-serif, system-ui, sans-serif; font-size: 9pt; line-height: 1.42;
+  font-variant-numeric: tabular-nums; -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: left;
+  overflow-wrap: anywhere;
+}
+.pt-doc *, .pt-doc *::before, .pt-doc *::after { box-sizing: border-box; margin: 0; padding: 0; }
+.pt-sheet.pt-screen { min-height: var(--pt-h); }
+.pt-page { position: relative; padding: var(--pt-m); }
+.pt-p-a5, .pt-p-half { font-size: 7.6pt; }
+.pt-p-thermal80 { font-size: 8pt; }
+.pt-p-thermal58 { font-size: 7pt; }
+
+/* header */
+.pt-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 6mm; }
+.pt-brand { min-width: 0; max-width: 55%; }
+.pt-logo { display: block; max-height: 14mm; max-width: 52mm; object-fit: contain; object-position: left; }
+.pt-p-a5 .pt-logo, .pt-p-half .pt-logo { max-height: 11mm; max-width: 40mm; }
+.pt-bname { font-size: 1.65em; font-weight: 700; letter-spacing: -0.01em; line-height: 1.15; }
+.pt-titleblock { text-align: right; flex-shrink: 0; }
+.pt-kind { font-size: 1.85em; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; line-height: 1.1; }
+.pt-meta { margin-top: 1.6mm; color: var(--pt-ink-2); }
+.pt-meta div { display: flex; justify-content: flex-end; gap: 2mm; }
+.pt-meta dd { color: var(--pt-ink); font-weight: 700; }
+
+/* parties */
+.pt-parties { position: relative; display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 7mm; color: var(--pt-ink-2); }
+.pt-label { font-size: 0.72em; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pt-ink-3); margin-bottom: 0.8mm; }
+.pt-pname { font-weight: 700; color: var(--pt-ink); font-size: 1.06em; }
+.pt-doctitle { margin-top: 6mm; font-size: 1.25em; font-weight: 700; }
+
+/* items */
+.pt-items { width: 100%; border-collapse: collapse; margin-top: 6mm; }
+.pt-items thead { display: table-header-group; }
+.pt-items th { font-size: 0.76em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; text-align: left; padding: 1.6mm 2mm; }
+.pt-items td { padding: 2.2mm 2mm; border-bottom: 0.25mm solid var(--pt-line); vertical-align: top; }
+.pt-items tr { break-inside: avoid; page-break-inside: avoid; }
+.pt-num { text-align: right !important; white-space: nowrap; }
+.pt-strong { font-weight: 700; }
+.pt-item-desc { font-weight: 700; }
+.pt-item-details { color: var(--pt-ink-2); font-size: 0.9em; white-space: pre-line; margin-top: 0.5mm; }
+.pt-empty { margin-top: 6mm; color: var(--pt-ink-3); }
+
+/* totals: never split across pages */
+.pt-totals { display: flex; justify-content: flex-end; margin-top: 4mm; break-inside: avoid; page-break-inside: avoid; }
+.pt-totals dl { width: min(78mm, 100%); }
+.pt-p-a5 .pt-totals dl, .pt-p-half .pt-totals dl { width: min(62mm, 100%); }
+.pt-totals div { display: flex; justify-content: space-between; gap: 4mm; padding: 1mm 0; }
+.pt-totals dt { color: var(--pt-ink-2); }
+.pt-grand { margin-top: 1.5mm; padding: 2.4mm 0 !important; font-weight: 700; font-size: 1.22em; }
+.pt-grand dt { color: var(--pt-ink) !important; }
+.pt-balance { font-weight: 700; }
+
+/* receipt */
+.pt-received { margin-top: 6mm; padding: 5mm; background: var(--pt-tint); break-inside: avoid; }
+.pt-received-amount { font-size: 2.6em; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.pt-receipt-rows { margin-top: 5mm; break-inside: avoid; }
+.pt-receipt-rows div { display: flex; justify-content: space-between; gap: 4mm; padding: 1.6mm 0; border-bottom: 0.25mm solid var(--pt-line); }
+.pt-receipt-rows dt { color: var(--pt-ink-2); }
+.pt-receipt-rows dd { font-weight: 700; text-align: right; }
+.pt-thanks { margin-top: 4mm; font-weight: 700; }
+
+/* blocks */
+.pt-blocks { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm 6mm; margin-top: 8mm; padding-top: 5mm; border-top: 0.25mm solid var(--pt-line); color: var(--pt-ink-2); }
+.pt-block { break-inside: avoid; page-break-inside: avoid; min-width: 0; }
+.pt-wide { grid-column: 1 / -1; }
+.pt-pre { white-space: pre-line; }
+.pt-link { word-break: break-all; color: var(--pt-ink); }
+.pt-bank-no { font-weight: 700; font-size: 1.2em; letter-spacing: 0.04em; color: var(--pt-ink); }
+.pt-accepted { padding: 2.4mm 3mm; background: #eef8f2; color: #0d6b3f; }
+.pt-foot { margin-top: 8mm; padding-top: 3mm; border-top: 0.25mm solid var(--pt-line); text-align: center; color: var(--pt-ink-3); font-size: 0.82em; white-space: pre-line; }
+
+.pt-stamp { position: absolute; top: 3mm; right: 6mm; z-index: 1; transform: rotate(-10deg); border: 0.8mm solid #0a7d4b; color: #0a7d4b; border-radius: 1.5mm;
+  padding: 1mm 3mm; font-size: 1.7em; font-weight: 700; letter-spacing: 0.15em; opacity: 0.85; pointer-events: none; }
+.pt-stamp-void { border-color: #b42318; color: #b42318; }
+
+/* ---------- Essential: monochrome, ink-efficient ---------- */
+.pt-t-essential .pt-items th { border-bottom: 0.4mm solid var(--pt-ink); padding-left: 0; padding-right: 0; }
+.pt-t-essential .pt-items td { padding-left: 0; padding-right: 0; }
+.pt-t-essential .pt-items th + th, .pt-t-essential .pt-items td + td { padding-left: 3mm; }
+.pt-t-essential .pt-grand { border-top: 0.4mm solid var(--pt-ink); }
+.pt-t-essential .pt-received { background: none; border: 0.4mm solid var(--pt-ink); }
+.pt-t-essential .pt-accepted { background: none; border: 0.25mm solid var(--pt-ink); color: var(--pt-ink); }
+.pt-t-essential .pt-stamp { border-color: var(--pt-ink); color: var(--pt-ink); }
+
+/* ---------- Signature: modern, restrained accent ---------- */
+.pt-t-signature { border-top: 1.6mm solid var(--pt-accent); }
+.pt-t-signature .pt-kind { color: var(--pt-accent); }
+.pt-t-signature .pt-parties { padding: 4mm; background: var(--pt-tint); border-radius: 2mm; }
+.pt-t-signature .pt-items th { background: color-mix(in srgb, var(--pt-accent) 10%, #fff); color: color-mix(in srgb, var(--pt-accent) 80%, #000); }
+.pt-t-signature .pt-items th:first-child { border-radius: 1.4mm 0 0 1.4mm; }
+.pt-t-signature .pt-items th:last-child { border-radius: 0 1.4mm 1.4mm 0; }
+.pt-t-signature .pt-grand { padding: 2.6mm 3mm !important; background: color-mix(in srgb, var(--pt-accent) 10%, #fff); color: color-mix(in srgb, var(--pt-accent) 85%, #000); border-radius: 1.6mm; }
+.pt-t-signature .pt-grand dt { color: inherit !important; }
+.pt-t-signature .pt-received { background: color-mix(in srgb, var(--pt-accent) 9%, #fff); border-radius: 2mm; }
+.pt-t-signature .pt-received-amount { color: color-mix(in srgb, var(--pt-accent) 85%, #000); }
+
+/* ---------- Executive: editorial serif ---------- */
+.pt-t-executive { font-family: "PT Serif Doc", "Source Serif 4", Georgia, serif; font-size: 9.4pt; }
+.pt-t-executive.pt-p-a5 { font-size: 7.9pt; }
+.pt-t-executive .pt-head { flex-direction: column; align-items: center; text-align: center; gap: 4mm; padding-bottom: 5mm; border-bottom: 0.3mm solid var(--pt-accent); }
+.pt-t-executive .pt-brand { max-width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1.5mm; }
+.pt-t-executive .pt-logo { object-position: center; }
+.pt-t-executive .pt-bname { font-size: 2em; font-weight: 600; letter-spacing: 0.01em; }
+.pt-t-executive .pt-bname-sub { font-size: 1.1em; letter-spacing: 0.18em; text-transform: uppercase; font-weight: 400; color: var(--pt-ink-2); }
+.pt-t-executive .pt-titleblock { text-align: center; }
+.pt-t-executive .pt-kind { font-size: 1.15em; font-weight: 400; letter-spacing: 0.32em; color: var(--pt-accent); }
+.pt-t-executive .pt-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 1mm 5mm; }
+.pt-t-executive .pt-meta div { justify-content: center; }
+.pt-t-executive .pt-label { font-family: "PT Sans Doc", Lato, sans-serif; }
+.pt-t-executive .pt-items th { font-family: "PT Sans Doc", Lato, sans-serif; border-bottom: 0.3mm solid var(--pt-accent); padding-left: 0; padding-right: 0; color: var(--pt-ink-2); }
+.pt-t-executive .pt-items td { padding-left: 0; padding-right: 0; }
+.pt-t-executive .pt-items th + th, .pt-t-executive .pt-items td + td { padding-left: 3mm; }
+.pt-t-executive .pt-item-desc { font-weight: 600; }
+.pt-t-executive .pt-grand { border-top: 0.3mm solid var(--pt-accent); border-bottom: 0.3mm solid var(--pt-accent); font-weight: 600; }
+.pt-t-executive .pt-received { background: none; border-top: 0.3mm solid var(--pt-accent); border-bottom: 0.3mm solid var(--pt-accent); text-align: center; }
+.pt-t-executive .pt-received-amount { font-weight: 600; }
+
+/* ---------- POS Compact: thermal rolls ---------- */
+.pt-thermal .pt-page { display: flex; flex-direction: column; }
+.pt-t-pos .pt-head, .pt-t-pos .pt-parties { display: contents; }
+.pt-t-pos .pt-brand { order: 1; max-width: 100%; text-align: center; }
+.pt-t-pos .pt-logo { margin: 0 auto 1.5mm; max-height: 12mm; max-width: 70%; object-position: center; filter: grayscale(1); }
+.pt-t-pos .pt-bname { font-size: 1.35em; }
+.pt-t-pos .pt-parties > div:first-child { order: 2; text-align: center; color: var(--pt-ink-2); }
+.pt-t-pos .pt-parties > div:first-child .pt-label, .pt-t-pos .pt-parties > div:first-child .pt-pname { display: none; }
+.pt-t-pos .pt-titleblock { order: 3; text-align: center; margin-top: 3mm; padding: 2mm 0; border-top: 0.3mm dashed var(--pt-ink); border-bottom: 0.3mm dashed var(--pt-ink); }
+.pt-t-pos .pt-kind { font-size: 1.25em; letter-spacing: 0.14em; }
+.pt-t-pos .pt-meta div { justify-content: space-between; }
+.pt-t-pos .pt-parties > div:last-child { order: 4; margin-top: 2mm; }
+.pt-t-pos .pt-received { order: 5; }
+.pt-t-pos .pt-doctitle, .pt-t-pos .pt-lines, .pt-t-pos .pt-empty { order: 7; }
+.pt-t-pos .pt-totals { order: 8; }
+.pt-t-pos .pt-receipt-rows { order: 9; }
+.pt-t-pos .pt-blocks { order: 10; }
+.pt-t-pos .pt-foot { order: 11; }
+.pt-t-pos .pt-doctitle { font-size: 1.05em; margin-top: 2mm; }
+.pt-t-pos .pt-received { margin-top: 2mm; padding: 2mm 0 0; background: none; text-align: center; }
+.pt-t-pos .pt-received-amount { font-size: 1.9em; }
+.pt-lines { list-style: none; margin-top: 2mm; border-top: 0.3mm dashed var(--pt-ink); }
+.pt-lines li { padding: 1.4mm 0; border-bottom: 0.25mm dotted var(--pt-ink-3); break-inside: avoid; }
+.pt-line-desc { font-weight: 700; }
+.pt-line-details { color: var(--pt-ink-2); font-size: 0.9em; white-space: pre-line; }
+.pt-line-calc { display: flex; justify-content: space-between; gap: 2mm; }
+.pt-line-calc span:last-child { font-weight: 700; white-space: nowrap; }
+.pt-t-pos .pt-totals dl { width: 100%; }
+.pt-t-pos .pt-totals div { padding: 0.5mm 0; }
+.pt-t-pos .pt-grand { font-size: 1.35em; border-top: 0.4mm solid var(--pt-ink); border-bottom: 0.4mm solid var(--pt-ink); margin-top: 1mm; padding: 1.6mm 0 !important; }
+.pt-t-pos .pt-receipt-rows div { padding: 0.8mm 0; border-bottom-style: dotted; }
+.pt-t-pos .pt-thanks { text-align: center; }
+.pt-t-pos .pt-blocks { grid-template-columns: 1fr; gap: 2.5mm; margin-top: 3mm; padding-top: 2.5mm; border-top: 0.3mm dashed var(--pt-ink); }
+.pt-t-pos .pt-foot { margin-top: 3mm; padding-top: 2mm; border-top: 0.3mm dashed var(--pt-ink); color: var(--pt-ink); font-weight: 700; }
+.pt-t-pos .pt-stamp { position: static; order: 6; align-self: center; transform: none; margin-top: 2mm; font-size: 1.2em; border-color: var(--pt-ink); color: var(--pt-ink); }
+.pt-thermal .pt-stamp-void { border-color: var(--pt-ink); }
+
+/* preview frame (screen only) */
+.pt-frame { position: relative; overflow: hidden; }
+.pt-frame-inner { transform-origin: top left; }
+.pt-frame .pt-doc { box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06), 0 8px 24px -6px rgba(16, 24, 40, 0.12); }
+
+/* print pages: only the document */
+@media print {
+  .pt-print-chrome { display: none !important; }
+  .pt-print-root { padding: 0 !important; background: #fff !important; }
+  .pt-print-root .pt-doc { box-shadow: none !important; }
+  .pt-print-root .pt-sheet .pt-page { padding: 0; }
+  .pt-print-root .pt-sheet.pt-screen { min-height: 0; }
+  .pt-print-root .pt-sheet { width: auto; }
+}

@@ -1,16 +1,16 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, EyeOff, Link2, Receipt, Wallet, History, ExternalLink, MessageCircle, ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, EyeOff, Printer, Link2, Receipt, Wallet, History, ExternalLink, MessageCircle, ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
 import { requireBusiness } from "@/lib/context";
 import { getDocument } from "@/lib/documents";
 import { can } from "@/lib/permissions";
 import { emailConfigured } from "@/lib/email";
-import { logoUrl } from "@/lib/site";
 import { formatMoney, marginOf } from "@/lib/money";
 import { COST_CATEGORIES, PAYMENT_METHODS, formatDate, timeAgo } from "@/lib/format";
 import { Button, Callout, Card, CardHeader, cx } from "@/components/ui";
 import { CopyButton } from "@/components/ui-client";
-import { DocumentSheet } from "@/components/document-sheet";
+import { DocumentLayoutEditor } from "@/components/document-layout-editor";
+import { payLinkFor } from "@/lib/pdf-response";
 import { DocumentActions } from "@/components/document-actions";
 import { StatusBadge, activityText } from "@/components/doc-bits";
 
@@ -37,6 +37,8 @@ export default async function DocumentPage({ params, searchParams }) {
   const converted = related.find((r) => r.id === doc.converted_invoice_id);
   const whatsapp = `https://wa.me/${(doc.customer_phone || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hello ${doc.customer_name.split(" ")[0] || ""}, here is ${quote ? "our quotation" : "your invoice"} ${doc.number} from ${ctx.business.name} for ${money(quote ? doc.total_minor : balance)}: ${link}`)}`;
   const lastReturn = activity.find((a) => a.action === "document.returned");
+  const payLink = await payLinkFor(ctx.supabase, doc);
+  const canEditLayout = draft || can(ctx.member, "documents.send");
 
   return (
     <div className="flex flex-col gap-6">
@@ -62,9 +64,11 @@ export default async function DocumentPage({ params, searchParams }) {
       {doc.status === "draft" && lastReturn && <Callout tone="warn" title="Returned for changes">{lastReturn.actor_label}: "{lastReturn.detail?.reason || "Please review."}"</Callout>}
       {doc.status === "declined" && <Callout tone="danger" title="Your customer declined this quote">{doc.decline_reason ? `"${doc.decline_reason}"` : "No reason given."}</Callout>}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0">
-          <DocumentSheet doc={doc} items={items} business={ctx.business} logo={logoUrl(ctx.business.logo_path)} />
+          <DocumentLayoutEditor doc={doc} items={items.map(({ description, details, quantity, unit_price_minor }) => ({ description, details, quantity, unit_price_minor }))}
+            business={ctx.business} payLink={payLink} canEdit={canEditLayout} canSetDefault={can(ctx.member, "settings.business")}
+            printHref={`/print/doc/${doc.id}`} pdfHref={`/app/documents/${doc.id}/pdf?download`} />
         </div>
 
         <aside className="flex flex-col gap-4">
@@ -120,7 +124,10 @@ export default async function DocumentPage({ params, searchParams }) {
                           <span className="block font-medium text-ink tabular">{money(p.amount_minor)}</span>
                           <span className="text-xs text-ink-3">{PAYMENT_METHODS[p.method]} · {formatDate(p.paid_at)}</span>
                         </span>
-                        {r && <Button size="sm" variant="ghost" icon={Receipt} href={`/r/${r.access_token}`}>{r.number}</Button>}
+                        {r && <span className="flex shrink-0 gap-1">
+                          <Button size="sm" variant="ghost" icon={Receipt} href={`/r/${r.access_token}`}>{r.number}</Button>
+                          <Button size="sm" variant="ghost" icon={Printer} href={`/print/receipt/${r.id}`} aria-label={`Print receipt ${r.number}`} className="!px-2" />
+                        </span>}
                       </li>
                     );
                   })}

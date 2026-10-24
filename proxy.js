@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED = ["/app", "/admin", "/onboarding"];
+const PROTECTED = ["/app", "/admin", "/onboarding", "/print"];
 
 // keeps the Supabase session fresh and sends signed-out visitors to the login page
 export async function proxy(request) {

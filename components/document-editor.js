@@ -1,7 +1,9 @@
 "use client";
-import { useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, TriangleAlert, Loader2, ShieldCheck } from "lucide-react";
+import { EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, TriangleAlert, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
+import { DocPreview } from "@/components/doc-preview";
+import { buildModel } from "@/lib/doc-model";
 import { Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
@@ -48,6 +50,20 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const needsApproval = perms.isJunior && business.require_approval;
 
   const selectedCustomer = useMemo(() => customers.find((c) => c.id === customerId), [customers, customerId]);
+  const [view, setView] = useState("edit"); // phones: edit | preview
+
+  // live preview of what the customer will see, from the unsaved form
+  const who = customerMode === "existing" ? selectedCustomer || {} : customer;
+  const draftDoc = {
+    ...(doc || {}), kind, number: doc?.number || (quote ? "New quotation" : "New invoice"), title, currency, status: doc?.status || "draft",
+    issue_date: issueDate, due_date: quote ? null : endDate, valid_until: quote ? endDate : null,
+    customer_name: who.name || "", customer_company: who.company || "", customer_email: who.email || "", customer_phone: who.phone || "", customer_address: who.address || "",
+    subtotal_minor: totals.subtotal, discount_minor: totals.discount, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax_minor: totals.tax, total_minor: totals.total,
+    amount_paid_minor: doc?.amount_paid_minor || 0, notes, terms, snapshot: null,
+  };
+  const draftItems = items.filter((i) => i.description.trim()).map((i) => ({ description: i.description, details: i.details, quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0 }));
+  const deferred = useDeferredValue(JSON.stringify([draftDoc, draftItems]));
+  const previewModel = useMemo(() => { const [d, its] = JSON.parse(deferred); return buildModel({ doc: d, items: its, business }); }, [deferred, business]);
 
   function setItem(key, patch) { setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i))); }
   function setCost(key, patch) { setCosts((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c))); }
@@ -79,8 +95,24 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   }
 
   return (
-    <div className="grid gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="flex min-w-0 flex-col gap-6">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="sticky top-16 z-10 -mx-4 -mt-2 bg-canvas/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden" role="tablist" aria-label="Editor view">
+        <div className="grid grid-cols-2 gap-0.5 rounded-lg bg-tray p-1">
+          {[["edit", "Edit", PencilLine], ["preview", "Preview", Eye]].map(([v, l, Icon]) => (
+            <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)}
+              className={cx("inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]", view === v ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3")}>
+              <Icon className="size-4" />{l}
+            </button>
+          ))}
+        </div>
+      </div>
+      {view === "preview" && (
+        <div className="flex min-w-0 flex-col gap-2 lg:hidden">
+          <div className="rounded-2xl bg-tray p-2"><DocPreview model={previewModel} label="Live preview" /></div>
+          <p className="text-center text-[12px] text-ink-3">Template and paper size can be changed after saving.</p>
+        </div>
+      )}
+      <div className={cx("flex min-w-0 flex-col gap-6", view === "preview" && "max-lg:hidden")}>
         <Card>
           <CardHeader title="Customer" icon={Users} actions={
             customers.length > 0 && (
@@ -185,7 +217,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
         </Card>
       </div>
 
-      <aside className="flex flex-col gap-4 lg:sticky lg:top-24 lg:self-start">
+      <aside className={cx("flex flex-col gap-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)] lg:self-start lg:overflow-y-auto lg:pb-2 [&>*]:shrink-0", view === "preview" && "max-lg:hidden")}>
         {costsVisible ? (
           <Card className="ring-violet/30">
             <div className="flex items-start gap-3 border-b border-line bg-violet-soft/60 px-5 py-4">
@@ -267,6 +299,10 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             </dl>
           </Card>
         )}
+        <Card className="hidden lg:block">
+          <CardHeader title="Live preview" icon={Eye} description="What your customer will see." />
+          <div className="bg-tray p-3"><DocPreview model={previewModel} label="Live preview" /></div>
+        </Card>
         {needsApproval && (
           <div className="flex gap-2.5 rounded-xl bg-violet-soft p-4 text-[13px] text-violet-ink ring-1 ring-inset ring-violet/25">
             <ShieldCheck className="mt-0.5 size-4 shrink-0" />A manager or finance officer approves your drafts before they reach the customer.

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags,
+  Plus, Menu, X, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer,
 } from "lucide-react";
 import { Avatar, Button, Logo, cx } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
@@ -25,6 +25,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts 
     ].filter(Boolean) },
     { title: "Settings", items: [
       canSettings && { href: "/app/settings", label: "Business & branding", icon: Building2, exact: true },
+      canSettings && { href: "/app/settings/documents", label: "Documents & printing", icon: Printer },
       canPayments && { href: "/app/settings/payments", label: "Payment setup", icon: PlugZap },
       kind === "company" && { href: "/app/settings/team", label: canTeam ? "Team & roles" : "Team", icon: UsersRound },
       canBilling && { href: "/app/settings/billing", label: "Plan & billing", icon: CreditCard },

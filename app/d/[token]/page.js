@@ -1,14 +1,15 @@
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { reconcileSoon } from "@/lib/payments";
-import { CheckCircle2, Clock, Download, XCircle, Receipt, Ban } from "lucide-react";
+import { CheckCircle2, Clock, Download, XCircle, Receipt, Ban, Printer } from "lucide-react";
 import { getPublicDocument } from "@/lib/documents";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { logoUrl } from "@/lib/site";
 import { formatMoney } from "@/lib/money";
 import { formatDate, isExpired } from "@/lib/format";
 import { Button, Logo } from "@/components/ui";
-import { DocumentSheet } from "@/components/document-sheet";
+import { DocPreview } from "@/components/doc-preview";
+import { buildModel } from "@/lib/doc-model";
 import { CustomerPanel } from "./panel";
 
 export const dynamic = "force-dynamic";
@@ -65,11 +66,14 @@ export default async function PublicDocument({ params, searchParams }) {
             {logo ? <img src={logo} alt="" className="h-8 max-w-[120px] object-contain" /> : <span className="inline-flex size-8 items-center justify-center rounded-lg text-sm font-bold text-white doc-brand-bg">{business.name[0]}</span>}
             <span className="truncate text-sm font-semibold">{business.name}</span>
           </div>
-          <Button href={`/d/${token}/pdf`} size="sm" icon={Download} target="_blank">Download PDF</Button>
+          <div className="flex shrink-0 gap-2">
+            <Button href={`/d/${token}/print`} size="sm" icon={Printer} className="max-sm:!px-2.5" aria-label="Print"><span className="max-sm:hidden">Print</span></Button>
+            <a href={`/d/${token}/pdf?download`} className="inline-flex h-8 items-center gap-2 rounded-sm bg-white px-3 text-[13px] font-medium text-[#101828] shadow-[var(--shadow-xs)] ring-1 ring-inset ring-[#d0d5dd] hover:bg-[#f9fafb]"><Download className="size-3.5" />PDF</a>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto grid max-w-[1100px] gap-6 px-4 pt-6 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-10">
+      <main className="mx-auto grid max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-6 px-4 pt-6 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-10">
         <div className="flex min-w-0 flex-col gap-4">
           {banner && (
             <div className={`flex gap-3 rounded-xl p-4 text-sm ring-1 ring-inset ${tones[banner.tone]}`}>
@@ -78,7 +82,9 @@ export default async function PublicDocument({ params, searchParams }) {
             </div>
           )}
           {doc.status === "void" && <div className="flex gap-3 rounded-xl bg-[#f2f4f7] p-4 text-sm ring-1 ring-[#d0d5dd]"><Ban className="size-5 shrink-0 text-[#475467]" />This document has been cancelled by {business.name}.</div>}
-          <DocumentSheet doc={doc} items={items} business={business} logo={logo} />
+          <div className="rounded-2xl bg-[#eceeef] p-2 sm:p-4">
+            <DocPreview model={buildModel({ doc, items, business })} label={`${quote ? "Quotation" : "Invoice"} ${doc.number}`} />
+          </div>
         </div>
 
         <aside id="respond" className="no-print flex scroll-mt-4 flex-col gap-4 lg:sticky lg:top-6 lg:self-start">

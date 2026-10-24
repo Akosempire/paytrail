@@ -12,6 +12,6 @@ export async function resolve(specifier, context, next) {
   return next(specifier, context);
 }
 export async function load(url, context, next) {
-  if (url.startsWith("file:") && url.endsWith(".js") && url.includes(root)) return { ...(await next(url, { ...context, format: "module" })), format: "module" };
+  if (url.startsWith("file:") && url.endsWith(".js") && url.includes(root) && !url.includes("/node_modules/")) return { ...(await next(url, { ...context, format: "module" })), format: "module" };
   return next(url, context);
 }
