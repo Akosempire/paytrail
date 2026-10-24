@@ -1,7 +1,7 @@
 "use client";
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { Download, Loader2, Printer, SlidersHorizontal, X } from "lucide-react";
-import { Button, Card, cx } from "@/components/ui";
+import { Alert, Button, Card, cx } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { DocPreview } from "@/components/doc-preview";
 import { LayoutPanel } from "@/components/layout-panel";
@@ -52,7 +52,7 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
         </div>
         {open && (
           <Card className="p-5 xl:sticky xl:top-24 xl:max-h-[calc(100dvh-7rem)] xl:self-start xl:overflow-y-auto">
-            {issued && <p className="mb-4 rounded-lg bg-info-soft px-3 py-2 text-[12.5px] text-info-ink">This document has been issued. You can change how it looks; amounts, items and the branding it was sent with stay the same. The change is logged.</p>}
+            {issued && <Alert intent="info" size="sm" live={false} title="Already issued" className="mb-4">You can change how it looks. Amounts, items and the branding it was sent with stay the same, and the change is logged.</Alert>}
             <LayoutPanel kind={doc.kind} value={value} onChange={setValue} brandColor={business.brand_color} />
             <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4">
               {canSetDefault && (

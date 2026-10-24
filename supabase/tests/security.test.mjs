@@ -46,3 +46,21 @@ test("a verified code (written by the server) opens a short window", async () =>
   await pool.query("update public.security_codes set verified_until=now()-interval '1 second' where user_id=$1", [owner]);
   await assert.rejects(as(owner, "update public.businesses set bank_account_number='333' where id=$1", [biz]), /STEP_UP/);
 });
+
+test("auth email helpers are for the server only", async () => {
+  const email = `auth${Date.now()}@a.test`;
+  const id = (await one("insert into auth.users(email) values ($1) returning id", [email])).id;
+  let r = await one("select * from public.auth_email_status($1)", [email.toUpperCase()]);
+  assert.equal(r.user_id, id);
+  assert.equal(r.confirmed, false);
+  await pool.query("update auth.users set email_confirmed_at = now() where id = $1", [id]);
+  r = await one("select * from public.auth_email_status($1)", [email]);
+  assert.equal(r.confirmed, true);
+  await assert.rejects(as(owner, "select * from public.auth_email_status($1)", [email]), /permission denied/);
+  await assert.rejects(as(owner, "select count(*) from public.email_sends"), /permission denied/);
+  const c = await pool.connect();
+  try {
+    await c.query("begin"); await c.query("set local role anon");
+    await assert.rejects(c.query("select * from public.auth_email_status($1)", [email]), /permission denied/);
+  } finally { await c.query("rollback").catch(() => {}); c.release(); }
+});

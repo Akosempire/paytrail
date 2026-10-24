@@ -3,7 +3,7 @@ import { useStepUp } from "@/components/step-up";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CircleDashed, ExternalLink, KeyRound, Loader2, PlugZap, RefreshCw, ShieldCheck, Webhook, CreditCard, Power, Trash2, TriangleAlert, Sparkles } from "lucide-react";
-import { Badge, Button, Callout, Card, Field, Input, cx } from "@/components/ui";
+import { Alert, Badge, Button, Callout, Card, Field, Input, cx } from "@/components/ui";
 import { CopyButton, Modal, useToast } from "@/components/ui-client";
 import { disconnect, recheckConnection, runTestPayment, saveConnection, setEnabled } from "./actions";
 
@@ -21,9 +21,9 @@ const GUIDES = {
     steps: [
       { title: "Open your Stripe account", body: "Sign in at dashboard.stripe.com, or create an account. Test mode works straight away. To take real money, activate your account with your business and bank details." },
       { title: "Copy your secret key", body: "Go to Developers → API keys and reveal the Secret key. In test mode it starts with sk_test_. Keep it private." },
-      { title: "Add your PayTrail webhook", body: "Go to Developers → Webhooks → Add endpoint and paste the URL below. Choose the events checkout.session.completed, checkout.session.async_payment_succeeded and checkout.session.expired. After saving, reveal the Signing secret (it starts with whsec_) and copy it.", webhook: true },
-      { title: "Paste both into PayTrail", body: "PayTrail checks the key with Stripe before saving, and stores it encrypted.", form: true },
-      { title: "Make a test payment", body: "Pay a small test amount with Stripe's test card 4242 4242 4242 4242, any future expiry date and any CVC. PayTrail waits for the payment and the webhook.", test: true, docs: "https://docs.stripe.com/testing", docsLabel: "Stripe test cards" },
+      { title: "Add your Usetally webhook", body: "Go to Developers → Webhooks → Add endpoint and paste the URL below. Choose the events checkout.session.completed, checkout.session.async_payment_succeeded and checkout.session.expired. After saving, reveal the Signing secret (it starts with whsec_) and copy it.", webhook: true },
+      { title: "Paste both into Usetally", body: "Usetally checks the key with Stripe before saving, and stores it encrypted.", form: true },
+      { title: "Make a test payment", body: "Pay a small test amount with Stripe's test card 4242 4242 4242 4242, any future expiry date and any CVC. Usetally waits for the payment and the webhook.", test: true, docs: "https://docs.stripe.com/testing", docsLabel: "Stripe test cards" },
       { title: "Go live", body: "Turn off test mode in Stripe. Repeat steps 2–4 with your live secret key (sk_live_…) and add the webhook again in live mode, then run one small test." },
     ],
   },
@@ -39,9 +39,9 @@ const GUIDES = {
     steps: [
       { title: "Open your Paystack account", body: "Sign in at dashboard.paystack.com, or sign up. Test mode works straight away. To take real money, complete Paystack's business verification." },
       { title: "Copy your secret key", body: "Go to Settings → API Keys & Webhooks and copy the Test Secret Key (it starts with sk_test_)." },
-      { title: "Add your PayTrail webhook", body: "On the same page, paste the URL below into Test Webhook URL and save. Paystack signs its messages with your secret key, so there's no extra secret to copy.", webhook: true },
-      { title: "Paste your secret key into PayTrail", body: "PayTrail checks the key with Paystack before saving, and stores it encrypted.", form: true },
-      { title: "Make a test payment", body: "Pay a small amount with one of Paystack's test cards. PayTrail waits for the payment and the webhook.", test: true, docs: "https://paystack.com/docs/payments/test-payments/", docsLabel: "Paystack test cards" },
+      { title: "Add your Usetally webhook", body: "On the same page, paste the URL below into Test Webhook URL and save. Paystack signs its messages with your secret key, so there's no extra secret to copy.", webhook: true },
+      { title: "Paste your secret key into Usetally", body: "Usetally checks the key with Paystack before saving, and stores it encrypted.", form: true },
+      { title: "Make a test payment", body: "Pay a small amount with one of Paystack's test cards. Usetally waits for the payment and the webhook.", test: true, docs: "https://paystack.com/docs/payments/test-payments/", docsLabel: "Paystack test cards" },
       { title: "Go live", body: "Switch Paystack to Live mode. Paste your live secret key (sk_live_…) here, and put the same webhook URL in Live Webhook URL. Then run one small test." },
     ],
   },
@@ -57,9 +57,9 @@ const GUIDES = {
     steps: [
       { title: "Open your Bachs account", body: "Sign in at bachs.io, or create an account. You can test straight away. To take real money, finish your business verification in Bachs first." },
       { title: "Copy your secret key", body: "In the Bachs dashboard, open the developer / API keys section and copy the secret key. Use the sandbox key (starts with sk_sandbox_) first. Keep it private." },
-      { title: "Add your PayTrail webhook", body: "In the webhooks section, add a new endpoint and paste the URL below. Choose the collection.succeeded, collection.failed and checkout.expired events. Bachs then shows a signing secret: copy it.", webhook: true },
-      { title: "Paste both into PayTrail", body: "PayTrail checks the key with Bachs before saving, and stores it encrypted.", form: true },
-      { title: "Make a test payment", body: "Pay a small test amount to yourself. PayTrail waits until Bachs confirms the payment and the webhook arrives, so you know real payments will be recorded.", test: true },
+      { title: "Add your Usetally webhook", body: "In the webhooks section, add a new endpoint and paste the URL below. Choose the collection.succeeded, collection.failed and checkout.expired events. Bachs then shows a signing secret: copy it.", webhook: true },
+      { title: "Paste both into Usetally", body: "Usetally checks the key with Bachs before saving, and stores it encrypted.", form: true },
+      { title: "Make a test payment", body: "Pay a small test amount to yourself. Usetally waits until Bachs confirms the payment and the webhook arrives, so you know real payments will be recorded.", test: true },
       { title: "Go live", body: "When the test passes, repeat steps 2–4 with your live key (sk_live_…) and live webhook secret, then run one more small test." },
     ],
   },
@@ -75,9 +75,9 @@ const GUIDES = {
     steps: [
       { title: "Open your Flutterwave account", body: "Sign in at dashboard.flutterwave.com, or sign up. Switch to Test mode first. To take real money, complete Flutterwave's compliance checks." },
       { title: "Copy your secret key", body: "Go to Settings → API keys and copy the Secret key. In test mode it starts with FLWSECK_TEST-." },
-      { title: "Add your PayTrail webhook", body: "Go to Settings → Webhooks. Paste the URL below, and set a Secret hash. You can use the one we generated. Turn on webhooks for successful and failed charges, then save.", webhook: true, hash: true },
-      { title: "Paste both into PayTrail", body: "Paste the secret key and the same secret hash. PayTrail checks the key with Flutterwave before saving, and stores it encrypted.", form: true },
-      { title: "Make a test payment", body: "Pay a small amount with one of Flutterwave's test cards (listed in their docs under Testing). PayTrail waits for the payment and the webhook.", test: true, docs: "https://developer.flutterwave.com/docs/integration-guides/testing-helpers", docsLabel: "Flutterwave test cards" },
+      { title: "Add your Usetally webhook", body: "Go to Settings → Webhooks. Paste the URL below, and set a Secret hash. You can use the one we generated. Turn on webhooks for successful and failed charges, then save.", webhook: true, hash: true },
+      { title: "Paste both into Usetally", body: "Paste the secret key and the same secret hash. Usetally checks the key with Flutterwave before saving, and stores it encrypted.", form: true },
+      { title: "Make a test payment", body: "Pay a small amount with one of Flutterwave's test cards (listed in their docs under Testing). Usetally waits for the payment and the webhook.", test: true, docs: "https://developer.flutterwave.com/docs/integration-guides/testing-helpers", docsLabel: "Flutterwave test cards" },
       { title: "Go live", body: "Switch Flutterwave to Live mode. Repeat steps 2–4 with your live secret key (FLWSECK-…) and set the webhook again in live mode, then run one small test." },
     ],
   },
@@ -108,9 +108,9 @@ export function PaymentSetup({ connections, webhooks, testAmount, focus, testRes
         recommended={i === 0} defaultOpen={focus === p || (!focus && !Object.keys(connections).length && i === 0)} />)}
       <Card className="xl:col-span-2">
         <div className="grid gap-5 p-5 sm:grid-cols-3">
-          <Explainer icon={ShieldCheck} title="Your money, your account" text="Payments land in your own Stripe, Paystack, Flutterwave or Bachs balance. PayTrail only reads the result so it can mark invoices paid." />
+          <Explainer icon={ShieldCheck} title="Your money, your account" text="Payments land in your own Stripe, Paystack, Flutterwave or Bachs balance. Usetally only reads the result so it can mark invoices paid." />
           <Explainer icon={KeyRound} title="Keys are encrypted" text="Secret keys are encrypted before they're stored and are never shown again, not even to your team." />
-          <Explainer icon={RefreshCw} title="Nothing gets missed" text="If a customer closes the page early, PayTrail re-checks unconfirmed payments with the provider automatically." />
+          <Explainer icon={RefreshCw} title="Nothing gets missed" text="If a customer closes the page early, Usetally re-checks unconfirmed payments with the provider automatically." />
         </div>
       </Card>
     </div>
@@ -138,7 +138,7 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
   const checks = [
     { label: "Keys saved and accepted", ok: Boolean(connection?.key_hint), hint: connection?.key_hint ? `…${connection.key_hint} · ${connection.mode === "live" ? "Live" : "Test"} key` : null },
     { label: "Test payment completed", ok: Boolean(connection?.payment_confirmed_at) },
-    { label: "Webhook received by PayTrail", ok: Boolean(connection?.webhook_confirmed_at), hint: !connection?.webhook_confirmed_at && connection?.payment_confirmed_at ? "Check the webhook URL and secret in your provider dashboard" : null },
+    { label: "Webhook received by Usetally", ok: Boolean(connection?.webhook_confirmed_at), hint: !connection?.webhook_confirmed_at && connection?.payment_confirmed_at ? "Check the webhook URL and secret in your provider dashboard" : null },
   ];
 
   function act(name, fn) {
@@ -228,7 +228,7 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
                         <Input id={`${provider}-hook`} type="password" autoComplete="off" value={hook} onChange={(e) => setHook(e.target.value)} placeholder={guide.hookPlaceholder} />
                       </Field>
                     )}
-                    {error && busy === null && <p role="alert" className="text-[13px] font-medium text-danger-ink">{error}</p>}
+                    {error && busy === null && <Alert intent="error" size="sm">{error}</Alert>}
                     <Button variant="primary" icon={busy === "save" ? Loader2 : KeyRound} loading={busy === "save"} className="self-start"
                       onClick={() => act("save", () => guarded(() => saveConnection(provider, { secretKey: key, webhookSecret: hook })))}>Save & check key</Button>
                   </div>
@@ -248,9 +248,9 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
           ))}
         </ol>
       )}
-      <Modal open={confirmRemove} onClose={() => setConfirmRemove(false)} title={`Disconnect ${guide.name}?`} description="Its keys are deleted from PayTrail. Customers won't see this payment option."
+      <Modal open={confirmRemove} onClose={() => setConfirmRemove(false)} title={`Disconnect ${guide.name}?`} description="Its keys are deleted from Usetally. Customers won't see this payment option."
         footer={<><Button onClick={() => setConfirmRemove(false)}>Cancel</Button><Button variant="destructive" icon={Trash2} onClick={() => { setConfirmRemove(false); act("remove", () => disconnect(provider)); }}>Disconnect</Button></>}>
-        <p className="text-sm text-ink-2">Payments already recorded stay in PayTrail.</p>
+        <p className="text-sm text-ink-2">Payments already recorded stay in Usetally.</p>
       </Modal>
     </Card>
   );

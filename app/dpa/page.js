@@ -12,39 +12,39 @@ export default async function Dpa() {
   return (
     <LegalLayout title="Data Processing Agreement" updated={updated}>
       <p>
-        This agreement is part of the <Link href="/terms" className={a}>Terms of Service</Link> between {company} ({address}) ("PayTrail",
-        "we") and each business that uses PayTrail ("you"). It applies when we process personal data on your behalf, mainly the details of
+        This agreement is part of the <Link href="/terms" className={a}>Terms of Service</Link> between {company} ({address}) ("Usetally",
+        "we") and each business that uses Usetally ("you"). It applies when we process personal data on your behalf, mainly the details of
         your customers. It is written to meet section 29 of the Nigeria Data Protection Act 2023 and Article 28 of the EU and UK GDPR.
-        You accept it by using PayTrail; no signature is needed. If it conflicts with the Terms on data protection, this agreement wins.
+        You accept it by using Usetally; no signature is needed. If it conflicts with the Terms on data protection, this agreement wins.
       </p>
 
       <Section title="1. Roles">
         <p>
-          For the personal data you put into PayTrail about your customers and team, <strong className="text-ink">you are the controller</strong> and
-          <strong className="text-ink"> PayTrail is your processor</strong>. You're responsible for having a lawful basis to use that data and for
-          telling your customers how you use it. For our own account and billing data, PayTrail is the controller, as described in
+          For the personal data you put into Usetally about your customers and team, <strong className="text-ink">you are the controller</strong> and
+          <strong className="text-ink"> Usetally is your processor</strong>. You're responsible for having a lawful basis to use that data and for
+          telling your customers how you use it. For our own account and billing data, Usetally is the controller, as described in
           our <Link href="/privacy" className={a}>Privacy Policy</Link>.
         </p>
       </Section>
 
       <Section title="2. What we process (details of processing)">
         <List items={[
-          "Subject matter and purpose: providing PayTrail, which means storing, displaying, sending and collecting payment on your quotations, invoices and receipts.",
+          "Subject matter and purpose: providing Usetally, which means storing, displaying, sending and collecting payment on your quotations, invoices and receipts.",
           "Duration: while your account is open, plus up to 30 days after you delete your business.",
           "Types of people: your customers and their contacts, and your team members.",
           "Types of data: names, company names, email addresses, phone numbers, postal addresses, tax IDs if you add them, what you sold and for how much, payment status and references, and anything you type into notes.",
-          "Sensitive data: PayTrail isn't designed for it (for example health or religious information). Please don't put it in documents.",
+          "Sensitive data: Usetally isn't designed for it (for example health or religious information). Please don't put it in documents.",
         ]} />
       </Section>
 
       <Section title="3. What we promise">
         <List items={[
-          "We only process the data to provide PayTrail and to follow your instructions, which are your use of the app and these terms. We tell you if we think an instruction breaks data protection law.",
+          "We only process the data to provide Usetally and to follow your instructions, which are your use of the app and these terms. We tell you if we think an instruction breaks data protection law.",
           "We don't sell your customers' data or use it for our own marketing.",
-          "Everyone at PayTrail who can access the data is bound to keep it confidential.",
+          "Everyone at Usetally who can access the data is bound to keep it confidential.",
           "We keep appropriate security in place, including: each business's data separated in the database, encryption in transit (HTTPS) and of payment keys at rest, access limited by role, and hidden cost lines visible only to permitted team members.",
           "We help you respond to your customers' requests to see, correct, export or delete their data. You can edit and delete customers yourself, and download all your data in Settings → Privacy & data.",
-          "We help you with data protection impact assessments and with questions from the Nigeria Data Protection Commission or another regulator, where they concern PayTrail.",
+          "We help you with data protection impact assessments and with questions from the Nigeria Data Protection Commission or another regulator, where they concern Usetally.",
         ]} />
       </Section>
 
@@ -75,7 +75,7 @@ export default async function Dpa() {
       <Section title="7. When you leave">
         <p>
           You can download all your data at any time. When you delete your business, it is permanently deleted 30 days later, including backups
-          as they expire in the normal cycle. We keep only the records of what you paid PayTrail, which the tax law requires us to keep.
+          as they expire in the normal cycle. We keep only the records of what you paid Usetally, which the tax law requires us to keep.
         </p>
       </Section>
 

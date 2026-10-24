@@ -22,13 +22,13 @@ export default async function InvitePage({ params }) {
         <div className="flex flex-col gap-4">
           <h1 className="text-title-1 text-ink">This invitation can't be used</h1>
           <p className="text-sm text-ink-2">{inv?.accepted_at ? "It has already been accepted." : "It may have expired or been cancelled. Ask whoever invited you to send a new one."}</p>
-          <Button href={ctx.user ? "/app" : "/login"} variant="primary">{ctx.user ? "Go to PayTrail" : "Sign in"}</Button>
+          <Button href={ctx.user ? "/app" : "/login"} variant="primary">{ctx.user ? "Go to Usetally" : "Sign in"}</Button>
         </div>
       ) : (
         <div className="flex flex-col gap-5">
           <div>
             <p className="text-overline text-brand-ink">Team invitation</p>
-            <h1 className="mt-2 text-title-1 text-ink">Join {inv.businesses?.name} on PayTrail</h1>
+            <h1 className="mt-2 text-title-1 text-ink">Join {inv.businesses?.name} on Usetally</h1>
             <p className="mt-1 text-sm text-ink-2">You've been invited as <strong className="text-ink">{ROLES[inv.role].label}</strong>. {ROLES[inv.role].summary}</p>
           </div>
           {ctx.user ? (
@@ -42,7 +42,7 @@ export default async function InvitePage({ params }) {
               <p className="mt-1 text-center text-xs text-ink-3">Use <strong>{inv.email}</strong>. That's the address this invitation was sent to.</p>
             </div>
           )}
-          <Link href="/" className="text-center text-[13px] text-ink-3 hover:text-ink">What is PayTrail?</Link>
+          <Link href="/" className="text-center text-[13px] text-ink-3 hover:text-ink">What is Usetally?</Link>
         </div>
       )}
     </AuthLayout>

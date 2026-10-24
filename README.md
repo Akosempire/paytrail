@@ -1,4 +1,4 @@
-# PayTrail
+# Usetally
 
 Branded quotations, invoices and receipts for freelancers and companies.
 
@@ -45,7 +45,7 @@ These rules are enforced **in the database** (row-level security and checked fun
    - Site URL: your app address, e.g. `https://paytrail.yourdomain.com`
    - Redirect URLs: add `https://paytrail.yourdomain.com/auth/callback` (and `http://localhost:3000/auth/callback` for local work)
 4. **Authentication → Emails → SMTP**: add Brevo (host `smtp-relay.brevo.com`, port `587`, your Brevo SMTP login and SMTP key). The built-in sender is rate-limited.
-   - **Authentication → Emails → Confirm signup**: paste `supabase/email-templates/confirm-signup.html` and set the subject to `Your PayTrail code: {{ .Token }}`. New users type this 6-digit code to confirm their email (the link in the email works too).
+   - **Authentication → Emails → Confirm signup**: paste `supabase/email-templates/confirm-signup.html` and set the subject to `Your Usetally code: {{ .Token }}`. New users type this 6-digit code to confirm their email (the link in the email works too).
 5. **Project Settings → API**: copy the URL, the `anon` key and the `service_role` key for step 2.
 
 ### 2. Environment variables
@@ -57,7 +57,7 @@ Copy `.env.example` to `.env.local` (locally) or add them in Vercel → Settings
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | From Supabase. Keep the service role key secret. |
 | `NEXT_PUBLIC_SITE_URL` | Your app's public address, with no trailing slash. Used in payment links and webhook URLs. |
 | `APP_ENCRYPTION_KEY` | 32+ random characters. Encrypts every business's payment keys. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Never change it later**, or saved keys can't be read. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Brevo: `smtp-relay.brevo.com`, `587`, your Brevo SMTP **login** (e.g. `9a1b2c001@smtp-brevo.com`), your SMTP **key** (`xsmtpsib-…`), and a sender you verified in Brevo. Needed for security codes, emailing documents and admin alerts. Without it PayTrail still runs, but security codes can't be sent, so that protection is off. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Brevo: `smtp-relay.brevo.com`, `587`, your Brevo SMTP **login** (e.g. `9a1b2c001@smtp-brevo.com`), your SMTP **key** (`xsmtpsib-…`), and a sender you verified in Brevo. Needed for security codes, emailing documents and admin alerts. Without it Usetally still runs, but security codes can't be sent, so that protection is off. |
 | `ADMIN_ALERT_EMAILS` | Optional. Who gets admin alerts (new businesses, payment key changes). Empty = every platform admin. |
 | `CRON_SECRET` | Random string. Protects the job that re-checks unconfirmed payments. |
 | `LEGAL_COMPANY_NAME`, `LEGAL_ADDRESS`, `LEGAL_EMAIL` | Shown on `/terms`, `/privacy` and `/dpa`. Use your registered business name and address. |
@@ -67,7 +67,7 @@ Copy `.env.example` to `.env.local` (locally) or add them in Vercel → Settings
 ### 3. Deploy to Vercel
 
 1. Push this folder to a new GitHub repo, then import it in Vercel (framework: Next.js). Add the env vars from step 2.
-2. Payments whose webhook never arrived are re-checked automatically in the background whenever a team opens PayTrail or a customer opens their link (at most every 2 minutes), so this works on any Vercel plan. `vercel.json` also runs `/api/cron/reconcile` once a day as a safety net (allowed on the free Hobby plan). On Vercel Pro you can make it every 15 minutes: change the schedule to `*/15 * * * *`.
+2. Payments whose webhook never arrived are re-checked automatically in the background whenever a team opens Usetally or a customer opens their link (at most every 2 minutes), so this works on any Vercel plan. `vercel.json` also runs `/api/cron/reconcile` once a day as a safety net (allowed on the free Hobby plan). On Vercel Pro you can make it every 15 minutes: change the schedule to `*/15 * * * *`.
 3. **Legal pages:** `/terms` and `/privacy` are ready-made starting points written for a Nigerian business serving customers worldwide. Have a lawyer review them before launch.
 
 ### 4. Make yourself the platform owner
@@ -98,7 +98,7 @@ Refresh the app. **Platform admin** now appears in the sidebar (`/admin`).
   - **Trial:** the default is a **14-day free trial**. You can switch to a number of free documents, or no trial. A document counts when it's sent; converting a quote into an invoice doesn't count twice.
   - **Collecting subscriptions:**
     - *Bank transfer:* you activate plans by hand in **/admin/businesses → Manage**.
-    - *Stripe, Paystack, Flutterwave or Bachs:* paste PayTrail's **own** account keys and add the webhook URL shown there. Plans then activate automatically when paid. Use **Stripe** if you want businesses outside Africa to pay you in dollars, pounds or euros.
+    - *Stripe, Paystack, Flutterwave or Bachs:* paste Usetally's **own** account keys and add the webhook URL shown there. Plans then activate automatically when paid. Use **Stripe** if you want businesses outside Africa to pay you in dollars, pounds or euros.
 
 ---
 
@@ -107,7 +107,7 @@ Refresh the app. **Platform admin** now appears in the sidebar (`/admin`).
 Built in:
 
 - **Settings → Privacy & data** (every member): download a complete JSON copy of the business (owner) or of your own data; delete the business (owner, typed confirmation, 30-day grace period, cancellable); delete your own login.
-- A business waiting for deletion can't send documents. The daily job (`/api/cron/reconcile`) permanently removes it after 30 days, logo included. PayTrail keeps only the record of plan payments made to it, with the business name, for tax.
+- A business waiting for deletion can't send documents. The daily job (`/api/cron/reconcile`) permanently removes it after 30 days, logo included. Usetally keeps only the record of plan payments made to it, with the business name, for tax.
 - Public pages: `/privacy`, `/terms`, `/dpa` (Data Processing Agreement, covering businesses' customer data) and `/subprocessors`. Keep `/subprocessors` current (`subprocessors()` in `lib/legal.js`).
 
 Your side (not code): register with the Nigeria Data Protection Commission once you reach the threshold, file the yearly compliance audit return, name a Data Protection Officer if required, accept Supabase's and Vercel's DPAs in their dashboards, and keep a one-page breach plan (tell affected businesses within 48 hours, the regulator within 72). If you actively market to the EU or UK, appoint a representative there. Have a lawyer review the legal pages.
@@ -126,12 +126,12 @@ Your side (not code): register with the Nigeria Data Protection Commission once 
 ## Security codes and admin alerts
 
 - New users confirm their email with a **6-digit code** (sent by Supabase through Brevo).
-- **Changing payment keys** (any provider, including PayTrail's own billing keys) and **changing bank details** needs a fresh 6-digit code emailed to the person making the change. A correct code allows changes for 10 minutes. Bank details are also enforced in the database.
+- **Changing payment keys** (any provider, including Usetally's own billing keys) and **changing bank details** needs a fresh 6-digit code emailed to the person making the change. A correct code allows changes for 10 minutes. Bank details are also enforced in the database.
 - **Admin alerts** go by email to `ADMIN_ALERT_EMAILS` (or every platform admin) when a business finishes sign-up, and when payment keys are connected, changed or removed. Keys themselves are never emailed.
 
 ## Install and offline (PWA)
 
-- PayTrail can be installed from the browser. On phones a pop-up offers it: Android/Chrome uses the browser's install prompt, and iPhone Safari shows the "Share → Add to Home Screen" steps. If dismissed, it stays hidden for 14 days.
+- Usetally can be installed from the browser. On phones a pop-up offers it: Android/Chrome uses the browser's install prompt, and iPhone Safari shows the "Share → Add to Home Screen" steps. If dismissed, it stays hidden for 14 days.
 - **Offline:** pages you've opened stay readable offline, and other pages show `/offline` with links to the saved ones. Creating, sending and payments need a connection. Signing out clears saved pages from the device. The service worker (`public/sw.js`) only runs in production builds.
 
 ## How business payments work
@@ -147,11 +147,11 @@ Each business connects its **own** payment account in **Settings → Payment set
 
 Setup steps:
 
-1. Paste the secret key. PayTrail checks it with the provider, then stores it encrypted.
+1. Paste the secret key. Usetally checks it with the provider, then stores it encrypted.
 2. Add the webhook URL shown (it's unique to that business) and paste the webhook secret if the provider uses one.
 3. Make a small test payment.
 
-A provider only shows **Connected** after the test payment is confirmed **and** its webhook has reached PayTrail. **Customers only see the Pay button for live-mode connections**, so nobody can "pay" an invoice with a test card.
+A provider only shows **Connected** after the test payment is confirmed **and** its webhook has reached Usetally. **Customers only see the Pay button for live-mode connections**, so nobody can "pay" an invoice with a test card.
 
 Every payment is re-verified with the provider's API before an invoice is marked paid. Amount, currency and reference must match exactly. A replayed webhook can't pay twice. If money arrives for a document that was already paid or cancelled, it's flagged as **needs review** in the document's activity.
 

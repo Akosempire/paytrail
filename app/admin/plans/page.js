@@ -14,7 +14,7 @@ export default async function Plans() {
   for (const s of subs || []) if (s.plan_id) counts[s.plan_id] = (counts[s.plan_id] || 0) + 1;
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Plans & pricing" description="Set what PayTrail costs. Changes show on every business's billing page straight away. Nothing is hardcoded." />
+      <PageHeader title="Plans & pricing" description="Set what Usetally costs. Changes show on every business's billing page straight away. Nothing is hardcoded." />
       <PlanEditor plans={plans || []} counts={counts} />
     </div>
   );

@@ -68,7 +68,7 @@ export async function runTestPayment(provider) {
     const { url, reference } = await startCheckout({
       businessId: ctx.business.id, provider, purpose: "connection_test", amountMinor: testAmountMinor(ctx.business.currency), currency: ctx.business.currency,
       customer: { email: ctx.user.email, name: ctx.member.full_name || ctx.business.name },
-      brand: { name: ctx.business.name, logo: ctx.business.logo_path, description: "PayTrail connection test" },
+      brand: { name: ctx.business.name, logo: ctx.business.logo_path, description: "Usetally connection test" },
     });
     await createSupabaseService().from("payment_connections").update({ last_test_reference: reference }).eq("business_id", ctx.business.id).eq("provider", provider);
     return { url };

@@ -16,12 +16,12 @@ export default async function Page({ searchParams }) {
   const connections = Object.fromEntries((rows || []).map((r) => [r.provider, r]));
   const { data: platform } = await createSupabaseService().from("platform_settings").select("support_email").eq("id", true).maybeSingle();
   const support = platform?.support_email || "";
-  const supportLink = support ? `mailto:${support}?subject=${encodeURIComponent(`Payment setup help: ${ctx.business.name}`)}&body=${encodeURIComponent(`Hi PayTrail support,\n\nI need help connecting payments for ${ctx.business.name}.\n\nProvider (Stripe / Paystack / Flutterwave / Bachs):\nWhat I'm stuck on:\n`)}` : null;
+  const supportLink = support ? `mailto:${support}?subject=${encodeURIComponent(`Payment setup help: ${ctx.business.name}`)}&body=${encodeURIComponent(`Hi Usetally support,\n\nI need help connecting payments for ${ctx.business.name}.\n\nProvider (Stripe / Paystack / Flutterwave / Bachs):\nWhat I'm stuck on:\n`)}` : null;
   const webhook = (provider) => `${siteUrl()}/api/webhooks/${provider}/${ctx.business.id}`;
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Payment setup" description="Let customers pay quotes and invoices online. Connect Stripe, Paystack, Flutterwave or Bachs. Money goes straight into your own account. PayTrail never holds it." />
-      {sp.welcome && <Callout tone="brand" title="Welcome to PayTrail! Let's get you paid.">Connect one provider now, or skip this. Customers can always pay by bank transfer and you record it.</Callout>}
+      <PageHeader title="Payment setup" description="Let customers pay quotes and invoices online. Connect Stripe, Paystack, Flutterwave or Bachs. Money goes straight into your own account. Usetally never holds it." />
+      {sp.welcome && <Callout tone="brand" title="Welcome to Usetally! Let's get you paid.">Connect one provider now, or skip this. Customers can always pay by bank transfer and you record it.</Callout>}
       {supportLink && (
         <Callout tone="neutral" icon={LifeBuoy} title="Need help to integrate your payment?">
           <a href={supportLink} className="font-semibold text-brand-ink underline underline-offset-2 hover:no-underline">Click here</a> to get in touch with support

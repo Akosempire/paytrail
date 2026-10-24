@@ -49,7 +49,7 @@ export function LayoutPanel({ kind, value, onChange, brandColor, showInstruction
     set({ template: id, paper: papers.includes(value.paper) ? value.paper : papers[0] });
   };
   const sections = Object.entries(SECTIONS).filter(([k]) => kind !== "receipt" || !["notes", "terms", "payment_instructions", "bank_details", "item_details"].includes(k));
-  const accents = [["Paytrail green", SIGNATURE_GREEN], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"]].filter(([, c]) => /^#[0-9a-f]{6}$/i.test(c || ""));
+  const accents = [["Signature green", SIGNATURE_GREEN], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"]].filter(([, c]) => /^#[0-9a-f]{6}$/i.test(c || ""));
   const currentAccent = value.layout?.accent || (value.template === "signature" ? SIGNATURE_GREEN : brandColor);
 
   return (

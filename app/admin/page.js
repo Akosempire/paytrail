@@ -14,7 +14,7 @@ export default async function AdminHome() {
   const revenue = Object.entries(s?.subscription_revenue_month || {});
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title="PayTrail overview" description="Every business on the platform, and how billing is going." />
+      <PageHeader title="Usetally overview" description="Every business on the platform, and how billing is going." />
       <StatGroup>
         <StatCard icon={Building2} tone="brand" label="Businesses" value={s?.businesses ?? 0} hint={`${s?.companies ?? 0} companies`} />
         <StatCard icon={Sparkles} tone="info" label="On free trial" value={s?.trialing ?? 0} />

@@ -20,7 +20,7 @@ export function AuthLayout({ children }) {
           <p className="text-overline text-[#6ee0a6]">Quotes → invoices → receipts</p>
           <h2 className="mt-3 text-[40px] leading-[48px] font-semibold tracking-[-0.02em]">Every naira, from quote to receipt.</h2>
           <p className="mt-4 text-[15px] leading-relaxed text-white/65">
-            PayTrail helps freelancers and companies price jobs properly, send professional quotes and collect payment, all under their own brand.
+            Usetally helps freelancers and companies price jobs properly, send professional quotes and collect payment, all under their own brand.
           </p>
           <ul className="mt-8 space-y-4">
             {POINTS.map(({ icon: Icon, title, text }) => (

@@ -1,4 +1,4 @@
-/* PayTrail service worker: offline access.
+/* Usetally service worker: offline access.
  * - App files (scripts, styles, fonts, icons) are cached as they load.
  * - Pages: network first. Pages you've opened while signed in stay
  *   readable offline (read-only); anything else shows /offline.

@@ -31,10 +31,10 @@ export default async function Billing({ searchParams }) {
   let status;
   if (b.subscription_status === "trialing") status = settings.trial_mode === "documents" ? `Free trial: ${Math.max(0, (a.limit ?? 0) - (a.used ?? 0))} of ${a.limit ?? 0} free documents left` : settings.trial_mode === "days" ? `Free trial until ${formatDate(b.trial_ends_at)}` : "No free trial";
   else if (active) status = `${b.plans?.name || "Plan"}${b.current_period_end ? ` · paid until ${formatDate(b.current_period_end)}` : ""}${a.limit != null ? ` · ${a.used} of ${a.limit} documents used this month` : ""}`;
-  else status = b.subscription_status === "suspended" ? "Suspended. Contact PayTrail support." : "Your subscription has ended";
+  else status = b.subscription_status === "suspended" ? "Suspended. Contact Usetally support." : "Your subscription has ended";
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Plan & billing" description="Your PayTrail subscription. This is separate from the payments your customers make to you." />
+      <PageHeader title="Plan & billing" description="Your Usetally subscription. This is separate from the payments your customers make to you." />
       {payment === "succeeded" && <Callout tone="success" icon={Check} title="Payment received">Your plan is active. Thank you!</Callout>}
       {payment === "pending" && <Callout tone="info" title="Confirming payment">This page updates once the payment is confirmed. That usually takes under a minute.</Callout>}
       {payment === "failed" && <Callout tone="danger" title="Payment didn't go through">Nothing was charged. Try again.</Callout>}
@@ -52,7 +52,7 @@ export default async function Billing({ searchParams }) {
         </nav>
       )}
       {visible.length === 0 ? (
-        <EmptyState icon={CreditCard} title="Plans are coming soon" description={`Contact ${settings.support_email || "PayTrail support"} to subscribe.`} />
+        <EmptyState icon={CreditCard} title="Plans are coming soon" description={`Contact ${settings.support_email || "Usetally support"} to subscribe.`} />
       ) : (
         <div className={cx("grid gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2", visible.length >= 4 ? "xl:grid-cols-4" : visible.length === 3 ? "xl:grid-cols-3" : "")}>
           {visible.map((p) => {

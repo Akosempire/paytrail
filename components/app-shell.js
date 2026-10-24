@@ -6,7 +6,8 @@ import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
   Plus, Menu, X, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer,
 } from "lucide-react";
-import { Avatar, Button, Logo, cx } from "@/components/ui";
+import { BRAND } from "@/lib/brand";
+import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
 import { signOut } from "@/app/(auth)/actions";
 import { InstallPrompt, clearOfflinePages } from "@/components/pwa";
@@ -98,7 +99,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
         ))}
         {isPlatformAdmin && (
           <div className="mt-4">
-            <p className="px-3 pb-1.5 text-overline text-ink-3">PayTrail</p>
+            <p className="px-3 pb-1.5 text-overline text-ink-3">{BRAND.name}</p>
             <Link href="/admin" className="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 hover:bg-hover hover:text-ink">
               <ShieldCheck className="size-[18px] text-violet" /> Platform admin
             </Link>
@@ -155,9 +156,10 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
 function TrialMeter({ allowance, canBilling, status }) {
   if (!allowance) return null;
   if (allowance.reason === "deletion_pending") return (
-    <Link href="/app/settings/privacy" className="mx-3 mb-3 block rounded-xl bg-danger-soft p-3.5 text-xs text-danger-ink">
-      <span className="block text-[13px] font-semibold">Deletion scheduled</span>
-      Deletes on {new Date(allowance.deletes_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. Click to cancel.
+    <Link href="/app/settings/privacy" className="mx-3 mb-3 block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+      <Alert intent="error" size="sm" live={false} title="Deletion scheduled" className="rounded-xl hover:border-line-strong">
+        Deletes on {new Date(allowance.deletes_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. Select to cancel.
+      </Alert>
     </Link>
   );
   if (status === "active" && allowance.limit == null) return null;

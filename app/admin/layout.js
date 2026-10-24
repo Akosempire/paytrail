@@ -5,7 +5,7 @@ import { Badge, Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
 import { AdminNav } from "./nav";
 
-export const metadata = { title: { default: "Platform admin", template: "%s · PayTrail admin" } };
+export const metadata = { title: { default: "Platform admin", template: "%s · Usetally admin" } };
 
 export default async function AdminLayout({ children }) {
   await requirePlatformAdmin();

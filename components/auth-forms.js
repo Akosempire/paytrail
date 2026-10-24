@@ -1,10 +1,11 @@
 "use client";
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye, EyeOff, Lock, Mail, MailCheck, User } from "lucide-react";
-import { Callout, Field, Input } from "@/components/ui";
+import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
+import { Alert, Callout, Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton } from "@/components/ui-client";
-import { requestReset, resendSignupCode, signIn, signUp, updatePassword, verifySignup } from "@/app/(auth)/actions";
+import { requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
+import { BRAND } from "@/lib/brand";
 
 function PasswordInput({ name = "password", placeholder = "Enter your password", autoComplete = "current-password", id }) {
   const [show, setShow] = useState(false);
@@ -27,25 +28,24 @@ export function VerifyEmailForm({ email, next, intro }) {
   return (
     <form action={action} className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-3 text-center">
-        <span className="inline-flex size-14 items-center justify-center rounded-full bg-success-soft text-success ring-1 ring-success/25"><MailCheck className="size-6" /></span>
+        <span className="inline-flex size-14 items-center justify-center rounded-full border border-notice-line bg-notice text-intent-success"><MailCheck className="size-6" aria-hidden="true" /></span>
         <h1 className="text-title-1 text-ink">Check your email</h1>
         <p className="text-sm text-ink-2">{intro || "We sent a 6-digit code to"} <strong className="text-ink">{email}</strong>. Enter it to confirm your email.</p>
       </div>
       <FormMessage state={state} />
-      {resend?.message && <p role="status" className="rounded-md bg-success-soft px-3 py-2 text-[13px] font-medium text-success-ink">{resend.message}</p>}
-      {resend?.error && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-[13px] font-medium text-danger-ink">{resend.error}</p>}
+      {resend?.message && <Alert intent="success" size="sm" title="New code sent">{resend.message}</Alert>}
+      {resend?.error && <Alert intent="error" size="sm">{resend.error}</Alert>}
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="next" value={next || ""} />
       <Field label="Confirmation code" htmlFor="code">
-        <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12}
-          className="h-14 w-full rounded-lg bg-surface text-center font-mono text-[26px] tracking-[0.3em] text-ink ring-1 ring-inset ring-line-strong focus:ring-2 focus:ring-brand focus:outline-none" />
+        <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12} className={CODE_INPUT} />
       </Field>
       <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Checking…">Confirm email</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
-        <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendSignupCode(email)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
+        <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendSignupCode(email, next)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
       </p>
-      <p className="text-center text-xs text-ink-3">The email also has a link: opening it works too.</p>
+      <p className="text-center text-xs text-ink-3">The email also has a button. Opening it works too.</p>
     </form>
   );
 }
@@ -56,7 +56,7 @@ export function LoginForm({ next, notice }) {
   return (
     <form action={action} className="flex flex-col gap-5">
       <div>
-        <h1 className="text-title-1 text-ink">Sign in to PayTrail</h1>
+        <h1 className="text-title-1 text-ink">Sign in to {BRAND.name}</h1>
         <p className="mt-1 text-sm text-ink-2">Welcome back. Pick up where you left off.</p>
       </div>
       {notice && <Callout tone="info">{notice}</Callout>}
@@ -68,7 +68,7 @@ export function LoginForm({ next, notice }) {
         <Link href="/forgot" className="self-end text-xs font-medium text-brand-ink hover:underline">Forgot password?</Link>
       </Field>
       <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Signing in…">Sign in</SubmitButton>
-      <p className="text-center text-sm text-ink-2">New to PayTrail? <Link href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-brand-ink hover:underline">Create an account</Link></p>
+      <p className="text-center text-sm text-ink-2">New to {BRAND.name}? <Link href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-brand-ink hover:underline">Create an account</Link></p>
     </form>
   );
 }
@@ -79,7 +79,7 @@ export function SignupForm({ next, email, trialText }) {
   return (
     <form action={action} className="flex flex-col gap-5">
       <div>
-        <h1 className="text-title-1 text-ink">Create your PayTrail account</h1>
+        <h1 className="text-title-1 text-ink">Create your {BRAND.name} account</h1>
         <p className="mt-1 text-sm text-ink-2">{trialText || "Start free. No card needed."}</p>
       </div>
       <FormMessage state={state} />
@@ -94,17 +94,49 @@ export function SignupForm({ next, email, trialText }) {
   );
 }
 
+const CODE_INPUT = "h-14 w-full rounded-lg bg-surface text-center font-mono text-[26px] tracking-[0.3em] text-ink ring-1 ring-inset ring-line-strong focus:ring-2 focus:ring-brand focus:outline-none";
+
 export function ForgotForm() {
   const [state, action] = useActionState(requestReset, null);
+  if (state?.sent) return <ResetCodeForm email={state.sent} />;
   return (
     <form action={action} className="flex flex-col gap-5">
       <div>
         <h1 className="text-title-1 text-ink">Reset your password</h1>
-        <p className="mt-1 text-sm text-ink-2">We'll email you a link to choose a new one.</p>
+        <p className="mt-1 text-sm text-ink-2">We'll email you a code to choose a new one.</p>
       </div>
-      {state?.sent ? <Callout tone="success" title="Check your inbox">If an account exists for {state.sent}, a reset link is on its way.</Callout> : <FormMessage state={state} />}
-      <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" placeholder="you@company.com" required /></Field>
-      <SubmitButton size="lg" block pendingText="Sending…">Send reset link</SubmitButton>
+      <FormMessage state={state} />
+      <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" placeholder="you@company.com" autoComplete="email" required /></Field>
+      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Sending…">Send reset code</SubmitButton>
+      <Link href="/login" className="text-center text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
+    </form>
+  );
+}
+
+// step 2 of a reset: the code from the email
+function ResetCodeForm({ email }) {
+  const [state, action] = useActionState(verifyResetCode, null);
+  const [resend, setResend] = useState(null);
+  const [sending, start] = useTransition();
+  return (
+    <form action={action} className="flex flex-col gap-5">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="inline-flex size-14 items-center justify-center rounded-full border border-notice-line bg-notice text-intent-info"><KeyRound className="size-6" aria-hidden="true" /></span>
+        <h1 className="text-title-1 text-ink">Check your email</h1>
+        <p className="text-sm text-ink-2">If an account exists for <strong className="text-ink">{email}</strong>, we sent a code to reset your password.</p>
+      </div>
+      <FormMessage state={state} />
+      {resend?.message && <Alert intent="success" size="sm" title="New code sent">{resend.message}</Alert>}
+      {resend?.error && <Alert intent="error" size="sm">{resend.error}</Alert>}
+      <input type="hidden" name="email" value={email} />
+      <Field label="Reset code" htmlFor="code">
+        <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12} className={CODE_INPUT} />
+      </Field>
+      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Checking…">Continue</SubmitButton>
+      <p className="text-center text-sm text-ink-2">
+        No email? Check spam, or{" "}
+        <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendResetCode(email)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
+      </p>
       <Link href="/login" className="text-center text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
     </form>
   );

@@ -4,10 +4,10 @@ import { ToastProvider } from "@/components/ui-client";
 import { ServiceWorker } from "@/components/pwa";
 
 export const metadata = {
-  title: { default: "Tally — quotes, invoices & payments", template: "%s · Tally" },
+  title: { default: "Usetally — quotes, invoices & payments", template: "%s · Usetally" },
   description: "Send branded quotations, get paid online with Stripe, Paystack, Flutterwave or Bachs, and issue receipts automatically. Track your real costs and profit on every job.",
-  applicationName: "Tally",
-  appleWebApp: { capable: true, title: "Tally", statusBarStyle: "default" },
+  applicationName: "Usetally",
+  appleWebApp: { capable: true, title: "Usetally", statusBarStyle: "default" },
   icons: { icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }], apple: "/icons/apple-touch-icon.png" },
   formatDetection: { telephone: false },
 };

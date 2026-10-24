@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { requireBusiness, friendlyError } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { accountDeletionBlocker } from "@/lib/privacy";
-import { brandedEmail, sendEmail } from "@/lib/email";
+import { sendEmail } from "@/lib/email";
+import { deletionScheduledEmail } from "@/lib/emails";
 import { formatDate } from "@/lib/format";
 
 export async function requestBusinessDeletion(_prev, form) {
@@ -12,19 +13,7 @@ export async function requestBusinessDeletion(_prev, form) {
   if (ctx.member.role !== "owner") return { error: "Only the owner can delete this business." };
   const { data: due, error } = await ctx.supabase.rpc("request_business_deletion", { target: ctx.business.id, confirm_name: String(form.get("confirm") || "") });
   if (error) return { error: friendlyError(error) };
-  await sendEmail({
-    to: ctx.user.email,
-    subject: `${ctx.business.name} is scheduled for deletion`,
-    html: brandedEmail({
-      brandName: "PayTrail",
-      heading: "Your business is scheduled for deletion",
-      lines: [
-        `${ctx.business.name} and all of its quotes, invoices, receipts, customers and team access will be permanently deleted on ${formatDate(due)}.`,
-        "Until then you can download a copy of your data, or cancel the deletion, from Settings → Privacy & data.",
-        "If you didn't ask for this, sign in and cancel it straight away.",
-      ],
-    }),
-  }).catch(() => {});
+  await sendEmail({ to: ctx.user.email, ...deletionScheduledEmail({ businessName: ctx.business.name, date: due }) }).catch(() => {});
   revalidatePath("/app", "layout");
   return { message: "Deletion scheduled." };
 }

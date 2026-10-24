@@ -25,7 +25,7 @@ export async function choosePlan(planId) {
       billingBusinessId: ctx.business.id, provider: settings.billing_provider, purpose: "subscription", planId: plan.id,
       amountMinor: plan.price_minor, currency: plan.currency,
       customer: { email: ctx.business.email || ctx.user.email, name: ctx.business.name },
-      brand: { name: "PayTrail", description: `${plan.name} plan` },
+      brand: { name: "Usetally", description: `${plan.name} plan` },
     });
     return { url };
   } catch (e) {

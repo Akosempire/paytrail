@@ -1,8 +1,8 @@
-// Web app manifest: lets Tally be installed on phones and desktops.
+// Web app manifest: lets Usetally be installed on phones and desktops.
 export default function manifest() {
   return {
-    name: "Tally: quotes, invoices & payments",
-    short_name: "Tally",
+    name: "Usetally: quotes, invoices & payments",
+    short_name: "Usetally",
     description: "Send branded quotations and invoices, get paid online and issue receipts.",
     id: "/app",
     start_url: "/app?source=pwa",

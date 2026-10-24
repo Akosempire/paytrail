@@ -1,10 +1,10 @@
 "use client";
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, TriangleAlert, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
+import { EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, CircleAlert, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
-import { Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
+import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
 import { COST_CATEGORIES } from "@/lib/format";
@@ -275,7 +275,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                 <div className="mb-1 flex justify-between text-xs text-ink-3"><span>Margin</span><span className="font-semibold tabular">{revenue > 0 ? `${pct.toFixed(1)}%` : "—"}</span></div>
                 <div className="h-2 overflow-hidden rounded-full bg-line"><div className={cx("h-full rounded-full transition-all", pct < 0 ? "bg-danger" : pct < 15 ? "bg-warn" : "bg-success")} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} /></div>
               </div>
-              {profit < 0 && <p className="flex gap-1.5 rounded-md bg-danger-soft px-2.5 py-2 text-xs text-danger-ink"><TriangleAlert className="mt-0.5 size-3.5 shrink-0" />You'd lose money on this job at this price.</p>}
+              {profit < 0 && <Alert intent="warning" size="sm" title="You'd lose money">Your costs are higher than the price of this job.</Alert>}
             </dl>
             {costTotal > 0 && (
               <div className="border-t border-line px-5 py-4">
@@ -313,7 +313,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur lg:left-[264px]">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
           <div className="min-w-0 flex-1">
-            {error ? <p role="alert" className="text-[13px] font-medium text-danger-ink">{error}</p> : (
+            {error ? <p role="alert" className="flex items-start gap-2 text-[13px] text-ink"><CircleAlert className="mt-px size-4 shrink-0 text-intent-error" aria-hidden="true" /><span><span className="sr-only">Error: </span>{error}</span></p> : (
               <p className="text-[13px] text-ink-3"><span className="font-semibold text-ink tabular">{money(totals.total)}</span> total{costsVisible && costTotal > 0 && <> · <span className={profit < 0 ? "text-danger-ink" : "text-success-ink"}>{money(profit)} profit</span></>}</p>
             )}
           </div>

@@ -24,7 +24,7 @@ const DISMISS_KEY = "pt-install-dismissed";
 const read = (k) => { try { return window.localStorage.getItem(k); } catch { return null; } };
 const write = (k, v) => { try { window.localStorage.setItem(k, v); } catch { /* storage blocked */ } };
 
-// A pop-up on phones asking to install PayTrail. Android/Chrome uses the
+// A pop-up on phones asking to install Usetally. Android/Chrome uses the
 // browser's install prompt; iPhone/iPad Safari gets "Add to Home Screen" steps.
 // Not shown when already installed, on desktop, or for 14 days after "Not now".
 export function InstallPrompt({ delay = 3500 }) {
@@ -63,7 +63,7 @@ export function InstallPrompt({ delay = 3500 }) {
         <div className="flex items-start gap-3">
           <Logo className="size-11 shrink-0" />
           <div className="min-w-0 flex-1">
-            <p id="pt-install-title" className="text-title-3 text-ink">Install PayTrail</p>
+            <p id="pt-install-title" className="text-title-3 text-ink">Install Usetally</p>
             <p className="mt-0.5 text-[13px] text-ink-2">Open it from your home screen like an app: faster, full screen, and readable offline.</p>
           </div>
           <button type="button" onClick={close} aria-label="Close" className="-mt-1 -mr-1 inline-flex size-8 shrink-0 items-center justify-center rounded-full text-ink-3 hover:bg-hover hover:text-ink"><X className="size-4" /></button>

@@ -4,7 +4,7 @@
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /* ==========================================================================
-   PayTrail design tokens (from the Kasuwa design system)
+   Usetally design tokens (from the Kasuwa design system)
    Derived from the reference set: calm cool-grey canvas, white surfaces on
    grey "trays", one confident blue, outlined pills, large radii, generous air.
 
@@ -114,6 +114,16 @@
   --color-hero-paper: #fffdf8;
   --color-hero-tint: #ebe7dd;
   --color-hero-violet: #6941c6;
+
+  /* Notices (alerts, toasts): neutral surface; intent colour only on icon + title.
+     All intent/body colours pass WCAG AA (4.5:1) on the notice surface. */
+  --color-notice: #f9f9f9;
+  --color-notice-line: #e4e4e7;
+  --color-notice-body: #52525b;
+  --color-intent-success: #047857;
+  --color-intent-error: #be123c;
+  --color-intent-warning: #b45309;
+  --color-intent-info: #1d4ed8;
 }
 
 /* Dark theme — matches the dark reference: near-black canvas, charcoal trays, darker cards */
@@ -126,6 +136,14 @@
   --color-hero-paper: #1c1b18;
   --color-hero-tint: #1f1e1b;
   --color-hero-violet: #b692f6;
+
+  --color-notice: #141414;
+  --color-notice-line: #2a2a2a;
+  --color-notice-body: #a1a1aa;
+  --color-intent-success: #34d399;
+  --color-intent-error: #fb7185;
+  --color-intent-warning: #fbbf24;
+  --color-intent-info: #60a5fa;
 
   color-scheme: dark;
   --color-canvas: #141414;

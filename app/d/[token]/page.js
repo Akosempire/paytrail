@@ -115,7 +115,7 @@ export default async function PublicDocument({ params, searchParams }) {
               </ul>
             </div>
           )}
-          <p className="flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Sent securely with PayTrail · <a href="/privacy" className="underline underline-offset-2 hover:text-[#667085]">Privacy</a></p>
+          <p className="flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Sent securely with Usetally · <a href="/privacy" className="underline underline-offset-2 hover:text-[#667085]">Privacy</a></p>
         </aside>
       </main>
       {(!paid && !["void", "declined"].includes(doc.status) && !(quote && expired && doc.status !== "accepted")) && (

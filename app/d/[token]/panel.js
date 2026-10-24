@@ -1,12 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check } from "lucide-react";
+import { CircleAlert, CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check } from "lucide-react";
 import { respondToQuote, payDocument } from "./actions";
 
 const NAMES = { stripe: "Stripe", paystack: "Paystack", bachs: "Bachs", flutterwave: "Flutterwave" };
 
-// Light-only by design: this page is the business's branded document, not PayTrail's app.
+// Light-only by design: this page is the business's branded document, not Usetally's app.
 export function CustomerPanel({ token, doc, amount, paid, expired, providers, hasBank, bank, brandName, invoiceNumber }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -50,7 +50,7 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
         {expired && quote && doc.status !== "accepted" && <p className="mt-2 text-sm text-[#b54708]">This quote has expired. Ask {brandName} for an updated one.</p>}
       </div>
 
-      {error && <p role="alert" className="mx-5 mb-3 rounded-lg bg-[#fef3f2] px-3 py-2 text-[13px] font-medium text-[#b42318]">{error}</p>}
+      {error && <p role="alert" className="mx-5 mb-3 flex items-start gap-2.5 rounded-lg border border-[#e4e4e7] bg-[#f9f9f9] px-3 py-2.5 text-[13px] leading-snug text-[#18181b]"><CircleAlert className="mt-px size-4 shrink-0 text-[#be123c]" aria-hidden="true" /><span><span className="sr-only">Error: </span>{error}</span></p>}
 
       {awaitingReply && !mode && (
         <div className="flex flex-col gap-2 border-t border-[#eaecf0] p-5">

@@ -4,7 +4,8 @@ import { redirect } from "next/navigation";
 import { friendlyError, requireBusiness } from "@/lib/context";
 import { cleanPayload, getDocument } from "@/lib/documents";
 import { can } from "@/lib/permissions";
-import { brandedEmail, emailConfigured, sendEmail } from "@/lib/email";
+import { emailConfigured, sendEmail } from "@/lib/email";
+import { documentEmail, receiptEmail } from "@/lib/emails";
 import { formatMoney, toMinor } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { logoUrl, siteUrl } from "@/lib/site";
@@ -46,26 +47,8 @@ async function sendDocumentInternal(ctx, id, { email, expected }) {
 }
 
 async function emailDocument(ctx, { doc, link }) {
-  const quote = doc.kind === "quote";
   const b = ctx.business;
-  return sendEmail({
-    to: doc.customer_email,
-    replyTo: b.email || undefined,
-    fromName: b.name,
-    subject: `${quote ? "Quotation" : "Invoice"} ${doc.number} from ${b.name}`,
-    html: brandedEmail({
-      brandName: b.name, brandColor: b.brand_color, logo: logoUrl(b.logo_path),
-      heading: quote ? `Your quotation from ${b.name}` : `Invoice ${doc.number} from ${b.name}`,
-      lines: [
-        `Hi ${doc.customer_name.split(" ")[0] || "there"},`,
-        quote
-          ? `Here is our quotation${doc.title ? ` for ${doc.title}` : ""} for ${formatMoney(doc.total_minor, doc.currency)}. You can review it, accept it and pay online from the link below.`
-          : `Here is invoice ${doc.number} for ${formatMoney(doc.total_minor - doc.amount_paid_minor, doc.currency)}${doc.due_date ? `, due ${formatDate(doc.due_date)}` : ""}. You can view and pay it from the link below.`,
-      ],
-      buttonText: quote ? "View quotation" : "View & pay invoice",
-      buttonUrl: link,
-    }),
-  });
+  return sendEmail({ to: doc.customer_email, replyTo: b.email || undefined, fromName: b.name, ...documentEmail({ business: b, logo: logoUrl(b.logo_path), doc, link }) });
 }
 
 export async function sendDocument(id, { email = true, expected } = {}) {
@@ -76,7 +59,7 @@ export async function sendDocument(id, { email = true, expected } = {}) {
   const result = await sendDocumentInternal(ctx, id, { email, expected });
   refresh(id);
   if (result.error) return result;
-  if (email && !emailConfigured()) return { message: "Marked as sent. Email isn't set up on this PayTrail, so copy the link or share it on WhatsApp." };
+  if (email && !emailConfigured()) return { message: "Marked as sent. Email isn't set up on this Usetally, so copy the link or share it on WhatsApp." };
   return { message: result.message || (result.emailed ? "Sent to your customer by email." : "Marked as sent. Share the link with your customer.") };
 }
 
@@ -87,7 +70,7 @@ export async function resendEmail(id) {
   if (!full.doc.sent_at || ["draft", "pending_approval", "void"].includes(full.doc.status)) return { error: "Only sent documents can be emailed." };
   if (!can(ctx.member, "documents.send") && !(ctx.member.role === "junior_finance" && !ctx.business.require_approval)) return { error: "A manager or finance officer needs to send this." };
   if (!full.doc.customer_email) return { error: "Add an email for this customer first." };
-  if (!emailConfigured()) return { error: "Email isn't set up on this PayTrail. Share the link instead." };
+  if (!emailConfigured()) return { error: "Email isn't set up on this Usetally. Share the link instead." };
   const r = await emailDocument(ctx, full);
   return r.sent ? { message: `Emailed to ${full.doc.customer_email}.` } : { error: "The email could not be sent. Try again." };
 }
@@ -164,15 +147,12 @@ export async function emailReceipt(receiptId) {
   const { data: receipt } = await ctx.supabase.from("receipts").select("*, documents(number, customer_email, customer_name)").eq("id", receiptId).eq("business_id", ctx.business.id).maybeSingle();
   if (!receipt) return { error: "Receipt not found." };
   if (!receipt.documents?.customer_email) return { error: "This customer has no email address." };
-  if (!emailConfigured()) return { error: "Email isn't set up on this PayTrail. Copy the receipt link instead." };
+  if (!emailConfigured()) return { error: "Email isn't set up on this Usetally. Copy the receipt link instead." };
   const b = ctx.business;
   const link = `${siteUrl()}/r/${receipt.access_token}`;
   const r = await sendEmail({
     to: receipt.documents.customer_email, fromName: b.name, replyTo: b.email || undefined,
-    subject: `Receipt ${receipt.number} from ${b.name}`,
-    html: brandedEmail({ brandName: b.name, brandColor: b.brand_color, logo: logoUrl(b.logo_path), heading: "Thank you for your payment",
-      lines: [`We received ${formatMoney(receipt.amount_minor, receipt.currency)} for ${receipt.documents.number}.`, "Your receipt is ready to view and download."],
-      buttonText: "View receipt", buttonUrl: link }),
+    ...receiptEmail({ business: b, logo: logoUrl(b.logo_path), receipt, documentNumber: receipt.documents.number, link }),
   });
   return r.sent ? { message: "Receipt emailed." } : { error: "The email could not be sent." };
 }

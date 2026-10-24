@@ -76,13 +76,13 @@ export async function saveBilling(form) {
   const service = createSupabaseService();
   const { data: current } = await service.from("platform_settings").select("billing_provider, billing_secret_enc, billing_webhook_secret_enc").eq("id", true).single();
   // keys belong to one provider: switching provider needs that provider's own keys
-  if (provider !== "manual" && provider !== current?.billing_provider && !update.billing_secret_enc) return { error: "Paste the secret key for PayTrail's own account with this provider." };
+  if (provider !== "manual" && provider !== current?.billing_provider && !update.billing_secret_enc) return { error: "Paste the secret key for Usetally's own account with this provider." };
   if (provider !== "manual" && provider !== current?.billing_provider && rule.needsWebhookSecret && !hook) return { error: "Paste the webhook secret for this provider." };
-  if (provider !== "manual" && !update.billing_secret_enc && !current?.billing_secret_enc) return { error: "Paste the secret key for PayTrail's own account." };
+  if (provider !== "manual" && !update.billing_secret_enc && !current?.billing_secret_enc) return { error: "Paste the secret key for Usetally's own account." };
   if (provider !== "manual" && !update.billing_webhook_secret_enc && !current?.billing_webhook_secret_enc) return { error: "Paste the webhook secret." };
   const { error } = await service.from("platform_settings").update(update).eq("id", true);
   if (error) return { error: error.message };
-  if (key || hook) await notifyAdmins({ subject: `PayTrail billing keys changed (${provider})`, lines: [`${ctx.user.email} changed PayTrail's own ${provider} billing keys at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace the keys with your provider straight away."], link: "/admin/settings" });
+  if (key || hook) await notifyAdmins({ subject: `Usetally billing keys changed (${provider})`, lines: [`${ctx.user.email} changed Usetally's own ${provider} billing keys at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace the keys with your provider straight away."], link: "/admin/settings" });
   revalidatePath("/admin/settings");
   return { message: "Billing settings saved." };
 }

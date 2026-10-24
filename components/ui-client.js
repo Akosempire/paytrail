@@ -1,7 +1,8 @@
 "use client";
-import { createContext, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
+import { createContext, isValidElement, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { Check, Copy, Loader2, Moon, Sun, X, CheckCircle2, AlertCircle } from "lucide-react";
+import { Check, Copy, Loader2, Moon, Sun, X } from "lucide-react";
+import { Alert, INTENTS, intentOf } from "@/components/alert";
 import { Button, cx } from "@/components/ui";
 
 // submit button that shows a spinner while its form's server action runs
@@ -120,23 +121,41 @@ export function ThemeToggle() {
 const ToastContext = createContext(() => {});
 export function useToast() { return useContext(ToastContext); }
 
+// Toasts use the same rules as <Alert>: neutral surface, colour on icon + title.
+//   const toast = useToast();
+//   toast("Invoice sent")                                  // success, one line
+//   toast("Couldn't reach Paystack", "error")
+//   toast({ intent: "warning", title: "Trial ends soon", message: "Pick a plan to keep sending." })
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
-  const push = useCallback((message, tone = "success") => {
+  const dismiss = useCallback((id) => setToasts((t) => t.filter((x) => x.id !== id)), []);
+  const push = useCallback((input, tone = "success") => {
     const id = Math.random().toString(36).slice(2);
-    setToasts((t) => [...t, { id, message, tone }]);
-    setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 4200);
-  }, []);
+    const t = typeof input === "object" && input !== null && !isValidElement(input) ? { ...input } : { message: input, intent: tone };
+    t.intent = intentOf(t.intent || tone);
+    setToasts((list) => [...list.slice(-3), { id, ...t }]);
+    setTimeout(() => dismiss(id), t.intent === "error" || t.intent === "warning" ? 7000 : 4200);
+  }, [dismiss]);
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div aria-live="polite" className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4">
-        {toasts.map((t) => (
-          <div key={t.id} className="pointer-events-auto flex max-w-md animate-rise items-center gap-2.5 rounded-xl bg-contrast px-4 py-3 text-sm text-white shadow-[var(--shadow-pop)]">
-            {t.tone === "error" ? <AlertCircle className="size-4 shrink-0 text-[#fda29b]" /> : <CheckCircle2 className="size-4 shrink-0 text-[#6ee0a6]" />}
-            {t.message}
-          </div>
-        ))}
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4">
+        {toasts.map((t) => {
+          const it = INTENTS[t.intent];
+          return (
+            <div key={t.id} role={it.role} className="pointer-events-auto flex w-full max-w-[420px] animate-rise items-start gap-3 rounded-xl border border-notice-line bg-notice px-4 py-3 shadow-[var(--shadow-pop)]">
+              <it.icon className={cx("mt-0.5 size-[18px] shrink-0", it.text)} aria-hidden="true" />
+              <div className="min-w-0 flex-1 leading-snug">
+                <span className="sr-only">{it.label}: </span>
+                {t.title && <p className={cx("text-sm font-medium", it.text)}>{t.title}</p>}
+                {t.message && <p className={cx("text-[13.5px]", t.title ? "mt-0.5 text-notice-body" : "text-ink")}>{t.message}</p>}
+              </div>
+              <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="-mr-1 rounded-md p-1 text-notice-body hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                <X className="size-4" />
+              </button>
+            </div>
+          );
+        })}
       </div>
     </ToastContext.Provider>
   );
@@ -154,7 +173,9 @@ export function useActionToast(state) {
   }, [state, toast]);
 }
 
-export function FormMessage({ state }) {
-  if (!state?.error) return null;
-  return <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-[13px] font-medium text-danger-ink ring-1 ring-inset ring-danger/25">{state.error}</p>;
+// the error (or message) a server action returned, shown inline above a form
+export function FormMessage({ state, success = false }) {
+  if (state?.error) return <Alert intent="error" size="sm" title={state.errorTitle}>{state.error}</Alert>;
+  if (success && state?.message) return <Alert intent="success" size="sm" title={state.messageTitle}>{state.message}</Alert>;
+  return null;
 }

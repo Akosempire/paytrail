@@ -43,9 +43,9 @@ export function PlatformSettings({ settings, webhooks }) {
         </div>
       </Card>
       <Card>
-        <CardHeader title="Collecting subscriptions" description="PayTrail's own payment account, separate from the businesses' accounts." />
+        <CardHeader title="Collecting subscriptions" description="Usetally's own payment account, separate from the businesses' accounts." />
         <div className="flex flex-col gap-4 p-5">
-          <Field label="How businesses pay PayTrail" htmlFor="bp">
+          <Field label="How businesses pay Usetally" htmlFor="bp">
             <Select id="bp" value={billing.provider} onChange={(e) => setBilling({ ...billing, provider: e.target.value })}>
               <option value="manual">Bank transfer (you activate plans here)</option>
               <option value="stripe">Stripe (automatic, worldwide cards)</option>
@@ -57,7 +57,7 @@ export function PlatformSettings({ settings, webhooks }) {
           {billing.provider !== "manual" && (
             <>
               <div>
-                <p className="mb-1.5 text-[13px] font-medium text-ink-2">Webhook URL for PayTrail's {PROVIDER_INFO[billing.provider].name} account</p>
+                <p className="mb-1.5 text-[13px] font-medium text-ink-2">Webhook URL for Usetally's {PROVIDER_INFO[billing.provider].name} account</p>
                 <div className="flex items-center gap-2 rounded-md bg-subtle p-1.5 pl-3 ring-1 ring-line"><code className="min-w-0 flex-1 truncate font-mono text-[12px]">{webhooks[billing.provider]}</code><CopyButton value={webhooks[billing.provider]} /></div>
               </div>
               <Field label="Secret key" htmlFor="bk" hint={settings.billing_key_hint && settings.billing_provider === billing.provider ? `Saved key ends in …${settings.billing_key_hint}. Leave blank to keep it.` : undefined}>

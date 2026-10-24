@@ -31,7 +31,7 @@ export default async function ReceiptPage({ params }) {
         <div className="rounded-2xl bg-[#eceeef] p-2 sm:p-4">
           <DocPreview model={model} label={`Receipt ${model.number}`} />
         </div>
-        <p className="flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Issued with PayTrail · <a href="/privacy" className="underline underline-offset-2 hover:text-[#667085]">Privacy</a></p>
+        <p className="flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Issued with Usetally · <a href="/privacy" className="underline underline-offset-2 hover:text-[#667085]">Privacy</a></p>
       </div>
     </div>
   );

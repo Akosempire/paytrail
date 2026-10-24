@@ -49,12 +49,12 @@ export function StepStart({ ownerName, firstBusiness }) {
     <form action={action}>
       <input type="hidden" name="kind" value={kind} />
       <StepCard
-        title={firstBusiness ? "Welcome to PayTrail" : "Add another business"}
+        title={firstBusiness ? "Welcome to Usetally" : "Add another business"}
         description="Tell us who you are. This appears on every quote, invoice and receipt you send."
         footer={<><span className="text-[13px] text-ink-3">You can change all of this later in Settings.</span><SubmitButton iconRight={ArrowRight} pendingText="Creating…">Continue</SubmitButton></>}>
         <FormMessage state={state} />
         <div>
-          <p className="mb-2.5 text-[13px] font-medium text-ink-2">How will you use PayTrail?</p>
+          <p className="mb-2.5 text-[13px] font-medium text-ink-2">How will you use Usetally?</p>
           <div className="grid gap-3 sm:grid-cols-2">
             <ChoiceCard checked={kind === "freelancer"} onSelect={() => setKind("freelancer")} icon={UserRound} title="Freelancer / solo"
               description="Just you, sending quotes to your clients." points={["One login", "Your name or brand on documents", "Hidden costs and profit per job"]} />
@@ -234,7 +234,7 @@ export function StepFinish({ business }) {
             <p className="mt-1 text-[13px] text-ink-2">Works straight away. Customers see your bank details, and you record payments when they arrive.</p>
           </div>
         </div>
-        <Callout tone="info">The setup guide takes about 5 minutes. It only shows <strong>Connected</strong> after a real test payment reaches PayTrail.</Callout>
+        <Callout tone="info">The setup guide takes about 5 minutes. It only shows <strong>Connected</strong> after a real test payment reaches Usetally.</Callout>
       </StepCard>
     </form>
   );

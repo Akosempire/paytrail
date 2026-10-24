@@ -1,8 +1,10 @@
-// PayTrail component library. Visual language from the Kasuwa design system:
+// Usetally component library. Visual language from the Kasuwa design system:
 // cool-grey canvas, white cards on grey trays, one confident blue, large radii.
 // Everything here renders on the server; interactive pieces live in ui-client.js.
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { Alert, intentOf } from "@/components/alert";
+export { Alert, AlertStack } from "@/components/alert";
 
 export const cx = (...c) => c.filter(Boolean).join(" ");
 
@@ -190,17 +192,10 @@ export function EmptyState({ icon: Icon, title, description, action, compact }) 
   );
 }
 
-export function Callout({ tone = "warn", icon: Icon, title, children, className, action }) {
-  return (
-    <div className={cx("flex gap-3 rounded-lg p-3.5 text-[13px] ring-1 ring-inset", TONE_SOFT[tone], className)}>
-      {Icon && <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />}
-      <div className="min-w-0 flex-1">
-        {title && <p className="font-semibold">{title}</p>}
-        {children && <div className={cx(title && "mt-0.5", "opacity-90")}>{children}</div>}
-      </div>
-      {action && <div className="shrink-0 self-center">{action}</div>}
-    </div>
-  );
+// Callout is the older name for an inline notice; it now renders the shared
+// Alert (neutral surface, colour only on icon + title). Prefer <Alert> in new code.
+export function Callout({ tone = "warn", icon, title, children, className, action, live }) {
+  return <Alert intent={intentOf(tone)} icon={icon} title={title} action={action} className={className} live={live ?? true}>{children}</Alert>;
 }
 
 const CONTROL =
@@ -313,7 +308,7 @@ export function CodeBlock({ children, className }) {
   return <code className={cx("block overflow-x-auto rounded-md bg-contrast px-3.5 py-2.5 font-mono text-[12.5px] leading-relaxed text-white", className)}>{children}</code>;
 }
 
-// PayTrail mark: a receipt with a trail of dots leading to a tick
+// Usetally mark: a receipt with a trail of dots leading to a tick
 export function Logo({ className = "size-9", withWord, wordClass = "" }) {
   return (
     <span className="inline-flex items-center gap-2.5">

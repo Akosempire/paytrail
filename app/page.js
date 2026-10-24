@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowDown, ArrowRight, BadgeCheck, Building2, Check, EyeOff, Landmark, Lock, Plus, ShieldCheck, UserRound, Wallet } from "lucide-react";
-import { Logo } from "@/components/ui";
+import { Alert, Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
@@ -85,7 +85,7 @@ export default async function Home({ searchParams }) {
               : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><Link href="/signup" className={BTN_SM}>Get started</Link></>}
           </nav>
         </header>
-        {sp.account === "deleted" && <p role="status" className={WRAP}><span className="block rounded-xl bg-success-soft px-4 py-3 text-sm font-medium text-success-ink ring-1 ring-inset ring-success/25">Your account has been deleted. Thanks for using {BRAND.name}.</span></p>}
+        {sp.account === "deleted" && <div className={WRAP}><Alert intent="success" title="Account deleted">Your data has been removed. Thanks for using {BRAND.name}.</Alert></div>}
 
         <section className={`grid items-center gap-6 pt-8 pb-10 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:pt-6 lg:pb-12 ${WRAP}`}>
           <div className="max-w-[560px] lg:pb-10">

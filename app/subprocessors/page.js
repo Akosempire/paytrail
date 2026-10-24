@@ -11,8 +11,8 @@ export default async function Subprocessors() {
   return (
     <LegalLayout title="Sub-processors" updated={updated}>
       <p>
-        These are the outside services PayTrail uses that may store or process personal data, including the customer details businesses
-        put into PayTrail. Each one is bound by a data protection agreement with us or, for payment providers, with the business that connects them.
+        These are the outside services Usetally uses that may store or process personal data, including the customer details businesses
+        put into Usetally. Each one is bound by a data protection agreement with us or, for payment providers, with the business that connects them.
         This list forms part of our <Link href="/dpa" className="font-medium text-brand-ink underline underline-offset-2">Data Processing Agreement</Link>.
       </p>
       <div className="overflow-hidden rounded-xl ring-1 ring-line">

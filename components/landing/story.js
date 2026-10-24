@@ -3,7 +3,7 @@ import { Check, EyeOff, FileText, MessageCircle, Printer, ShieldCheck } from "lu
 import { ScrollScene, ScrollWords } from "@/components/landing/scroll-scene";
 
 // Landing story: the hidden-cost "pain" and four chapters (quote, accept,
-// pay, receipt). Everything is real HTML in Tally's paper style. Figures
+// pay, receipt). Everything is real HTML in Usetally's paper style. Figures
 // are clearly labelled examples, never claims about customers.
 
 const PAPER = "rounded-[14px] bg-hero-paper text-hero-ink shadow-[0_1px_2px_rgba(20,16,8,.06),0_22px_44px_-22px_rgba(20,16,8,.38)] ring-1 ring-black/[.06] dark:ring-white/[.06]";
@@ -34,7 +34,7 @@ export function PainStory() {
                 You quoted ₦500,000.<br /><span className="text-hero-ink-2">What did you keep?</span>
               </h2>
               <ScrollWords from={0.05} to={0.75} className="mt-6 text-[17px] leading-relaxed text-hero-ink sm:text-[19px]"
-                text="Data, fuel, transport, software and the friend who helped you finish. None of it shows on the invoice, so most small businesses never see their real profit. Tally keeps those costs on every job, hidden from your customer and visible to you." />
+                text="Data, fuel, transport, software and the friend who helped you finish. None of it shows on the invoice, so most small businesses never see their real profit. Usetally keeps those costs on every job, hidden from your customer and visible to you." />
             </div>
 
             <div className="relative mx-auto w-full max-w-[440px]">
@@ -82,7 +82,7 @@ export function PainStory() {
 // ---------------------------------------------------------------- chapters
 
 const CHAPTERS = [
-  { kicker: "01 · Quote", title: "Price the job. See the profit first.", body: "Add your items, then your hidden costs. Tally shows your margin before you send, and suggests a price if it's too thin.", Visual: QuoteVisual },
+  { kicker: "01 · Quote", title: "Price the job. See the profit first.", body: "Add your items, then your hidden costs. Usetally shows your margin before you send, and suggests a price if it's too thin.", Visual: QuoteVisual },
   { kicker: "02 · Accept", title: "Share a link. They accept in one tap.", body: "Send by WhatsApp or email. Your customer opens your branded quote on any phone and accepts with their name, no app or account needed.", Visual: AcceptVisual },
   { kicker: "03 · Pay", title: "They pay. It marks itself paid.", body: "Card or transfer through your own Paystack, Stripe, Flutterwave or Bachs account. Every payment is confirmed with the provider before the invoice is marked paid.", Visual: PayVisual },
   { kicker: "04 · Receipt", title: "A receipt, printed or sent.", body: "A numbered receipt is issued for every payment, full or part. Download it, share it, or print it on A4 or an 80 mm or 58 mm receipt printer.", Visual: ReceiptVisual },
@@ -92,7 +92,7 @@ export function Chapters() {
   return (
     <div id="how-it-works" className="scroll-mt-0 bg-hero text-hero-ink">
       {/* phones & reduced motion: a simple stacked story */}
-      <ScrollScene steps={CHAPTERS.length} heightVh={CHAPTERS.length * 110} label="How Tally works">
+      <ScrollScene steps={CHAPTERS.length} heightVh={CHAPTERS.length * 110} label="How Usetally works">
         {(step, still) => still ? (
           <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-16 px-4 py-20 sm:px-6 lg:px-10">
             <ChapterIntro />

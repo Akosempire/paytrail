@@ -43,12 +43,12 @@ export default async function PrivacyData() {
 
       {owner && !pending && (
         <Card>
-          <CardHeader icon={Trash2} iconTone="danger" title="Delete this business" description="For when you stop using PayTrail for good." />
+          <CardHeader icon={Trash2} iconTone="danger" title="Delete this business" description="For when you stop using Usetally for good." />
           <div className="flex flex-col gap-4 p-5">
             <ul className="list-disc space-y-1.5 pl-5 text-[13px] text-ink-2 marker:text-ink-3">
               <li>Sending stops straight away. After <strong className="text-ink">30 days</strong>, {b.name} and all its customers, quotes, invoices, receipts, payments, logo and team access are permanently deleted.</li>
               <li>You can cancel at any time in those 30 days. After that it can't be undone, so download your data first: you may need your invoices for tax.</li>
-              <li>PayTrail keeps only the record of what you paid PayTrail for your plan, as the tax law requires.</li>
+              <li>Usetally keeps only the record of what you paid Usetally for your plan, as the tax law requires.</li>
             </ul>
             <DeleteBusinessForm name={b.name} />
           </div>
@@ -73,7 +73,7 @@ export default async function PrivacyData() {
         <div className="flex items-start gap-3">
           <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand" />
           <div className="text-[13px] text-ink-2">
-            <p className="font-medium text-ink">How PayTrail handles data</p>
+            <p className="font-medium text-ink">How Usetally handles data</p>
             <p className="mt-1">Read our <Link className="font-medium text-brand-ink hover:underline" href="/privacy">Privacy Policy</Link>, the <Link className="font-medium text-brand-ink hover:underline" href="/dpa">Data Processing Agreement</Link> that covers your customers' data, and the <Link className="font-medium text-brand-ink hover:underline" href="/subprocessors">services we use</Link>. To correct something you can't edit yourself, or for any other request, contact support.</p>
           </div>
         </div>

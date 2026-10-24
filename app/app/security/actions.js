@@ -2,9 +2,9 @@
 import { requireBusiness, requirePlatformAdmin } from "@/lib/context";
 import { PURPOSES, sendStepUpCode, verifyStepUpCode } from "@/lib/step-up";
 
-// scope "platform" is the platform owner changing PayTrail's own billing keys
+// scope "platform" is the platform owner changing Usetally's own billing keys
 async function scoped(scope) {
-  if (scope === "platform") return { ctx: await requirePlatformAdmin(), businessId: null, name: "PayTrail billing" };
+  if (scope === "platform") return { ctx: await requirePlatformAdmin(), businessId: null, name: "Usetally billing" };
   const ctx = await requireBusiness();
   return { ctx, businessId: ctx.business.id, name: ctx.business.name };
 }

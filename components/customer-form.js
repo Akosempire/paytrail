@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Loader2, Pencil, Plus } from "lucide-react";
-import { Button, Field, Input, Textarea } from "@/components/ui";
+import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { archiveCustomer, saveCustomer } from "@/app/app/customers/actions";
 
@@ -35,7 +35,7 @@ export function CustomerButton({ customer, variant = "primary", size = "md" }) {
           <Button variant="primary" icon={pending ? Loader2 : undefined} loading={pending} onClick={save}>Save</Button>
         </>}>
         <div className="grid gap-4 sm:grid-cols-2">
-          {error && <p role="alert" className="text-[13px] font-medium text-danger-ink sm:col-span-2">{error}</p>}
+          {error && <Alert intent="error" size="sm" className="sm:col-span-2">{error}</Alert>}
           <Field label="Contact name" htmlFor="c-name"><Input id="c-name" value={form.name} onChange={set("name")} /></Field>
           <Field label="Company" htmlFor="c-co" optional><Input id="c-co" value={form.company} onChange={set("company")} /></Field>
           <Field label="Email" htmlFor="c-em"><Input id="c-em" type="email" value={form.email} onChange={set("email")} /></Field>
