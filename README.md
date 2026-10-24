@@ -2,7 +2,7 @@
 
 Branded quotations, invoices and receipts for freelancers and companies.
 
-A business sends a quote → the customer opens a link, accepts and pays (Bachs, Flutterwave or bank transfer) → the quote becomes a paid invoice and a numbered receipt is issued. Every document carries the business's own logo, colour and details. Each quote can hold **hidden cost lines** (data, electricity, transport, software…) so the team sees real profit and margin; customers never see them.
+A business sends a quote → the customer opens a link, accepts and pays (Stripe, Paystack, Flutterwave, Bachs or bank transfer) → the quote becomes a paid invoice and a numbered receipt is issued. Every document carries the business's own logo, colour and details. Each quote can hold **hidden cost lines** (data, electricity, transport, software…) so the team sees real profit and margin; customers never see them.
 
 **Stack:** Next.js 16 (App Router) · Supabase (Postgres, Auth, Storage) · Tailwind CSS 4 · pdf-lib. Design system: Kasuwa (Figtree, cool-grey canvas, one confident blue).
 
@@ -39,7 +39,7 @@ These rules are enforced **in the database** (row-level security and checked fun
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL Editor** → paste all of `supabase/migrations/20261024000100_paytrail.sql` → **Run**. This creates every table, the security rules and the `logos` storage bucket. It's safe to run again later.
+2. **SQL Editor** → run each file in `supabase/migrations/` **in order**: first `20261024000100_paytrail.sql` (every table, the security rules and the `logos` storage bucket), then `20261024000200_global_payments.sql` (adds Stripe and Paystack). Both are safe to run again later.
 3. **Authentication → URL Configuration**
    - Site URL: your app address, e.g. `https://paytrail.yourdomain.com`
    - Redirect URLs: add `https://paytrail.yourdomain.com/auth/callback` (and `http://localhost:3000/auth/callback` for local work)
@@ -82,16 +82,25 @@ Refresh the app. **Platform admin** now appears in the sidebar (`/admin`).
   - **Trial:** the default is **2 free documents** per business. You can switch to a number of days, or no trial. A document counts when it's sent; converting a quote into an invoice doesn't count twice.
   - **Collecting subscriptions:**
     - *Bank transfer:* you activate plans by hand in **/admin/businesses → Manage**.
-    - *Bachs or Flutterwave:* paste PayTrail's **own** account keys and add the webhook URL shown there. Plans then activate automatically when paid.
+    - *Stripe, Paystack, Flutterwave or Bachs:* paste PayTrail's **own** account keys and add the webhook URL shown there. Plans then activate automatically when paid. Use **Stripe** if you want businesses outside Africa to pay you in dollars, pounds or euros.
 
 ---
 
 ## How business payments work
 
-Each business connects its **own** Bachs or Flutterwave account in **Settings → Payment setup**, using the in-app guide:
+Each business connects its **own** payment account in **Settings → Payment setup**, using the in-app guide. The screen suggests the best provider for the business's currency:
+
+| Provider | Where it works | Webhook secret |
+|---|---|---|
+| **Stripe** | US, UK, EU, Canada, Australia and 40+ other countries | Signing secret (`whsec_…`) |
+| **Paystack** | Nigeria, Ghana, Kenya, South Africa, Côte d'Ivoire | None (Paystack signs with the secret key) |
+| **Flutterwave** | Across Africa | A secret hash you choose |
+| **Bachs** | Where Bachs operates | Signing secret |
+
+Setup steps:
 
 1. Paste the secret key. PayTrail checks it with the provider, then stores it encrypted.
-2. Add the webhook URL shown (it's unique to that business) and paste the webhook secret (Bachs) or secret hash (Flutterwave).
+2. Add the webhook URL shown (it's unique to that business) and paste the webhook secret if the provider uses one.
 3. Make a small test payment.
 
 A provider only shows **Connected** after the test payment is confirmed **and** its webhook has reached PayTrail. **Customers only see the Pay button for live-mode connections**, so nobody can "pay" an invoice with a test card.
@@ -100,7 +109,9 @@ Every payment is re-verified with the provider's API before an invoice is marked
 
 Bank transfers, cash and POS are recorded by finance with **Record payment**, which issues a receipt the same way. Part payments are supported.
 
-> **Bachs API note:** the integration uses the Bachs endpoints from your existing CREATIVEYATI code (`/v1/checkout-sessions`, `/v1/balances`, and HMAC-signed webhooks with the `x-bachs-timestamp` and `x-bachs-signature` headers). **Flutterwave** uses the v3 Standard checkout and `verif-hash` webhooks. Before going live, run one live test payment with each provider.
+> **Stripe** uses hosted Checkout Sessions and the `checkout.session.completed` webhook. **Paystack** uses Transaction Initialize/Verify and the `x-paystack-signature` webhook header.
+>
+> **Bachs API note:** the integration uses the Bachs endpoints from your existing CREATIVEYATI code (`/v1/checkout-sessions`, `/v1/balances`, and HMAC-signed webhooks with the `x-bachs-timestamp` and `x-bachs-signature` headers). **Flutterwave** uses the v3 Standard checkout and `verif-hash` webhooks. Before going live, run one live test payment with each provider you enable.
 
 ---
 
@@ -126,7 +137,7 @@ Set `PAYTRAIL_PREVIEW_ROLE` to `manager`, `finance` or `junior_finance` to see w
 
 ```bash
 npm test          # money maths, encryption, webhook signatures, provider responses
-npm run test:db   # 16 database security tests (needs a local PostgreSQL 16; see scripts/test-db.sh)
+npm run test:db   # 17 database security tests (needs a local PostgreSQL 16; see scripts/test-db.sh)
 ```
 
 ## Folder map
@@ -134,7 +145,7 @@ npm run test:db   # 16 database security tests (needs a local PostgreSQL 16; see
 ```
 app/            pages and server actions (app/app = signed-in app, app/admin = platform owner, app/d + app/r = customer links)
 components/     design-system components (ui.js), app shell, editor, document view
-lib/            Supabase clients, permissions, money, PDFs, email, payments (bachs, flutterwave, webhooks)
+lib/            Supabase clients, permissions, money, PDFs, email, payments (stripe, paystack, flutterwave, bachs, webhooks)
 supabase/       migration (schema + security) and database tests
 assets/fonts/   Lato (open licence) for PDFs, which includes the ₦ sign
 ```

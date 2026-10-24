@@ -71,3 +71,39 @@ test("provider responses normalise to one shape", () => {
   assert.deepEqual([f.state, f.amountMinor, f.reference], ["succeeded", 319750, "PT-9"]);
   assert.equal(flw.normaliseFlutterwave({ status: "pending" }).state, "pending");
 });
+
+const stripe = await import("../lib/payments/stripe.js");
+const paystack = await import("../lib/payments/paystack.js");
+
+test("Stripe: webhook signature, keys, amounts and session results", () => {
+  const raw = JSON.stringify({ id: "evt_1", type: "checkout.session.completed", data: { object: { client_reference_id: "PT-1" } } });
+  const t = Math.floor(Date.now() / 1000);
+  const v1 = createHmac("sha256", "whsec_testsecret").update(`${t}.${raw}`).digest("hex");
+  assert.equal(stripe.validStripeSignature(raw, `t=${t},v1=deadbeef,v1=${v1}`, "whsec_testsecret"), true);
+  assert.equal(stripe.validStripeSignature(raw, `t=${t},v1=${v1}`, "whsec_other"), false);
+  assert.equal(stripe.validStripeSignature(raw, `t=${t - 900},v1=${v1}`, "whsec_testsecret"), false);
+  assert.equal(stripe.validStripeSignature(raw, "", "whsec_testsecret"), false);
+  assert.equal(stripe.validStripeKey("sk_test_" + "a".repeat(24)), true);
+  assert.equal(stripe.validStripeKey("pk_live_" + "a".repeat(24)), false);
+  assert.equal(stripe.stripeMode("sk_live_" + "a".repeat(24)), "live");
+  assert.equal(stripe.toStripeAmount(125050, "USD"), 125050);
+  assert.equal(stripe.toStripeAmount(500000, "XOF"), 5000, "XOF has no cents in Stripe");
+  const s = stripe.normaliseStripe({ id: "cs_1", status: "complete", payment_status: "paid", amount_total: 5000, currency: "xof", client_reference_id: "PT-2", payment_intent: "pi_9" });
+  assert.deepEqual([s.state, s.amountMinor, s.currency, s.reference, s.providerReference], ["succeeded", 500000, "XOF", "PT-2", "pi_9"]);
+  assert.equal(stripe.normaliseStripe({ status: "open", payment_status: "unpaid" }).state, "pending");
+  assert.equal(stripe.normaliseStripe({ status: "expired", payment_status: "unpaid" }).state, "failed");
+});
+
+test("Paystack: webhook signature, keys and verify results", () => {
+  const key = "sk_test_" + "b".repeat(40);
+  const raw = JSON.stringify({ event: "charge.success", data: { reference: "PT-3" } });
+  const sig = createHmac("sha512", key).update(raw).digest("hex");
+  assert.equal(paystack.validPaystackSignature(raw, sig, key), true);
+  assert.equal(paystack.validPaystackSignature(raw, sig, "sk_test_" + "c".repeat(40)), false);
+  assert.equal(paystack.validPaystackSignature(raw + " ", sig, key), false);
+  assert.equal(paystack.validPaystackKey(key), true);
+  assert.equal(paystack.validPaystackKey("pk_test_" + "b".repeat(40)), false);
+  const v = paystack.normalisePaystack({ status: "success", amount: 1666250, currency: "NGN", reference: "PT-3", id: 99 });
+  assert.deepEqual([v.state, v.amountMinor, v.reference, v.providerReference], ["succeeded", 1666250, "PT-3", "99"]);
+  assert.equal(paystack.normalisePaystack({ status: "abandoned" }).state, "failed");
+});

@@ -4,7 +4,7 @@ import { ToastProvider } from "@/components/ui-client";
 
 export const metadata = {
   title: { default: "PayTrail — quotes, invoices & receipts", template: "%s · PayTrail" },
-  description: "Send branded quotations, get paid online with Bachs or Flutterwave, and issue receipts automatically. Track your real costs and profit on every job.",
+  description: "Send branded quotations, get paid online with Stripe, Paystack, Flutterwave or Bachs, and issue receipts automatically. Track your real costs and profit on every job.",
 };
 
 export const viewport = { themeColor: "#1570EF", width: "device-width", initialScale: 1 };

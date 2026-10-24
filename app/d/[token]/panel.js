@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check } from "lucide-react";
 import { respondToQuote, payDocument } from "./actions";
 
-const NAMES = { bachs: "Bachs", flutterwave: "Flutterwave" };
+const NAMES = { stripe: "Stripe", paystack: "Paystack", bachs: "Bachs", flutterwave: "Flutterwave" };
 
 // Light-only by design: this page is the business's branded document, not PayTrail's app.
 export function CustomerPanel({ token, doc, amount, paid, expired, providers, hasBank, bank, brandName, invoiceNumber }) {
@@ -87,7 +87,7 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
                   {pending ? <Loader2 className="size-4 animate-spin" /> : <CreditCard className="size-4" />}Pay {amount} with {NAMES[p.provider]}
                 </button>
               ))}
-              <p className="mt-1 flex items-center gap-1.5 text-xs text-[#98a2b3]"><ShieldCheck className="size-3.5" />Card, bank transfer or USSD on {providers.map((p) => NAMES[p.provider]).join(" or ")}'s secure page.{providers.some((p) => p.mode === "test") && " (Test mode)"}</p>
+              <p className="mt-1 flex items-center gap-1.5 text-xs text-[#98a2b3]"><ShieldCheck className="size-3.5" />Pay on {providers.map((p) => NAMES[p.provider]).join(" or ")}'s secure page.{providers.some((p) => p.mode === "test") && " (Test mode)"}</p>
             </>
           ) : !hasBank && <p className="text-sm text-[#475467]">Contact {brandName} for payment details.</p>}
           {hasBank && (

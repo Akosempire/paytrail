@@ -4,8 +4,7 @@ import { requirePlatformAdmin } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { encryptSecret, hint } from "@/lib/crypto";
 import { toMinor, CURRENCIES } from "@/lib/money";
-import { validBachsKey, testBachsKey } from "@/lib/payments/bachs";
-import { validFlutterwaveKey, testFlutterwaveKey } from "@/lib/payments/flutterwave";
+import { KEY_RULES, webhookSecretProblem } from "@/lib/payments/keys";
 
 export async function savePlan(id, form) {
   const ctx = await requirePlatformAdmin();
@@ -50,21 +49,29 @@ export async function saveTrial(form) {
 
 export async function saveBilling(form) {
   await requirePlatformAdmin();
-  const provider = ["manual", "bachs", "flutterwave"].includes(form.provider) ? form.provider : "manual";
+  const provider = ["manual", ...Object.keys(KEY_RULES)].includes(form.provider) ? form.provider : "manual";
+  const rule = KEY_RULES[provider];
   const update = { billing_provider: provider, updated_at: new Date().toISOString() };
   const key = String(form.secretKey || "").trim();
   const hook = String(form.webhookSecret || "").trim();
   if (provider !== "manual" && key) {
-    const ok = provider === "bachs" ? validBachsKey(key) : validFlutterwaveKey(key);
-    if (!ok) return { error: "That secret key doesn't look right for this provider." };
-    const check = provider === "bachs" ? await testBachsKey(key) : await testFlutterwaveKey(key);
+    if (!rule.valid(key)) return { error: rule.badKey };
+    const check = await rule.check(key);
     if (!check.ok) return { error: check.error };
     update.billing_secret_enc = encryptSecret(key);
     update.billing_key_hint = hint(key);
+    if (!rule.needsWebhookSecret) update.billing_webhook_secret_enc = update.billing_secret_enc;
   }
-  if (provider !== "manual" && hook) update.billing_webhook_secret_enc = encryptSecret(hook);
+  if (provider !== "manual" && hook && rule.needsWebhookSecret) {
+    const problem = webhookSecretProblem(provider, hook);
+    if (problem) return { error: problem };
+    update.billing_webhook_secret_enc = encryptSecret(hook);
+  }
   const service = createSupabaseService();
-  const { data: current } = await service.from("platform_settings").select("billing_secret_enc, billing_webhook_secret_enc").eq("id", true).single();
+  const { data: current } = await service.from("platform_settings").select("billing_provider, billing_secret_enc, billing_webhook_secret_enc").eq("id", true).single();
+  // keys belong to one provider: switching provider needs that provider's own keys
+  if (provider !== "manual" && provider !== current?.billing_provider && !update.billing_secret_enc) return { error: "Paste the secret key for PayTrail's own account with this provider." };
+  if (provider !== "manual" && provider !== current?.billing_provider && rule.needsWebhookSecret && !hook) return { error: "Paste the webhook secret for this provider." };
   if (provider !== "manual" && !update.billing_secret_enc && !current?.billing_secret_enc) return { error: "Paste the secret key for PayTrail's own account." };
   if (provider !== "manual" && !update.billing_webhook_secret_enc && !current?.billing_webhook_secret_enc) return { error: "Paste the webhook secret." };
   const { error } = await service.from("platform_settings").update(update).eq("id", true);

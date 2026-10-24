@@ -35,7 +35,7 @@ export default async function Dashboard({ searchParams }) {
 
   const checklist = [
     { done: Boolean(business.logo_path), label: "Add your logo and brand colour", href: "/app/settings", show: can(member, "settings.business") },
-    { done: paymentsReady, label: "Connect Bachs or Flutterwave", href: "/app/settings/payments", show: can(member, "settings.payments") },
+    { done: paymentsReady, label: "Connect online payments", href: "/app/settings/payments", show: can(member, "settings.payments") },
     { done: (docCount || 0) > 0, label: "Send your first quote", href: "/app/quotes/new", show: true },
     { done: (teamCount || 0) > 1, label: "Invite your finance team", href: "/app/settings/team", show: business.kind === "company" && can(member, "settings.team") },
   ].filter((c) => c.show);

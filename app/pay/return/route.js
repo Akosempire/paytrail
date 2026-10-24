@@ -3,7 +3,7 @@ import { createSupabaseService } from "@/lib/supabase/server";
 import { confirmAttempt } from "@/lib/payments";
 import { siteUrl } from "@/lib/site";
 
-// Bachs and Flutterwave send the customer back here. We never trust the URL:
+// Payment providers send the customer back here. We never trust the URL:
 // the attempt is re-checked with the provider before anything is recorded.
 export async function GET(request) {
   const url = new URL(request.url);

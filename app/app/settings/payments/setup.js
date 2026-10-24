@@ -7,8 +7,46 @@ import { CopyButton, Modal, useToast } from "@/components/ui-client";
 import { disconnect, recheckConnection, runTestPayment, saveConnection, setEnabled } from "./actions";
 
 const GUIDES = {
+  stripe: {
+    name: "Stripe",
+    blurb: "Cards, Apple Pay and Google Pay in the US, UK, Europe, Canada, Australia and 40+ countries.",
+    regions: "Best for businesses outside Africa",
+    site: "https://dashboard.stripe.com",
+    color: "#635BFF",
+    keyLabel: "Secret key",
+    keyPlaceholder: "sk_test_… or sk_live_…",
+    hookLabel: "Webhook signing secret",
+    hookPlaceholder: "whsec_…",
+    steps: [
+      { title: "Open your Stripe account", body: "Sign in at dashboard.stripe.com, or create an account. Test mode works straight away. To take real money, activate your account with your business and bank details." },
+      { title: "Copy your secret key", body: "Go to Developers → API keys and reveal the Secret key. In test mode it starts with sk_test_. Keep it private." },
+      { title: "Add your PayTrail webhook", body: "Go to Developers → Webhooks → Add endpoint and paste the URL below. Choose the events checkout.session.completed, checkout.session.async_payment_succeeded and checkout.session.expired. After saving, reveal the Signing secret (it starts with whsec_) and copy it.", webhook: true },
+      { title: "Paste both into PayTrail", body: "PayTrail checks the key with Stripe before saving, and stores it encrypted.", form: true },
+      { title: "Make a test payment", body: "Pay a small test amount with Stripe's test card 4242 4242 4242 4242, any future expiry date and any CVC. PayTrail waits for the payment and the webhook.", test: true, docs: "https://docs.stripe.com/testing", docsLabel: "Stripe test cards" },
+      { title: "Go live", body: "Turn off test mode in Stripe. Repeat steps 2–4 with your live secret key (sk_live_…) and add the webhook again in live mode, then run one small test." },
+    ],
+  },
+  paystack: {
+    name: "Paystack",
+    blurb: "Cards, bank transfer, USSD and mobile money in Nigeria, Ghana, Kenya, South Africa and Côte d'Ivoire.",
+    regions: "Popular in Nigeria and Ghana",
+    site: "https://dashboard.paystack.com",
+    color: "#0BA4DB",
+    keyLabel: "Secret key",
+    keyPlaceholder: "sk_test_… or sk_live_…",
+    noHook: true,
+    steps: [
+      { title: "Open your Paystack account", body: "Sign in at dashboard.paystack.com, or sign up. Test mode works straight away. To take real money, complete Paystack's business verification." },
+      { title: "Copy your secret key", body: "Go to Settings → API Keys & Webhooks and copy the Test Secret Key (it starts with sk_test_)." },
+      { title: "Add your PayTrail webhook", body: "On the same page, paste the URL below into Test Webhook URL and save. Paystack signs its messages with your secret key, so there's no extra secret to copy.", webhook: true },
+      { title: "Paste your secret key into PayTrail", body: "PayTrail checks the key with Paystack before saving, and stores it encrypted.", form: true },
+      { title: "Make a test payment", body: "Pay a small amount with one of Paystack's test cards. PayTrail waits for the payment and the webhook.", test: true, docs: "https://paystack.com/docs/payments/test-payments/", docsLabel: "Paystack test cards" },
+      { title: "Go live", body: "Switch Paystack to Live mode. Paste your live secret key (sk_live_…) here, and put the same webhook URL in Live Webhook URL. Then run one small test." },
+    ],
+  },
   bachs: {
     name: "Bachs",
+    color: "#101828",
     blurb: "Card, bank transfer and more, with fast settlement.",
     site: "https://bachs.io",
     keyLabel: "Secret key",
@@ -26,6 +64,7 @@ const GUIDES = {
   },
   flutterwave: {
     name: "Flutterwave",
+    color: "#F5A623",
     blurb: "Cards, bank transfer, USSD and mobile money across Africa.",
     site: "https://dashboard.flutterwave.com",
     keyLabel: "Secret key",
@@ -37,7 +76,7 @@ const GUIDES = {
       { title: "Copy your secret key", body: "Go to Settings → API keys and copy the Secret key. In test mode it starts with FLWSECK_TEST-." },
       { title: "Add your PayTrail webhook", body: "Go to Settings → Webhooks. Paste the URL below, and set a Secret hash. You can use the one we generated. Turn on webhooks for successful and failed charges, then save.", webhook: true, hash: true },
       { title: "Paste both into PayTrail", body: "Paste the secret key and the same secret hash. PayTrail checks the key with Flutterwave before saving, and stores it encrypted.", form: true },
-      { title: "Make a test payment", body: "Pay a small amount with one of Flutterwave's test cards (listed in their docs under Testing). PayTrail waits for the payment and the webhook.", test: true, docs: "https://developer.flutterwave.com/docs/integration-guides/testing-helpers" },
+      { title: "Make a test payment", body: "Pay a small amount with one of Flutterwave's test cards (listed in their docs under Testing). PayTrail waits for the payment and the webhook.", test: true, docs: "https://developer.flutterwave.com/docs/integration-guides/testing-helpers", docsLabel: "Flutterwave test cards" },
       { title: "Go live", body: "Switch Flutterwave to Live mode. Repeat steps 2–4 with your live secret key (FLWSECK-…) and set the webhook again in live mode, then run one small test." },
     ],
   },
@@ -49,7 +88,14 @@ function statusOf(c) {
   return { key: "partial", label: "Setup in progress", tone: "warn" };
 }
 
-export function PaymentSetup({ connections, webhooks, testAmount, focus, testResult }) {
+// providers in the order that suits the business's currency
+const AFRICAN = ["NGN", "GHS", "KES", "ZAR", "XOF"];
+export function providerOrder(currency) {
+  return AFRICAN.includes(currency) ? ["paystack", "flutterwave", "bachs", "stripe"] : ["stripe", "paystack", "flutterwave", "bachs"];
+}
+
+export function PaymentSetup({ connections, webhooks, testAmount, focus, testResult, currency }) {
+  const order = providerOrder(currency);
   const toast = useToast();
   useEffect(() => {
     if (testResult === "succeeded") toast("Test payment received. Waiting for the webhook if it hasn't arrived yet.");
@@ -57,10 +103,11 @@ export function PaymentSetup({ connections, webhooks, testAmount, focus, testRes
   }, [testResult, toast]);
   return (
     <div className="grid items-start gap-6 xl:grid-cols-2">
-      {["bachs", "flutterwave"].map((p) => <ProviderCard key={p} provider={p} guide={GUIDES[p]} connection={connections[p]} webhook={webhooks[p]} testAmount={testAmount} defaultOpen={focus === p || (!focus && !connections[p] && p === "bachs")} />)}
+      {order.map((p, i) => <ProviderCard key={p} provider={p} guide={GUIDES[p]} connection={connections[p]} webhook={webhooks[p]} testAmount={testAmount}
+        recommended={i === 0} defaultOpen={focus === p || (!focus && !Object.keys(connections).length && i === 0)} />)}
       <Card className="xl:col-span-2">
         <div className="grid gap-5 p-5 sm:grid-cols-3">
-          <Explainer icon={ShieldCheck} title="Your money, your account" text="Payments land in your own Bachs or Flutterwave balance. PayTrail only reads the result so it can mark invoices paid." />
+          <Explainer icon={ShieldCheck} title="Your money, your account" text="Payments land in your own Stripe, Paystack, Flutterwave or Bachs balance. PayTrail only reads the result so it can mark invoices paid." />
           <Explainer icon={KeyRound} title="Keys are encrypted" text="Secret keys are encrypted before they're stored and are never shown again, not even to your team." />
           <Explainer icon={RefreshCw} title="Nothing gets missed" text="If a customer closes the page early, PayTrail re-checks unconfirmed payments with the provider automatically." />
         </div>
@@ -73,7 +120,7 @@ function Explainer({ icon: Icon, title, text }) {
   return <div className="flex gap-3"><Icon className="mt-0.5 size-5 shrink-0 text-brand" /><div><p className="text-sm font-semibold text-ink">{title}</p><p className="mt-0.5 text-[13px] text-ink-2">{text}</p></div></div>;
 }
 
-function ProviderCard({ provider, guide, connection, webhook, testAmount, defaultOpen }) {
+function ProviderCard({ provider, guide, connection, webhook, testAmount, defaultOpen, recommended }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(defaultOpen || statusOf(connection).key === "partial");
@@ -110,8 +157,8 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
     <Card>
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div className="flex items-center gap-3">
-          <span className={cx("inline-flex size-10 items-center justify-center rounded-xl text-sm font-bold text-white", provider === "bachs" ? "bg-[#101828]" : "bg-[#F5A623]")}>{guide.name[0]}</span>
-          <div><h2 className="text-title-3 text-ink">{guide.name}</h2><p className="text-[13px] text-ink-3">{guide.blurb}</p></div>
+          <span className={cx("inline-flex size-10 items-center justify-center rounded-xl text-sm font-bold text-white", "")} style={{ background: guide.color }}>{guide.name[0]}</span>
+          <div><h2 className="flex flex-wrap items-center gap-2 text-title-3 text-ink">{guide.name}{recommended && !connection && <Badge tone="brand" size="sm">Recommended for you</Badge>}</h2><p className="text-[13px] text-ink-3">{guide.blurb}</p></div>
         </div>
         <Badge tone={status.tone} icon={status.key === "connected" ? Check : undefined}>{status.label}</Badge>
       </div>
@@ -151,7 +198,7 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
                 <p className="text-sm font-semibold text-ink">{s.title}</p>
                 <p className="mt-0.5 text-[13px] text-ink-2">{s.body}</p>
                 {i === 0 && <Button size="sm" variant="link" href={guide.site} iconRight={ExternalLink} className="mt-1.5">Open {guide.name}</Button>}
-                {s.docs && <Button size="sm" variant="link" href={s.docs} iconRight={ExternalLink} className="mt-1.5">Flutterwave test cards</Button>}
+                {s.docs && <Button size="sm" variant="link" href={s.docs} iconRight={ExternalLink} className="mt-1.5">{s.docsLabel}</Button>}
                 {s.webhook && (
                   <div className="mt-3 flex flex-col gap-2">
                     <div className="flex items-center gap-2 rounded-md bg-surface p-1.5 pl-3 ring-1 ring-line">
@@ -173,9 +220,11 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
                     <Field label={guide.keyLabel} htmlFor={`${provider}-key`} hint={connection?.key_hint ? `Saved key ends in …${connection.key_hint}. Leave blank to keep it.` : undefined}>
                       <Input id={`${provider}-key`} type="password" autoComplete="off" value={key} onChange={(e) => setKey(e.target.value)} placeholder={guide.keyPlaceholder} />
                     </Field>
-                    <Field label={guide.hookLabel} htmlFor={`${provider}-hook`} hint={connection ? "Leave blank to keep the saved one." : undefined}>
-                      <Input id={`${provider}-hook`} type="password" autoComplete="off" value={hook} onChange={(e) => setHook(e.target.value)} placeholder={guide.hookPlaceholder} />
-                    </Field>
+                    {!guide.noHook && (
+                      <Field label={guide.hookLabel} htmlFor={`${provider}-hook`} hint={connection ? "Leave blank to keep the saved one." : undefined}>
+                        <Input id={`${provider}-hook`} type="password" autoComplete="off" value={hook} onChange={(e) => setHook(e.target.value)} placeholder={guide.hookPlaceholder} />
+                      </Field>
+                    )}
                     {error && busy === null && <p role="alert" className="text-[13px] font-medium text-danger-ink">{error}</p>}
                     <Button variant="primary" icon={busy === "save" ? Loader2 : KeyRound} loading={busy === "save"} className="self-start"
                       onClick={() => act("save", () => saveConnection(provider, { secretKey: key, webhookSecret: hook }))}>Save & check key</Button>

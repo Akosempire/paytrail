@@ -6,6 +6,13 @@ import { Button, Card, CardHeader, Field, Input, Select, cx } from "@/components
 import { CopyButton, useToast } from "@/components/ui-client";
 import { saveBilling, saveTrial } from "../actions";
 
+const PROVIDER_INFO = {
+  stripe: { name: "Stripe", key: "sk_live_…", hook: "Webhook signing secret (whsec_…)" },
+  paystack: { name: "Paystack", key: "sk_live_…", hook: null },
+  flutterwave: { name: "Flutterwave", key: "FLWSECK-…", hook: "Secret hash" },
+  bachs: { name: "Bachs", key: "sk_live_…", hook: "Webhook signing secret" },
+};
+
 export function PlatformSettings({ settings, webhooks }) {
   const router = useRouter();
   const toast = useToast();
@@ -38,20 +45,24 @@ export function PlatformSettings({ settings, webhooks }) {
           <Field label="How businesses pay PayTrail" htmlFor="bp">
             <Select id="bp" value={billing.provider} onChange={(e) => setBilling({ ...billing, provider: e.target.value })}>
               <option value="manual">Bank transfer (you activate plans here)</option>
+              <option value="stripe">Stripe (automatic, worldwide cards)</option>
+              <option value="paystack">Paystack (automatic, Africa)</option>
+              <option value="flutterwave">Flutterwave (automatic, Africa)</option>
               <option value="bachs">Bachs (automatic)</option>
-              <option value="flutterwave">Flutterwave (automatic)</option>
             </Select>
           </Field>
           {billing.provider !== "manual" && (
             <>
               <div>
-                <p className="mb-1.5 text-[13px] font-medium text-ink-2">Webhook URL for PayTrail's {billing.provider === "bachs" ? "Bachs" : "Flutterwave"} account</p>
+                <p className="mb-1.5 text-[13px] font-medium text-ink-2">Webhook URL for PayTrail's {PROVIDER_INFO[billing.provider].name} account</p>
                 <div className="flex items-center gap-2 rounded-md bg-subtle p-1.5 pl-3 ring-1 ring-line"><code className="min-w-0 flex-1 truncate font-mono text-[12px]">{webhooks[billing.provider]}</code><CopyButton value={webhooks[billing.provider]} /></div>
               </div>
               <Field label="Secret key" htmlFor="bk" hint={settings.billing_key_hint && settings.billing_provider === billing.provider ? `Saved key ends in …${settings.billing_key_hint}. Leave blank to keep it.` : undefined}>
-                <Input id="bk" type="password" autoComplete="off" value={billing.secretKey} onChange={(e) => setBilling({ ...billing, secretKey: e.target.value })} placeholder={billing.provider === "bachs" ? "sk_live_…" : "FLWSECK-…"} />
+                <Input id="bk" type="password" autoComplete="off" value={billing.secretKey} onChange={(e) => setBilling({ ...billing, secretKey: e.target.value })} placeholder={PROVIDER_INFO[billing.provider].key} />
               </Field>
-              <Field label={billing.provider === "bachs" ? "Webhook signing secret" : "Secret hash"} htmlFor="bw"><Input id="bw" type="password" autoComplete="off" value={billing.webhookSecret} onChange={(e) => setBilling({ ...billing, webhookSecret: e.target.value })} /></Field>
+              {PROVIDER_INFO[billing.provider].hook
+                ? <Field label={PROVIDER_INFO[billing.provider].hook} htmlFor="bw"><Input id="bw" type="password" autoComplete="off" value={billing.webhookSecret} onChange={(e) => setBilling({ ...billing, webhookSecret: e.target.value })} /></Field>
+                : <p className="text-[13px] text-ink-3">Paystack signs its webhooks with your secret key, so there's no separate webhook secret.</p>}
             </>
           )}
           <Button variant="primary" icon={pending ? Loader2 : Save} className="self-start" onClick={() => run(() => saveBilling(billing))}>Save billing settings</Button>

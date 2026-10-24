@@ -20,7 +20,7 @@ async function publicData() {
 const STEPS = [
   { icon: FileText, title: "Quote", text: "Price the job with your logo and colours. Add hidden costs to check your profit." },
   { icon: Check, title: "Accept", text: "Your customer opens a link, reads it on any phone and accepts with their name." },
-  { icon: Wallet, title: "Pay", text: "They pay with Bachs or Flutterwave, or by transfer. The quote becomes a paid invoice." },
+  { icon: Wallet, title: "Pay", text: "They pay by card or bank transfer through Stripe, Paystack, Flutterwave or Bachs. The quote becomes a paid invoice." },
   { icon: Receipt, title: "Receipt", text: "A numbered, branded receipt is issued for every payment, full or part." },
 ];
 
@@ -76,7 +76,7 @@ export default async function Home() {
           <ShieldCheck className="size-10 shrink-0 text-brand" />
           <div className="flex-1">
             <h2 className="text-title-1 text-ink">Paid straight into your own account</h2>
-            <p className="mt-1 max-w-2xl text-ink-2">Connect your Bachs or Flutterwave account with our step-by-step guide. Money goes directly to you. PayTrail confirms each payment with the provider before marking an invoice paid.</p>
+            <p className="mt-1 max-w-2xl text-ink-2">Connect your own Stripe, Paystack, Flutterwave or Bachs account with our step-by-step guide. Businesses in Nigeria, Ghana, Kenya, South Africa, the US, UK, Europe and beyond can take payments. Money goes directly to you. PayTrail confirms each payment with the provider before marking an invoice paid.</p>
           </div>
         </div>
       </section>

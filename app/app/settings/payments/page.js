@@ -15,11 +15,11 @@ export default async function Page({ searchParams }) {
   const webhook = (provider) => `${siteUrl()}/api/webhooks/${provider}/${ctx.business.id}`;
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Payment setup" description="Let customers pay quotes and invoices online. Money goes straight into your own Bachs or Flutterwave account. PayTrail never holds it." />
+      <PageHeader title="Payment setup" description="Let customers pay quotes and invoices online. Connect Stripe, Paystack, Flutterwave or Bachs. Money goes straight into your own account. PayTrail never holds it." />
       {sp.welcome && <Callout tone="brand" title="Welcome to PayTrail! Let's get you paid.">Connect one provider now, or skip this. Customers can always pay by bank transfer and you record it.</Callout>}
       <PaymentSetup
         connections={connections}
-        webhooks={{ bachs: webhook("bachs"), flutterwave: webhook("flutterwave") }}
+        webhooks={{ stripe: webhook("stripe"), paystack: webhook("paystack"), flutterwave: webhook("flutterwave"), bachs: webhook("bachs") }}
         testAmount={formatMoney(testAmountMinor(ctx.business.currency), ctx.business.currency)}
         currency={ctx.business.currency}
         focus={sp.provider}

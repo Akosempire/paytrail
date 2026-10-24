@@ -243,3 +243,15 @@ test("an approver can't send a version they didn't review", async () => {
   await as(junior, ({ q }) => q("select public.save_document($1,$2,$3::jsonb)", [biz, id, JSON.stringify({ items: [{ description: "a", quantity: 1, unit_price_minor: 99999 }] })]));
   await assert.rejects(as(owner, ({ q }) => q("select public.mark_document_sent($1,$2)", [id, seen])), /changed since you opened it/);
 });
+
+test("Stripe and Paystack payments settle like the others", async () => {
+  await pool.query("insert into public.payment_connections(business_id, provider, mode) values ($1,'stripe','live'), ($1,'paystack','live')", [biz]);
+  const id = await as(owner, ({ one }) => one("select public.save_document($1,null,$2::jsonb) id", [biz, JSON.stringify({ kind: "invoice", customer: { name: "Jane Doe" }, items: [{ description: "Consulting", quantity: 1, unit_price_minor: 50000 }] })])).then(r => r.id);
+  await pool.query("update public.documents set currency='USD', sent_at=now(), status='sent' where id=$1", [id]);
+  const total = Number((await one("select total_minor from public.documents where id=$1", [id])).total_minor);
+  const attempt = (await one("insert into public.payment_attempts(business_id, document_id, provider, purpose, reference, amount_minor, currency) values ($1,$2,'stripe','document','PT-STRIPE-1',$3,'USD') returning id", [biz, id, total])).id;
+  await as("service", ({ q }) => q("select public.apply_payment($1,'stripe','pi_123',$2,'USD','',$3,null)", [id, total, attempt]));
+  assert.equal((await one("select status from public.documents where id=$1", [id])).status, "paid");
+  await pool.query("update public.platform_settings set billing_provider='stripe'");
+  await pool.query("update public.platform_settings set billing_provider='paystack'");
+});

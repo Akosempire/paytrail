@@ -11,7 +11,7 @@ export default async function Page() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Trial & billing" description="How new businesses try PayTrail, and how PayTrail collects subscription payments." />
-      <PlatformSettings settings={s} webhooks={{ bachs: `${siteUrl()}/api/webhooks/bachs/platform`, flutterwave: `${siteUrl()}/api/webhooks/flutterwave/platform` }} />
+      <PlatformSettings settings={s} webhooks={Object.fromEntries(["stripe", "paystack", "flutterwave", "bachs"].map((p) => [p, `${siteUrl()}/api/webhooks/${p}/platform`]))} />
     </div>
   );
 }

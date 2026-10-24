@@ -6,7 +6,7 @@ import { ThemeToggle } from "@/components/ui-client";
 const POINTS = [
   { icon: FileText, title: "Branded quotes in minutes", text: "Your logo, colours and terms on every quote, invoice and receipt." },
   { icon: EyeOff, title: "Know your real profit", text: "Add hidden costs like data, fuel and subscriptions. Only your team sees them." },
-  { icon: Wallet, title: "Get paid online", text: "Customers pay with Bachs or Flutterwave. The invoice marks itself paid." },
+  { icon: Wallet, title: "Get paid online", text: "Customers pay by card or transfer through Stripe, Paystack, Flutterwave or Bachs. The invoice marks itself paid." },
   { icon: Receipt, title: "Receipts, automatically", text: "Every payment, online or by transfer, issues a numbered receipt." },
 ];
 

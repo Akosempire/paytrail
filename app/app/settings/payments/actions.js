@@ -3,8 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { encryptSecret, hint } from "@/lib/crypto";
-import { bachsMode, testBachsKey, validBachsKey } from "@/lib/payments/bachs";
-import { flutterwaveMode, testFlutterwaveKey, validFlutterwaveKey } from "@/lib/payments/flutterwave";
+import { KEY_RULES, webhookSecretProblem } from "@/lib/payments/keys";
 import { confirmAttempt, startCheckout, testAmountMinor, PROVIDERS } from "@/lib/payments";
 
 const done = () => revalidatePath("/app/settings/payments");
@@ -18,24 +17,28 @@ export async function saveConnection(provider, { secretKey, webhookSecret }) {
   const { data: existing } = await service.from("payment_connections").select("secret_key_enc, webhook_secret_enc, mode").eq("business_id", ctx.business.id).eq("provider", provider).maybeSingle();
 
   const update = { business_id: ctx.business.id, provider, updated_at: new Date().toISOString(), last_error: "" };
+  const rule = KEY_RULES[provider];
   if (key) {
-    if (provider === "bachs" && !validBachsKey(key)) return { error: "That doesn't look like a Bachs secret key. It starts with sk_sandbox_ (test) or sk_live_ (live)." };
-    if (provider === "flutterwave" && !validFlutterwaveKey(key)) return { error: "That doesn't look like a Flutterwave secret key. It starts with FLWSECK_TEST- (test) or FLWSECK- (live)." };
-    const check = provider === "bachs" ? await testBachsKey(key) : await testFlutterwaveKey(key);
+    if (!rule.valid(key)) return { error: rule.badKey };
+    const check = await rule.check(key);
     if (!check.ok) return { error: check.error };
-    const mode = provider === "bachs" ? bachsMode(key) : flutterwaveMode(key);
-    Object.assign(update, { secret_key_enc: encryptSecret(key), key_hint: hint(key), mode });
+    Object.assign(update, { secret_key_enc: encryptSecret(key), key_hint: hint(key), mode: rule.mode(key) });
     // a new key (or a switch between test and live) must be proven again
     Object.assign(update, { payment_confirmed_at: null, webhook_confirmed_at: null, last_test_reference: null });
+    // Paystack signs webhooks with the secret key itself
+    if (!rule.needsWebhookSecret) update.webhook_secret_enc = update.secret_key_enc;
   } else if (!existing?.secret_key_enc) {
     return { error: "Paste your secret key." };
   }
-  if (hook) {
-    if (hook.length < 8) return { error: provider === "bachs" ? "Paste the full webhook signing secret from Bachs." : "Use a secret hash of at least 8 characters." };
-    update.webhook_secret_enc = encryptSecret(hook);
-    update.webhook_confirmed_at = null;
-  } else if (!existing?.webhook_secret_enc) {
-    return { error: provider === "bachs" ? "Paste your webhook signing secret." : "Enter the secret hash you set in Flutterwave." };
+  if (rule.needsWebhookSecret) {
+    if (hook) {
+      const problem = webhookSecretProblem(provider, hook);
+      if (problem) return { error: problem };
+      update.webhook_secret_enc = encryptSecret(hook);
+      update.webhook_confirmed_at = null;
+    } else if (!existing?.webhook_secret_enc) {
+      return { error: rule.badHook.replace(/^Use a/, "Enter a").replace(/^Paste the full/, "Paste the") };
+    }
   }
   const { error } = await service.from("payment_connections").upsert(update, { onConflict: "business_id,provider" });
   if (error) return { error: "Could not save. Try again." };

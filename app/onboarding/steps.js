@@ -226,7 +226,7 @@ export function StepFinish({ business }) {
           <div className="rounded-xl bg-tray p-4">
             <Briefcase className="size-5 text-brand" />
             <p className="mt-2 text-title-3 text-ink">Online payments</p>
-            <p className="mt-1 text-[13px] text-ink-2">Connect Bachs or Flutterwave so customers can pay by card, transfer or USSD from the quote link. A paid quote becomes a paid invoice with a receipt.</p>
+            <p className="mt-1 text-[13px] text-ink-2">Connect Stripe, Paystack, Flutterwave or Bachs so customers can pay by card or transfer from the quote link. A paid quote becomes a paid invoice with a receipt.</p>
           </div>
           <div className="rounded-xl bg-tray p-4">
             <Building2 className="size-5 text-success" />

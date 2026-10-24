@@ -107,7 +107,7 @@ function PaymentModal({ open, onClose, doc, balance, onSubmit, pending }) {
         <Field label="Reference" htmlFor="pr" optional><Input id="pr" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Bank narration / teller no." /></Field>
         <Field label="Note" htmlFor="pn" optional className="sm:col-span-2"><Textarea id="pn" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></Field>
       </div>
-      <p className="mt-4 text-[13px] text-ink-3">Check your bank app first. Online payments through Bachs or Flutterwave are recorded automatically, so don't add them here.</p>
+      <p className="mt-4 text-[13px] text-ink-3">Check your bank app first. Online payments (Stripe, Paystack, Flutterwave, Bachs) are recorded automatically, so don't add them here.</p>
     </Modal>
   );
 }

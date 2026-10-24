@@ -7,17 +7,17 @@ import { Badge, Button, Card, EmptyState, PageHeader, StatCard, StatGroup, cx } 
 
 export const metadata = { title: "Payments & receipts" };
 
-const METHOD_TONE = { bachs: "brand", flutterwave: "warn", bank_transfer: "success", cash: "neutral", pos: "info", other: "neutral" };
+const METHOD_TONE = { stripe: "violet", paystack: "info", bachs: "brand", flutterwave: "warn", bank_transfer: "success", cash: "neutral", pos: "info", other: "neutral" };
 
 export default async function Payments({ searchParams }) {
   const { method = "" } = await searchParams;
   const ctx = await requireBusiness();
   let query = ctx.supabase.from("payments").select("*, documents(id, number, customer_name, customer_company, kind), receipts(id, number, access_token)").eq("business_id", ctx.business.id).order("paid_at", { ascending: false }).limit(200);
-  if (method === "online") query = query.in("method", ["bachs", "flutterwave"]);
+  if (method === "online") query = query.in("method", ["bachs", "flutterwave", "stripe", "paystack"]);
   else if (method === "manual") query = query.in("method", ["bank_transfer", "cash", "pos", "other"]);
   const [{ data: payments }, { data: s }] = await Promise.all([query, ctx.supabase.rpc("business_summary", { target: ctx.business.id })]);
   const money = (v) => formatMoney(v, ctx.business.currency);
-  const online = (payments || []).filter((p) => ["bachs", "flutterwave"].includes(p.method)).reduce((a, p) => a + Number(p.amount_minor), 0);
+  const online = (payments || []).filter((p) => ["bachs", "flutterwave", "stripe", "paystack"].includes(p.method)).reduce((a, p) => a + Number(p.amount_minor), 0);
   const tabs = [["", "All"], ["online", "Online"], ["manual", "Recorded by team"]];
   return (
     <div className="flex flex-col gap-6">
@@ -25,7 +25,7 @@ export default async function Payments({ searchParams }) {
       <StatGroup cols={3}>
         <StatCard label="Collected this month" value={money(s?.collected_month_minor || 0)} icon={Wallet} tone="success" />
         <StatCard label="Still owed" value={money(s?.outstanding_minor || 0)} icon={Receipt} tone="warn" />
-        <StatCard label="Paid online" value={money(online)} hint="Bachs + Flutterwave, in the list below" />
+        <StatCard label="Paid online" value={money(online)} hint="Card and online payments, in the list below" />
       </StatGroup>
       <nav className="inline-flex items-center gap-0.5 self-start rounded-lg bg-tray p-1" aria-label="Filter">
         {tabs.map(([v, l]) => (
