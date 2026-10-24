@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { after } from "next/server";
+import { reconcileSoon } from "@/lib/payments";
 import { CheckCircle2, Clock, Download, XCircle, Receipt, Ban } from "lucide-react";
 import { getPublicDocument } from "@/lib/documents";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -25,6 +27,8 @@ export default async function PublicDocument({ params, searchParams }) {
   const found = await getPublicDocument(token);
   if (!found) notFound();
   const { doc, items, business, receipts, providers, invoice } = found;
+  // a customer coming back to their link is a good moment to re-check an unconfirmed payment
+  after(() => reconcileSoon(`d:${doc.id}`, { businessId: doc.business_id }));
 
   // first open: sent → viewed, so the business sees it was read
   if (doc.status === "sent") {
@@ -105,7 +109,7 @@ export default async function PublicDocument({ params, searchParams }) {
               </ul>
             </div>
           )}
-          <p className="flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Sent securely with PayTrail</p>
+          <p className="flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Sent securely with PayTrail · <a href="/privacy" className="underline underline-offset-2 hover:text-[#667085]">Privacy</a></p>
         </aside>
       </main>
       {(!paid && !["void", "declined"].includes(doc.status) && !(quote && expired && doc.status !== "accepted")) && (

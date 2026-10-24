@@ -52,7 +52,7 @@ export default async function ReceiptPage({ params }) {
           <Button href={`/r/${token}/pdf`} icon={Download} target="_blank">Download PDF</Button>
           <Button href={`/d/${doc.access_token}`} variant="ghost">View {doc.kind}</Button>
         </div>
-        <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Issued with PayTrail</p>
+        <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Issued with PayTrail · <a href="/privacy" className="underline underline-offset-2 hover:text-[#667085]">Privacy</a></p>
       </div>
     </div>
   );

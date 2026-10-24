@@ -57,12 +57,14 @@ Copy `.env.example` to `.env.local` (locally) or add them in Vercel → Settings
 | `APP_ENCRYPTION_KEY` | 32+ random characters. Encrypts every business's payment keys. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Never change it later**, or saved keys can't be read. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional. Without it PayTrail still works: teams copy links or share them on WhatsApp instead of emailing. |
 | `CRON_SECRET` | Random string. Protects the job that re-checks unconfirmed payments. |
+| `LEGAL_COMPANY_NAME`, `LEGAL_ADDRESS`, `LEGAL_EMAIL` | Shown on `/terms` and `/privacy`. Use your registered business name and address. |
 | `PAYTRAIL_ALLOW_TEST_PAYMENTS` | Leave **unset** in production. Set to `1` only on a staging site to try test-card payments end to end. |
 
 ### 3. Deploy to Vercel
 
 1. Push this folder to a new GitHub repo, then import it in Vercel (framework: Next.js). Add the env vars from step 2.
-2. `vercel.json` runs `/api/cron/reconcile` every 15 minutes, which catches payments whose webhook never arrived. The Vercel Hobby plan only allows daily cron jobs. On Hobby, change the schedule to `0 6 * * *`, or use Pro.
+2. Payments whose webhook never arrived are re-checked automatically in the background whenever a team opens PayTrail or a customer opens their link (at most every 2 minutes), so this works on any Vercel plan. `vercel.json` also runs `/api/cron/reconcile` once a day as a safety net (allowed on the free Hobby plan). On Vercel Pro you can make it every 15 minutes: change the schedule to `*/15 * * * *`.
+3. **Legal pages:** `/terms` and `/privacy` are ready-made starting points written for a Nigerian business serving customers worldwide. Have a lawyer review them before launch.
 
 ### 4. Make yourself the platform owner
 

@@ -120,7 +120,11 @@ export default async function Home({ searchParams }) {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-8 text-[13px] text-ink-3 sm:px-6 lg:px-8">
           <Logo withWord className="size-7" />
-          <span>© {new Date().getFullYear()} PayTrail</span>
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+            <Link href="/terms" className="hover:text-ink">Terms</Link>
+            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
+            <span>© {new Date().getFullYear()} PayTrail</span>
+          </div>
         </div>
       </footer>
     </div>

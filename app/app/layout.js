@@ -1,4 +1,6 @@
+import { after } from "next/server";
 import { AppShell } from "@/components/app-shell";
+import { reconcileSoon } from "@/lib/payments";
 import { requireBusiness } from "@/lib/context";
 import { can, ROLES } from "@/lib/permissions";
 import { logoUrl } from "@/lib/site";
@@ -6,6 +8,8 @@ import { logoUrl } from "@/lib/site";
 export default async function Layout({ children }) {
   const ctx = await requireBusiness();
   const { business, member } = ctx;
+  // catch any customer payment whose webhook was missed, after the page is sent
+  after(() => reconcileSoon(`b:${business.id}`, { businessId: business.id }));
   return (
     <AppShell
       business={{ id: business.id, name: business.name, kind: business.kind, brand_color: business.brand_color, subscription_status: business.subscription_status }}
