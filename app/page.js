@@ -52,11 +52,8 @@ export default async function Home({ searchParams }) {
 
         <section className="mx-auto grid max-w-[1280px] items-center gap-6 px-4 pt-8 pb-10 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:px-10 lg:pt-6 lg:pb-16">
           <div className="max-w-[560px] lg:pb-10">
-            <p className="flex items-center gap-3 text-[12px] font-semibold tracking-[0.18em] text-hero-ink-2">
-              <span className="h-px w-7 bg-hero-green" aria-hidden="true" />QUOTES. INVOICES. PAYMENTS.
-            </p>
-            <h1 className="mt-6 text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em] text-hero-ink">
-              Good deals<br />deserve a<br />better <span className="text-hero-green">ending.</span>
+            <h1 className="text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em] text-hero-ink">
+              Quotes.<br />Invoices.<br /><span className="text-hero-green">Payments.</span>
             </h1>
             <p className="mt-6 text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">From quote to payment. Everything flows.</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
