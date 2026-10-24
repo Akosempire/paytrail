@@ -6,6 +6,7 @@ import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
 import { TemplateThumb } from "@/components/layout-panel";
 import { Chapters, PainStory } from "@/components/landing/story";
+import { DotField } from "@/components/landing/dot-field";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
@@ -73,7 +74,11 @@ export default async function Home({ searchParams }) {
       {signedIn && <InstallPrompt delay={5000} />}
 
       {/* ------------------------------------------------ hero */}
-      <div className="overflow-hidden">
+      <div className="relative isolate overflow-hidden">
+        {/* interactive dot field behind the hero; fades out at the bottom */}
+        <div aria-hidden="true" className="absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,#000_72%,transparent)]">
+          <DotField />
+        </div>
         <header className={`relative z-10 flex items-center justify-between py-4 ${WRAP}`}>
           <Logo withWord wordClass="text-hero-ink" />
           <nav className="flex items-center gap-1 sm:gap-2" aria-label="Main">
