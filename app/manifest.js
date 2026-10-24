@@ -1,8 +1,8 @@
-// Web app manifest: lets PayTrail be installed on phones and desktops.
+// Web app manifest: lets Tally be installed on phones and desktops.
 export default function manifest() {
   return {
-    name: "PayTrail: quotes, invoices & receipts",
-    short_name: "PayTrail",
+    name: "Tally: quotes, invoices & payments",
+    short_name: "Tally",
     description: "Send branded quotations and invoices, get paid online and issue receipts.",
     id: "/app",
     start_url: "/app?source=pwa",

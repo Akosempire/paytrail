@@ -2,6 +2,7 @@
 // cool-grey canvas, white cards on grey trays, one confident blue, large radii.
 // Everything here renders on the server; interactive pieces live in ui-client.js.
 import Link from "next/link";
+import { BRAND } from "@/lib/brand";
 
 export const cx = (...c) => c.filter(Boolean).join(" ");
 
@@ -329,7 +330,7 @@ export function Logo({ className = "size-9", withWord, wordClass = "" }) {
         <circle cx="19" cy="18.5" r="1.3" fill="#1570EF" opacity=".75" />
         <path d="m21.2 21.4 2 2 3.6-4.2" fill="none" stroke="#079455" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
-      {withWord && <span className={cx("text-[17px] font-semibold tracking-[-0.02em] text-ink", wordClass)}>PayTrail</span>}
+      {withWord && <span className={cx("text-[17px] font-semibold tracking-[-0.02em] text-ink", wordClass)}>{BRAND.name}</span>}
     </span>
   );
 }

@@ -111,6 +111,9 @@
   --color-hero-ink-2: #5d5b53;
   --color-hero-line: #dcd7cb;
   --color-hero-green: #1d7a4c;
+  --color-hero-paper: #fffdf8;
+  --color-hero-tint: #ebe7dd;
+  --color-hero-violet: #6941c6;
 }
 
 /* Dark theme — matches the dark reference: near-black canvas, charcoal trays, darker cards */
@@ -120,6 +123,9 @@
   --color-hero-ink-2: #a29e93;
   --color-hero-line: #2e2c27;
   --color-hero-green: #4fc28a;
+  --color-hero-paper: #1c1b18;
+  --color-hero-tint: #1f1e1b;
+  --color-hero-violet: #b692f6;
 
   color-scheme: dark;
   --color-canvas: #141414;

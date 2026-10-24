@@ -1,14 +1,16 @@
 import Link from "next/link";
-import { ArrowDown, ArrowRight, Check, EyeOff, FileText, Palette, Receipt, ShieldCheck, Users, Wallet } from "lucide-react";
-import { Button, Logo } from "@/components/ui";
+import { ArrowDown, ArrowRight, BadgeCheck, Building2, Check, EyeOff, Landmark, Lock, Plus, ShieldCheck, UserRound, Wallet } from "lucide-react";
+import { Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
+import { TemplateThumb } from "@/components/layout-panel";
+import { Chapters, PainStory } from "@/components/landing/story";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
 import { hasYearly, monthlyEquivalent, plansFor } from "@/lib/plans";
-
+import { BRAND } from "@/lib/brand";
 
 async function publicData() {
   if (!supabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { plans: [], trial: null };
@@ -20,45 +22,80 @@ async function publicData() {
   return { plans: plans || [], trial };
 }
 
-const HERO_BTN = "inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-hero-ink px-7 text-[15px] font-semibold text-hero transition-[transform,background] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green focus-visible:ring-offset-2 focus-visible:ring-offset-hero";
-const HERO_BTN_SM = "inline-flex h-9 items-center rounded-full bg-hero-ink px-4 text-[13px] font-semibold text-hero transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green";
+const BTN = "inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-hero-ink px-7 text-[15px] font-semibold text-hero transition-[transform,background] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green focus-visible:ring-offset-2 focus-visible:ring-offset-hero";
+const BTN_SM = "inline-flex h-9 items-center rounded-full bg-hero-ink px-4 text-[13px] font-semibold text-hero transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green";
+const BTN_GHOST = "inline-flex h-[52px] items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green";
+const PAPER = "rounded-[18px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.05),0_18px_40px_-24px_rgba(20,16,8,.3)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
+const WRAP = "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10";
+const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-green uppercase";
+const H2 = "text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]";
 
-const STEPS = [
-  { icon: FileText, title: "Quote", text: "Price the job with your logo and colours. Add hidden costs to check your profit." },
-  { icon: Check, title: "Accept", text: "Your customer opens a link, reads it on any phone and accepts with their name." },
-  { icon: Wallet, title: "Pay", text: "They pay by card or bank transfer through Stripe, Paystack, Flutterwave or Bachs. The quote becomes a paid invoice." },
-  { icon: Receipt, title: "Receipt", text: "A numbered, branded receipt is issued for every payment, full or part." },
+// everything here is true of the product today
+const TRUST = [
+  [Wallet, "Paid straight into your own Paystack or Stripe account"],
+  [ShieldCheck, "Every payment verified with the provider"],
+  [Lock, "Keys encrypted · NDPA-ready"],
+  [BadgeCheck, "14-day free trial · no card"],
+];
+
+const ROLES = [
+  { icon: Building2, role: "Owner", who: "Runs the business", can: ["Everything, including billing", "Sees costs and profit", "Sets who sees what"] },
+  { icon: UserRound, role: "Finance", who: "Sends and collects", can: ["Creates and sends documents", "Records payments", "Sees hidden costs"] },
+  { icon: UserRound, role: "Junior", who: "Prepares drafts", can: ["Drafts quotes and invoices", "Needs approval to send", "Costs hidden unless allowed"] },
+];
+
+const PROVIDERS = [
+  ["Paystack", "Nigeria, Ghana, Kenya, South Africa"],
+  ["Stripe", "US, UK, Europe and 40+ countries"],
+  ["Flutterwave", "Across Africa"],
+  ["Bachs", "Where Bachs operates"],
+  ["Bank transfer", "Your account details on every invoice"],
+];
+
+const FAQ = [
+  ["Do you hold my money?", "No. Customers pay through your own Paystack, Stripe, Flutterwave or Bachs account, so money goes straight to you. We confirm each payment with the provider, then mark the invoice paid and issue the receipt."],
+  ["Can my customers see my costs?", "Never. Hidden costs live only inside your account. In a team, you choose who can see them, and they never appear on quotes, invoices, receipts or PDFs."],
+  ["Do my customers need an account?", "No. They open a secure link on any phone or computer, accept the quote with their name, and pay. They can download the PDF and their receipt."],
+  ["Can I print receipts on a POS printer?", "Yes. Every document prints on A4, US Letter, A5 or half letter, and receipts also print on 80 mm and 58 mm thermal rolls."],
+  ["What happens after the free trial?", "You get 14 days free with no card. After that, choose a plan to keep sending. Your quotes, invoices, customers and receipts stay safe either way."],
+  ["Can I use it on my phone?", "Yes. It works in any browser, and you can install it to your home screen. Pages you've opened stay readable offline."],
+  ["Is my data safe?", "Each business's data is kept separate in the database, payment keys are encrypted, and changing bank details or payment keys needs a code sent to your email. You can download or delete your data at any time."],
 ];
 
 export default async function Home({ searchParams }) {
   const sp = await searchParams;
   const [{ plans: allPlans, trial }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
-  const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Start free";
+  const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Free trial";
+  const signedIn = Boolean(ctx.user);
+
   return (
-    <div className="min-h-dvh bg-canvas">
-      {ctx.user && <InstallPrompt delay={5000} />}
-      <div className="overflow-hidden bg-hero text-hero-ink">
-        <header className="relative z-10 mx-auto flex max-w-[1280px] items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
+    <div className="min-h-dvh bg-hero text-hero-ink">
+      {signedIn && <InstallPrompt delay={5000} />}
+
+      {/* ------------------------------------------------ hero */}
+      <div className="overflow-hidden">
+        <header className={`relative z-10 flex items-center justify-between py-4 ${WRAP}`}>
           <Logo withWord wordClass="text-hero-ink" />
-          <nav className="flex items-center gap-1 sm:gap-2">
+          <nav className="flex items-center gap-1 sm:gap-2" aria-label="Main">
+            <a href="#how-it-works" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink md:block">How it works</a>
             <a href="#pricing" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink sm:block">Pricing</a>
             <ThemeToggle />
-            {ctx.user
-              ? <Link href="/app" className={HERO_BTN_SM}>Open dashboard</Link>
-              : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><Link href="/signup" className={HERO_BTN_SM}>Get started</Link></>}
+            {signedIn
+              ? <Link href="/app" className={BTN_SM}>Open dashboard</Link>
+              : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><Link href="/signup" className={BTN_SM}>Get started</Link></>}
           </nav>
         </header>
-        {sp.account === "deleted" && <p role="status" className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10"><span className="block rounded-xl bg-success-soft px-4 py-3 text-sm font-medium text-success-ink ring-1 ring-inset ring-success/25">Your PayTrail account has been deleted. Thanks for using PayTrail.</span></p>}
+        {sp.account === "deleted" && <p role="status" className={WRAP}><span className="block rounded-xl bg-success-soft px-4 py-3 text-sm font-medium text-success-ink ring-1 ring-inset ring-success/25">Your account has been deleted. Thanks for using {BRAND.name}.</span></p>}
 
-        <section className="mx-auto grid max-w-[1280px] items-center gap-6 px-4 pt-8 pb-10 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:px-10 lg:pt-6 lg:pb-16">
+        <section className={`grid items-center gap-6 pt-8 pb-10 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:pt-6 lg:pb-12 ${WRAP}`}>
           <div className="max-w-[560px] lg:pb-10">
-            <h1 className="text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em] text-hero-ink">
+            <h1 className="text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em]">
               Quotes.<br />Invoices.<br /><span className="text-hero-green">Payments.</span>
             </h1>
             <p className="mt-6 text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">From quote to payment. Everything flows.</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-              <Link href="/signup" className={HERO_BTN}>Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
-              <a href="#how-it-works" className="group inline-flex items-center justify-center gap-2 text-[15px] font-medium text-hero-ink sm:justify-start">
+              <Link href="/signup" className={BTN}>Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
+              <a href="#how-it-works" className="group inline-flex items-center justify-center gap-2 text-[15px] font-medium sm:justify-start">
                 <span className="border-b border-hero-line pb-0.5 transition-colors group-hover:border-hero-ink">See how it works</span>
                 <ArrowDown className="size-4 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
               </a>
@@ -66,90 +103,177 @@ export default async function Home({ searchParams }) {
           </div>
           <HeroFilm className="hero-film-mask -mx-4 aspect-[826/778] sm:mx-auto sm:w-full sm:max-w-[560px] lg:mr-[-40px] lg:ml-0 lg:aspect-[10/9] lg:max-w-none" />
         </section>
+
+        {/* trust strip */}
+        <div className={`pb-16 ${WRAP}`}>
+          <ul className="grid gap-x-8 gap-y-3 border-y border-hero-line py-5 text-[14px] text-hero-ink-2 sm:grid-cols-2 lg:grid-cols-4">
+            {TRUST.map(([Icon, text]) => <li key={text} className="flex items-center gap-2.5"><Icon className="size-4 shrink-0 text-hero-green" aria-hidden="true" />{text}</li>)}
+          </ul>
+        </div>
       </div>
 
-      <section id="how-it-works" className="mx-auto max-w-[1200px] scroll-mt-6 px-4 pt-16 pb-16 sm:px-6 lg:px-8">
-        <div className="grid gap-1.5 rounded-2xl bg-tray p-1.5 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map((s, i) => (
-            <div key={s.title} className="rounded-xl bg-surface p-5 ring-1 ring-line">
-              <div className="flex items-center gap-3"><span className="inline-flex size-9 items-center justify-center rounded-full bg-brand-soft text-brand ring-1 ring-brand-line"><s.icon className="size-4" /></span><span className="text-xs font-semibold text-ink-3">Step {i + 1}</span></div>
-              <p className="mt-4 text-title-3 text-ink">{s.title}</p>
-              <p className="mt-1 text-[13.5px] text-ink-2">{s.text}</p>
-            </div>
-          ))}
-        </div>
-      </section>
+      {/* ------------------------------------------------ story */}
+      <PainStory />
+      <Chapters />
 
-      <section className="mx-auto grid max-w-[1200px] gap-6 px-4 pb-20 sm:px-6 lg:grid-cols-3 lg:px-8">
-        <Feature icon={EyeOff} tone="text-violet" title="Hidden costs, real profit" text="Add your data subscription, electricity, transport and software to any quote. Your customer sees a clean price. You see costs, profit and margin, plus the price you need to hit your target margin." />
-        <Feature icon={Palette} tone="text-brand" title="Your brand everywhere" text="Logo, colour, bank details and terms on every quote, invoice, receipt, PDF and email. Customers see your business, not ours." />
-        <Feature icon={Users} tone="text-success" title="Built for finance teams" text="Invite managers, finance officers and juniors. Junior drafts go for approval, and you decide who can see hidden costs." />
-      </section>
-
-      <section className="border-y border-line bg-surface">
-        <div className="mx-auto flex max-w-[1200px] flex-col gap-6 px-4 py-14 sm:px-6 md:flex-row md:items-center lg:px-8">
-          <ShieldCheck className="size-10 shrink-0 text-brand" />
-          <div className="flex-1">
-            <h2 className="text-title-1 text-ink">Paid straight into your own account</h2>
-            <p className="mt-1 max-w-2xl text-ink-2">Connect your own Stripe, Paystack, Flutterwave or Bachs account with our step-by-step guide. Businesses in Nigeria, Ghana, Kenya, South Africa, the US, UK, Europe and beyond can take payments. Money goes directly to you. PayTrail confirms each payment with the provider before marking an invoice paid.</p>
+      {/* ------------------------------------------------ teams */}
+      <section className={`py-24 ${WRAP}`} aria-labelledby="teams-title">
+        <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center">
+          <div className="max-w-[520px]">
+            <p className={KICKER}>For teams</p>
+            <h2 id="teams-title" className={`mt-4 ${H2}`}>Everyone does their part. You see everything.</h2>
+            <p className="mt-5 text-[17px] leading-relaxed text-hero-ink-2">Invite your finance people and juniors. Junior drafts wait for approval, and you decide who can see your costs and profit.</p>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {ROLES.map((r, i) => (
+              <div key={r.role} className={`${PAPER} p-5 ${i === 1 ? "sm:translate-y-6" : ""}`}>
+                <span className="inline-flex size-10 items-center justify-center rounded-full bg-hero-tint"><r.icon className="size-5 text-hero-ink" aria-hidden="true" /></span>
+                <p className="mt-4 text-[18px] font-semibold tracking-[-0.01em]">{r.role}</p>
+                <p className="text-[13px] text-hero-ink-2">{r.who}</p>
+                <ul className="mt-4 space-y-2 text-[13.5px]">
+                  {r.can.map((c) => <li key={c} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{c}</li>)}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
 
+      {/* ------------------------------------------------ get paid + print */}
+      <section className="bg-hero-tint/60 py-24" aria-labelledby="paid-title">
+        <div className={`grid gap-14 lg:grid-cols-2 ${WRAP}`}>
+          <div>
+            <p className={KICKER}>Get paid</p>
+            <h2 id="paid-title" className={`mt-4 ${H2}`}>Your account. Your money.</h2>
+            <p className="mt-5 max-w-[520px] text-[17px] leading-relaxed text-hero-ink-2">Connect the provider you already use with our step-by-step guide. Money goes straight to you. {BRAND.name} never holds it.</p>
+            <ul className="mt-8 divide-y divide-hero-line border-y border-hero-line">
+              {PROVIDERS.map(([name, where]) => (
+                <li key={name} className="flex items-center justify-between gap-4 py-3.5">
+                  <span className="flex items-center gap-3 text-[16px] font-semibold">{name === "Bank transfer" ? <Landmark className="size-4 text-hero-ink-2" aria-hidden="true" /> : <span className="size-2 rounded-full bg-hero-green" aria-hidden="true" />}{name}</span>
+                  <span className="text-right text-[13.5px] text-hero-ink-2">{where}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className={KICKER}>Print anywhere</p>
+            <h2 className={`mt-4 ${H2}`}>Every document, any paper.</h2>
+            <p className="mt-5 max-w-[520px] text-[17px] leading-relaxed text-hero-ink-2">Four templates that carry your logo and colour. Download PDFs or print on A4, Letter, A5, half letter, or 80 mm and 58 mm receipt rolls.</p>
+            <div className="mt-8 grid grid-cols-4 gap-2.5">
+              {[["essential", "Essential"], ["signature", "Signature"], ["executive", "Executive"], ["pos", "POS"]].map(([id, name]) => (
+                <figure key={id} className="flex flex-col gap-2">
+                  <div className="aspect-[4/5] overflow-hidden rounded-xl bg-hero-paper p-2 ring-1 ring-black/[.05] dark:ring-white/[.06]"><TemplateThumb id={id} /></div>
+                  <figcaption className="text-center text-[12.5px] font-medium text-hero-ink-2">{name}</figcaption>
+                </figure>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap gap-2 text-[12.5px] font-medium">
+              {["A4", "US Letter", "A5", "Half letter", "80 mm roll", "58 mm roll"].map((p) => <span key={p} className="rounded-full bg-hero-paper px-3 py-1.5 ring-1 ring-hero-line">{p}</span>)}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ------------------------------------------------ pricing */}
       {allPlans.length > 0 && (() => {
         const currencies = [...new Set(allPlans.filter((p) => p.price_minor > 0).map((p) => p.currency))];
         const interval = sp.interval === "year" ? "year" : "month";
         const { currency, plans } = plansFor(allPlans, { currency: currencies.includes(sp.currency) ? sp.currency : currencies.includes("NGN") ? "NGN" : "USD", interval });
         const link = (c, i) => `/?currency=${c}&interval=${i}#pricing`;
-        const pill = (on) => `inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium ${on ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3 hover:text-ink"}`;
+        const pill = (on) => `inline-flex h-9 items-center rounded-full px-4 text-[13px] font-semibold ${on ? "bg-hero-ink text-hero" : "text-hero-ink-2 hover:text-hero-ink"}`;
         return (
-        <section id="pricing" className="mx-auto max-w-[1200px] px-4 py-20 sm:px-6 lg:px-8">
-          <h2 className="text-center text-[32px] font-semibold tracking-[-0.02em] text-ink">Simple pricing</h2>
-          <p className="mt-2 text-center text-ink-2">{trialText}, then pick a plan that fits. Cancel any time.</p>
-          <div className="mt-8 flex flex-wrap justify-center gap-3">
-            {currencies.length > 1 && <nav className="inline-flex gap-0.5 rounded-lg bg-tray p-1" aria-label="Currency">{currencies.map((c) => <Link key={c} href={link(c, interval)} className={pill(c === currency)}>{c === "NGN" ? "₦ Naira" : c === "USD" ? "$ US dollar" : c}</Link>)}</nav>}
-            {hasYearly(allPlans, currency) && <nav className="inline-flex gap-0.5 rounded-lg bg-tray p-1" aria-label="Billing period"><Link href={link(currency, "month")} className={pill(interval === "month")}>Monthly</Link><Link href={link(currency, "year")} className={pill(interval === "year")}>Yearly · 2 months free</Link></nav>}
-          </div>
-          <div className={`mx-auto mt-6 grid max-w-6xl gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2 ${plans.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-            {plans.map((p) => (
-              <div key={p.id} className={`flex flex-col rounded-xl bg-surface p-6 ring-1 ${p.name === "Team" ? "ring-2 ring-brand" : "ring-line"}`}>
-                <p className="text-title-3 text-ink">{p.name}</p>
-                {p.tagline && <p className="mt-1 text-[13px] text-ink-3">{p.tagline}</p>}
-                <p className="mt-5"><span className="text-[32px] font-semibold tracking-[-0.02em] text-ink tabular">{p.price_minor === 0 ? "Free" : formatMoney(p.price_minor, p.currency)}</span>{p.price_minor > 0 && <span className="text-ink-3"> / {p.billing_interval}</span>}</p>
-                {monthlyEquivalent(p) && <p className="text-xs text-ink-3">{formatMoney(monthlyEquivalent(p), p.currency)} a month</p>}
-                <ul className="mt-5 flex-1 space-y-2 text-[13.5px] text-ink-2">
-                  <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</li>
-                  <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
-                  {(p.features || []).map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{f}</li>)}
-                </ul>
-                <Button href="/signup" variant="secondary" block className="mt-6">Start 14-day free trial</Button>
-              </div>
-            ))}
-          </div>
-        </section>
+          <section id="pricing" className={`scroll-mt-4 py-24 ${WRAP}`} aria-labelledby="pricing-title">
+            <div className="text-center">
+              <p className={KICKER}>Pricing</p>
+              <h2 id="pricing-title" className={`mt-4 ${H2}`}>Simple plans. Start free.</h2>
+              <p className="mt-4 text-[17px] text-hero-ink-2">{trialText}, no card needed. Then pick a plan that fits.</p>
+            </div>
+            <div className="mt-8 flex flex-wrap justify-center gap-3">
+              {currencies.length > 1 && <nav className="inline-flex gap-1 rounded-full bg-hero-tint p-1" aria-label="Currency">{currencies.map((c) => <Link key={c} href={link(c, interval)} className={pill(c === currency)}>{c === "NGN" ? "₦ Naira" : c === "USD" ? "$ Dollar" : c}</Link>)}</nav>}
+              {hasYearly(allPlans, currency) && <nav className="inline-flex gap-1 rounded-full bg-hero-tint p-1" aria-label="Billing period"><Link href={link(currency, "month")} className={pill(interval === "month")}>Monthly</Link><Link href={link(currency, "year")} className={pill(interval === "year")}>Yearly · 2 months free</Link></nav>}
+            </div>
+            <div className={`mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-2 ${plans.length >= 3 ? "lg:grid-cols-3" : ""}`}>
+              {plans.map((p) => {
+                const featured = p.name === "Team";
+                return (
+                  <div key={p.id} className={`relative flex flex-col p-7 ${featured ? "rounded-[18px] bg-hero-ink text-hero shadow-[0_30px_60px_-30px_rgba(20,16,8,.6)]" : PAPER}`}>
+                    {featured && <span className="absolute top-6 right-6 rounded-full bg-hero-green px-2.5 py-1 text-[11px] font-semibold text-white">Most popular</span>}
+                    <p className="text-[18px] font-semibold">{p.name}</p>
+                    {p.tagline && <p className={`mt-1 text-[13.5px] ${featured ? "text-hero/70" : "text-hero-ink-2"}`}>{p.tagline}</p>}
+                    <p className="mt-6"><span className="text-[40px] font-semibold tracking-[-0.03em] tabular-nums">{formatMoney(p.price_minor, p.currency)}</span><span className={featured ? "text-hero/70" : "text-hero-ink-2"}> / {p.billing_interval}</span></p>
+                    <p className={`h-5 text-[13px] ${featured ? "text-hero/70" : "text-hero-ink-2"}`}>{monthlyEquivalent(p) ? `${formatMoney(monthlyEquivalent(p), p.currency)} a month` : ""}</p>
+                    <ul className="mt-6 flex-1 space-y-2.5 text-[14px]">
+                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</li>
+                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
+                      {(p.features || []).map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{f}</li>)}
+                    </ul>
+                    <Link href="/signup" className={`mt-8 inline-flex h-12 items-center justify-center rounded-full text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green ${featured ? "bg-hero text-hero-ink hover:bg-hero/90" : "bg-hero-ink text-hero hover:bg-hero-ink/90"}`}>Start free trial</Link>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
         );
       })()}
 
-      <footer className="border-t border-line">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-8 text-[13px] text-ink-3 sm:px-6 lg:px-8">
-          <Logo withWord className="size-7" />
-          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <Link href="/terms" className="hover:text-ink">Terms</Link>
-            <Link href="/privacy" className="hover:text-ink">Privacy</Link>
-            <span>© {new Date().getFullYear()} PayTrail</span>
-          </div>
+      {/* ------------------------------------------------ FAQ */}
+      <section className={`grid gap-12 py-24 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] ${WRAP}`} aria-labelledby="faq-title">
+        <div>
+          <p className={KICKER}>Questions</p>
+          <h2 id="faq-title" className={`mt-4 ${H2}`}>Good to know.</h2>
+          <p className="mt-5 max-w-[420px] text-[17px] leading-relaxed text-hero-ink-2">Something else? <Link href="/signup" className="font-semibold text-hero-ink underline decoration-hero-line underline-offset-4 hover:decoration-hero-ink">Start the free trial</Link> and ask us from inside the app.</p>
         </div>
-      </footer>
-    </div>
-  );
-}
+        <div className="divide-y divide-hero-line border-y border-hero-line">
+          {FAQ.map(([q, a]) => (
+            <details key={q} className="group py-1">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-lg py-4 text-[17px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green [&::-webkit-details-marker]:hidden">
+                {q}
+                <Plus className="size-5 shrink-0 text-hero-ink-2 transition-transform duration-300 group-open:rotate-45" aria-hidden="true" />
+              </summary>
+              <p className="max-w-[640px] pb-5 text-[15.5px] leading-relaxed text-hero-ink-2">{a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
 
-function Feature({ icon: Icon, tone, title, text }) {
-  return (
-    <div className="rounded-2xl bg-surface p-6 shadow-[var(--shadow-card)] ring-1 ring-line">
-      <Icon className={`size-6 ${tone}`} />
-      <h3 className="mt-4 text-title-2 text-ink">{title}</h3>
-      <p className="mt-2 text-[14px] leading-relaxed text-ink-2">{text}</p>
+      {/* ------------------------------------------------ founding CTA */}
+      <section className={`pb-24 ${WRAP}`}>
+        <div className="relative overflow-hidden rounded-[28px] bg-[#121210] px-6 py-16 text-[#f2efe7] sm:px-12 lg:px-16 lg:py-20">
+          <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
+            <div>
+              <p className="text-[13px] font-semibold tracking-[0.14em] text-[#4fc28a] uppercase">Early access</p>
+              <h2 className="mt-4 text-[clamp(34px,4.8vw,64px)] leading-[1.02] font-semibold tracking-[-0.035em]">Good deals deserve a better <span className="text-[#4fc28a]">ending.</span></h2>
+              <p className="mt-5 max-w-[560px] text-[17px] leading-relaxed text-[#a29e93]">{BRAND.name} is new, and built for freelancers and small businesses. Join early, tell us what you need, and help shape what we build next.</p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
+              <Link href="/signup" className="inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-[#f2efe7] px-7 text-[15px] font-semibold text-[#121210] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4fc28a]">Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
+              <a href="#pricing" className={`${BTN_GHOST} text-[#f2efe7] ring-white/20 hover:ring-white/50`}>See pricing</a>
+            </div>
+          </div>
+          <EyeOff className="pointer-events-none absolute -right-10 -bottom-12 size-64 text-white/[.03]" aria-hidden="true" />
+        </div>
+      </section>
+
+      {/* ------------------------------------------------ footer */}
+      <footer className="border-t border-hero-line">
+        <div className={`flex flex-col gap-8 py-10 sm:flex-row sm:items-start sm:justify-between ${WRAP}`}>
+          <div className="max-w-[320px]">
+            <Logo withWord className="size-8" wordClass="text-hero-ink" />
+            <p className="mt-3 text-[13.5px] leading-relaxed text-hero-ink-2">Quotes, invoices and payments for freelancers and small businesses.</p>
+          </div>
+          <nav className="grid grid-cols-2 gap-x-12 gap-y-2 text-[13.5px] sm:grid-cols-3" aria-label="Footer">
+            <a href="#how-it-works" className="text-hero-ink-2 hover:text-hero-ink">How it works</a>
+            <a href="#pricing" className="text-hero-ink-2 hover:text-hero-ink">Pricing</a>
+            <Link href="/signup" className="text-hero-ink-2 hover:text-hero-ink">Start free</Link>
+            <Link href="/login" className="text-hero-ink-2 hover:text-hero-ink">Sign in</Link>
+            <Link href="/terms" className="text-hero-ink-2 hover:text-hero-ink">Terms</Link>
+            <Link href="/privacy" className="text-hero-ink-2 hover:text-hero-ink">Privacy</Link>
+            <Link href="/dpa" className="text-hero-ink-2 hover:text-hero-ink">Data processing</Link>
+            <Link href="/subprocessors" className="text-hero-ink-2 hover:text-hero-ink">Sub-processors</Link>
+          </nav>
+        </div>
+        <p className={`pb-10 text-[12.5px] text-hero-ink-2 ${WRAP}`}>© {new Date().getFullYear()} {BRAND.name}. All rights reserved.</p>
+      </footer>
     </div>
   );
 }
