@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { ArrowRight, Check, EyeOff, FileText, Palette, Receipt, ShieldCheck, Users, Wallet } from "lucide-react";
+import { ArrowDown, ArrowRight, Check, EyeOff, FileText, Palette, Receipt, ShieldCheck, Users, Wallet } from "lucide-react";
 import { Button, Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
+import { HeroFilm } from "@/components/hero-film";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
@@ -18,6 +19,9 @@ async function publicData() {
   return { plans: plans || [], trial };
 }
 
+const HERO_BTN = "inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-hero-ink px-7 text-[15px] font-semibold text-hero transition-[transform,background] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green focus-visible:ring-offset-2 focus-visible:ring-offset-hero";
+const HERO_BTN_SM = "inline-flex h-9 items-center rounded-full bg-hero-ink px-4 text-[13px] font-semibold text-hero transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green";
+
 const STEPS = [
   { icon: FileText, title: "Quote", text: "Price the job with your logo and colours. Add hidden costs to check your profit." },
   { icon: Check, title: "Accept", text: "Your customer opens a link, reads it on any phone and accepts with their name." },
@@ -31,32 +35,41 @@ export default async function Home({ searchParams }) {
   const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Start free";
   return (
     <div className="min-h-dvh bg-canvas">
-      <header className="mx-auto flex max-w-[1200px] items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
-        <Logo withWord />
-        <nav className="flex items-center gap-2">
-          <a href="#pricing" className="hidden px-3 text-sm font-medium text-ink-2 hover:text-ink sm:block">Pricing</a>
-          <ThemeToggle />
-          {ctx.user ? <Button href="/app" variant="primary">Open dashboard</Button> : <><Button href="/login" variant="ghost">Sign in</Button><Button href="/signup" variant="primary">Get started</Button></>}
-        </nav>
-      </header>
-      {sp.account === "deleted" && <p role="status" className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8"><span className="block rounded-xl bg-success-soft px-4 py-3 text-sm font-medium text-success-ink ring-1 ring-inset ring-success/25">Your PayTrail account has been deleted. Thanks for using PayTrail.</span></p>}
+      <div className="overflow-hidden bg-hero text-hero-ink">
+        <header className="relative z-10 mx-auto flex max-w-[1280px] items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
+          <Logo withWord wordClass="text-hero-ink" />
+          <nav className="flex items-center gap-1 sm:gap-2">
+            <a href="#pricing" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink sm:block">Pricing</a>
+            <ThemeToggle />
+            {ctx.user
+              ? <Link href="/app" className={HERO_BTN_SM}>Open dashboard</Link>
+              : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><Link href="/signup" className={HERO_BTN_SM}>Get started</Link></>}
+          </nav>
+        </header>
+        {sp.account === "deleted" && <p role="status" className="mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10"><span className="block rounded-xl bg-success-soft px-4 py-3 text-sm font-medium text-success-ink ring-1 ring-inset ring-success/25">Your PayTrail account has been deleted. Thanks for using PayTrail.</span></p>}
 
-      <section className="mx-auto max-w-[1200px] px-4 pt-10 pb-16 sm:px-6 lg:px-8 lg:pt-16">
-        <div className="relative overflow-hidden rounded-3xl bg-[#0c111d] px-6 py-14 text-white sm:px-12 lg:py-20">
-          <div className="pointer-events-none absolute -top-40 -right-40 size-[560px] rounded-full bg-[#1570EF]/30 blur-[140px]" />
-          <div className="relative max-w-2xl">
-            <p className="text-overline text-[#6ee0a6]">For freelancers & finance teams</p>
-            <h1 className="mt-4 text-[40px] leading-[1.1] font-semibold tracking-[-0.03em] sm:text-[56px]">Quotes your customers accept. Payments that record themselves.</h1>
-            <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-white/70">PayTrail turns a branded quotation into a paid invoice and a receipt, and shows you the real profit on every job, after data, power and every hidden cost.</p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Button href="/signup" variant="primary" size="lg" iconRight={ArrowRight}>{trialText}</Button>
-              <span className="text-sm text-white/55">No card needed</span>
+        <section className="mx-auto grid max-w-[1280px] items-center gap-6 px-4 pt-8 pb-10 sm:px-6 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:px-10 lg:pt-6 lg:pb-16">
+          <div className="max-w-[560px] lg:pb-10">
+            <p className="flex items-center gap-3 text-[12px] font-semibold tracking-[0.18em] text-hero-ink-2">
+              <span className="h-px w-7 bg-hero-green" aria-hidden="true" />QUOTES. INVOICES. PAYMENTS.
+            </p>
+            <h1 className="mt-6 text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em] text-hero-ink">
+              Good deals<br />deserve a<br />better <span className="text-hero-green">ending.</span>
+            </h1>
+            <p className="mt-6 text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">From quote to payment. Everything flows.</p>
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
+              <Link href="/signup" className={HERO_BTN}>Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
+              <a href="#how-it-works" className="group inline-flex items-center justify-center gap-2 text-[15px] font-medium text-hero-ink sm:justify-start">
+                <span className="border-b border-hero-line pb-0.5 transition-colors group-hover:border-hero-ink">See how it works</span>
+                <ArrowDown className="size-4 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
+              </a>
             </div>
           </div>
-        </div>
-      </section>
+          <HeroFilm className="hero-film-mask -mx-4 aspect-[826/778] sm:mx-auto sm:w-full sm:max-w-[560px] lg:mr-[-40px] lg:ml-0 lg:aspect-[10/9] lg:max-w-none" />
+        </section>
+      </div>
 
-      <section className="mx-auto max-w-[1200px] px-4 pb-16 sm:px-6 lg:px-8">
+      <section id="how-it-works" className="mx-auto max-w-[1200px] scroll-mt-6 px-4 pt-16 pb-16 sm:px-6 lg:px-8">
         <div className="grid gap-1.5 rounded-2xl bg-tray p-1.5 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((s, i) => (
             <div key={s.title} className="rounded-xl bg-surface p-5 ring-1 ring-line">
