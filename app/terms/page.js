@@ -68,7 +68,7 @@ export default async function Terms() {
       <Section title="6. Your data">
         <p>
           The business information, customers, documents and costs you put into PayTrail belong to you. You give us permission to store and
-          process them only to run PayTrail for you, as described in our <Link href="/privacy" className="font-medium text-brand-ink underline underline-offset-2">Privacy Policy</Link>.
+          process them only to run PayTrail for you, as described in our <Link href="/privacy" className="font-medium text-brand-ink underline underline-offset-2">Privacy Policy</Link> and our <Link href="/dpa" className="font-medium text-brand-ink underline underline-offset-2">Data Processing Agreement</Link>, which is part of these terms. You can download all of it at any time.
           Hidden cost lines are shown only to your team members who are allowed to see them, never to your customers.
         </p>
       </Section>
@@ -83,8 +83,8 @@ export default async function Terms() {
       <Section title="8. Suspension and closing your account">
         <p>
           We may suspend or close an account that breaks these terms, puts others at risk, or is required to be suspended by law or a payment
-          provider. Where reasonable, we'll tell you first and give you a chance to fix the problem. You can stop using PayTrail at any time;
-          contact us if you want your business account and its data deleted.
+          provider. Where reasonable, we'll tell you first and give you a chance to fix the problem. You can stop using PayTrail at any time. The owner can
+          delete the business in Settings → Privacy &amp; data: it is permanently deleted 30 days later, and can be cancelled until then.
         </p>
       </Section>
 

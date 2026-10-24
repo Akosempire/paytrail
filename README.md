@@ -39,7 +39,8 @@ These rules are enforced **in the database** (row-level security and checked fun
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL Editor** → run each file in `supabase/migrations/` **in order**: first `20261024000100_paytrail.sql` (every table, the security rules and the `logos` storage bucket), then `20261024000200_global_payments.sql` (adds Stripe and Paystack), then `20261024000300_pricing.sql` (default plans and a 14-day trial). All are safe to run again later.
+2. **SQL Editor** → run each file in `supabase/migrations/` **in order**: first `20261024000100_paytrail.sql` (every table, the security rules and the `logos` storage bucket), then `20261024000200_global_payments.sql` (adds Stripe and Paystack), then `20261024000300_pricing.sql` (default plans and a 14-day trial), then `20261024000400_privacy.sql` (data download and deletion). All are safe to run again later.
+   - Choose an **EU region** (e.g. Frankfurt) when creating the project: Supabase has no Nigerian region, and the EU satisfies both NDPA and GDPR transfer rules.
 3. **Authentication → URL Configuration**
    - Site URL: your app address, e.g. `https://paytrail.yourdomain.com`
    - Redirect URLs: add `https://paytrail.yourdomain.com/auth/callback` (and `http://localhost:3000/auth/callback` for local work)
@@ -57,7 +58,8 @@ Copy `.env.example` to `.env.local` (locally) or add them in Vercel → Settings
 | `APP_ENCRYPTION_KEY` | 32+ random characters. Encrypts every business's payment keys. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Never change it later**, or saved keys can't be read. |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional. Without it PayTrail still works: teams copy links or share them on WhatsApp instead of emailing. |
 | `CRON_SECRET` | Random string. Protects the job that re-checks unconfirmed payments. |
-| `LEGAL_COMPANY_NAME`, `LEGAL_ADDRESS`, `LEGAL_EMAIL` | Shown on `/terms` and `/privacy`. Use your registered business name and address. |
+| `LEGAL_COMPANY_NAME`, `LEGAL_ADDRESS`, `LEGAL_EMAIL` | Shown on `/terms`, `/privacy` and `/dpa`. Use your registered business name and address. |
+| `LEGAL_DATA_REGION`, `LEGAL_EMAIL_PROVIDER` | Shown on `/subprocessors`, e.g. `European Union (Frankfurt)` and `Resend`. |
 | `PAYTRAIL_ALLOW_TEST_PAYMENTS` | Leave **unset** in production. Set to `1` only on a staging site to try test-card payments end to end. |
 
 ### 3. Deploy to Vercel
@@ -95,6 +97,18 @@ Refresh the app. **Platform admin** now appears in the sidebar (`/admin`).
   - **Collecting subscriptions:**
     - *Bank transfer:* you activate plans by hand in **/admin/businesses → Manage**.
     - *Stripe, Paystack, Flutterwave or Bachs:* paste PayTrail's **own** account keys and add the webhook URL shown there. Plans then activate automatically when paid. Use **Stripe** if you want businesses outside Africa to pay you in dollars, pounds or euros.
+
+---
+
+## Data protection (NDPA 2023 and GDPR)
+
+Built in:
+
+- **Settings → Privacy & data** (every member): download a complete JSON copy of the business (owner) or of your own data; delete the business (owner, typed confirmation, 30-day grace period, cancellable); delete your own login.
+- A business waiting for deletion can't send documents. The daily job (`/api/cron/reconcile`) permanently removes it after 30 days, logo included. PayTrail keeps only the record of plan payments made to it, with the business name, for tax.
+- Public pages: `/privacy`, `/terms`, `/dpa` (Data Processing Agreement, covering businesses' customer data) and `/subprocessors`. Keep `/subprocessors` current (`subprocessors()` in `lib/legal.js`).
+
+Your side (not code): register with the Nigeria Data Protection Commission once you reach the threshold, file the yearly compliance audit return, name a Data Protection Officer if required, accept Supabase's and Vercel's DPAs in their dashboards, and keep a one-page breach plan (tell affected businesses within 48 hours, the regulator within 72). If you actively market to the EU or UK, appoint a representative there. Have a lawyer review the legal pages.
 
 ---
 

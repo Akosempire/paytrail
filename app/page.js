@@ -39,6 +39,7 @@ export default async function Home({ searchParams }) {
           {ctx.user ? <Button href="/app" variant="primary">Open dashboard</Button> : <><Button href="/login" variant="ghost">Sign in</Button><Button href="/signup" variant="primary">Get started</Button></>}
         </nav>
       </header>
+      {sp.account === "deleted" && <p role="status" className="mx-auto max-w-[1200px] px-4 sm:px-6 lg:px-8"><span className="block rounded-xl bg-success-soft px-4 py-3 text-sm font-medium text-success-ink ring-1 ring-inset ring-success/25">Your PayTrail account has been deleted. Thanks for using PayTrail.</span></p>}
 
       <section className="mx-auto max-w-[1200px] px-4 pt-10 pb-16 sm:px-6 lg:px-8 lg:pt-16">
         <div className="relative overflow-hidden rounded-3xl bg-[#0c111d] px-6 py-14 text-white sm:px-12 lg:py-20">

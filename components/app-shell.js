@@ -28,6 +28,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts 
       canPayments && { href: "/app/settings/payments", label: "Payment setup", icon: PlugZap },
       kind === "company" && { href: "/app/settings/team", label: canTeam ? "Team & roles" : "Team", icon: UsersRound },
       canBilling && { href: "/app/settings/billing", label: "Plan & billing", icon: CreditCard },
+      { href: "/app/settings/privacy", label: "Privacy & data", icon: ShieldCheck },
     ].filter(Boolean) },
   ].filter((g) => g.items.length);
 }
@@ -150,6 +151,12 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
 
 function TrialMeter({ allowance, canBilling, status }) {
   if (!allowance) return null;
+  if (allowance.reason === "deletion_pending") return (
+    <Link href="/app/settings/privacy" className="mx-3 mb-3 block rounded-xl bg-danger-soft p-3.5 text-xs text-danger-ink">
+      <span className="block text-[13px] font-semibold">Deletion scheduled</span>
+      Deletes on {new Date(allowance.deletes_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}. Click to cancel.
+    </Link>
+  );
   if (status === "active" && allowance.limit == null) return null;
   const used = allowance.used ?? 0;
   const limit = allowance.limit;

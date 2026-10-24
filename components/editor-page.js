@@ -33,7 +33,7 @@ export async function EditorPage({ kind, id, customerId }) {
       </Link>
       <PageHeader title={id ? `Edit ${full.doc.number}` : quote ? "New quotation" : "New invoice"}
         description={quote ? (showCosts ? "Price the job, add your hidden costs to check your profit, then send it." : "Price the job, then send it.") : "Bill your customer directly, without a quote first."} />
-      {blocked && <Callout tone="warn" title="You can save drafts, but not send yet">Your free trial or plan limit has been reached. {can(ctx.member, "settings.billing") ? <Link className="font-semibold underline" href="/app/settings/billing">Choose a plan</Link> : "Ask the account owner to choose a plan."}</Callout>}
+      {blocked && <Callout tone="warn" title="You can save drafts, but not send yet">{ctx.allowance.reason === "deletion_pending" ? "This business is scheduled for deletion. Cancel it in Settings → Privacy & data to send again." : <>Your free trial or plan limit has been reached. {can(ctx.member, "settings.billing") ? <Link className="font-semibold underline" href="/app/settings/billing">Choose a plan</Link> : "Ask the account owner to choose a plan."}</>}</Callout>}
       <DocumentEditor
         kind={kind}
         doc={full?.doc ? { ...full.doc, customer_id: full.doc.customer_id } : customerId ? { customer_id: customerId } : null}

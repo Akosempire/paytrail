@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { LegalLayout, List, Section } from "@/components/legal-layout";
 import { legalDetails } from "@/lib/legal";
 
@@ -16,7 +17,7 @@ export default async function Privacy() {
       <Section title="1. Two kinds of data, two roles">
         <List items={[
           <span key="a"><strong className="text-ink">Your account data</strong>: your name, email, password and business details. We decide how this is used, so we are the data controller.</span>,
-          <span key="b"><strong className="text-ink">Your customers' data</strong>: the names, emails, phone numbers and addresses you put on quotations and invoices. You decide how this is used, so your business is the controller and we process it on your behalf, only to provide PayTrail.</span>,
+          <span key="b"><strong className="text-ink">Your customers' data</strong>: the names, emails, phone numbers and addresses you put on quotations and invoices. You decide how this is used, so your business is the controller and we process it on your behalf, only to provide PayTrail, under our <Link href="/dpa" className="font-medium text-brand-ink underline underline-offset-2">Data Processing Agreement</Link>.</span>,
         ]} />
       </Section>
 
@@ -44,7 +45,7 @@ export default async function Privacy() {
       </Section>
 
       <Section title="4. Who we share it with">
-        <p>Only with service providers who help us run PayTrail, under agreements that protect the data:</p>
+        <p>Only with service providers who help us run PayTrail, under agreements that protect the data. The full, current list is on our <Link href="/subprocessors" className="font-medium text-brand-ink underline underline-offset-2">sub-processors page</Link>.</p>
         <List items={[
           "Hosting and database (for example Supabase and Vercel), which store and serve the app and its data.",
           "Email delivery providers, to send account emails and the documents you choose to email.",
@@ -62,9 +63,10 @@ export default async function Privacy() {
 
       <Section title="6. How long we keep it">
         <p>
-          We keep your account and business records while your account is open, so your documents and receipts remain available. Financial
-          records may need to be kept for up to 6 years after the transaction to meet tax and accounting rules. When you ask us to close your
-          account, we delete or anonymise the rest within 90 days, except where the law requires us to keep it.
+          We keep your account and business records while your account is open, so your documents and receipts remain available. When an
+          owner deletes a business, it and everything in it (customers, documents, payments, receipts, logo) is permanently deleted 30 days
+          later; backups expire shortly after. When you delete your own account, your login and profile are removed immediately. We keep
+          records of payments made to PayTrail for plans for 6 years, as Nigerian tax law requires.
         </p>
       </Section>
 
@@ -80,8 +82,10 @@ export default async function Privacy() {
       <Section title="8. Your rights">
         <p>
           You can ask to access, correct, delete or receive a copy of your personal data, object to or restrict how we use it, and withdraw
-          consent where we rely on it. If you're one of our users' customers, contact that business first; we'll help them respond. You can
-          also complain to the Nigeria Data Protection Commission (or your local data protection authority).
+          consent where we rely on it. Most of this you can do yourself: edit your details in the app, and in <strong className="text-ink">Settings → Privacy &amp; data</strong> download
+          a complete copy of your data or delete your business or account. For anything else, email us and we'll reply within 30 days. If you're
+          one of our users' customers, contact that business first; we'll help them respond. You can also complain to the Nigeria Data
+          Protection Commission (or your local data protection authority).
         </p>
       </Section>
 

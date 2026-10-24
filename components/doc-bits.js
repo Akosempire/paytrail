@@ -23,6 +23,9 @@ const ACTIONS = {
   "payment.needs_review": "sent a payment that needs checking (document was already paid or cancelled)",
   "team.joined": "joined the team",
   "team.invited": "invited a teammate",
+  "business.deletion_requested": "scheduled the business for deletion",
+  "business.deletion_cancelled": "cancelled the business deletion",
+  "data.exported": "downloaded a copy of the data",
 };
 
 export function activityText(a) {
