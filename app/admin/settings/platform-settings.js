@@ -1,4 +1,5 @@
 "use client";
+import { useStepUp } from "@/components/step-up";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
@@ -19,9 +20,11 @@ export function PlatformSettings({ settings, webhooks }) {
   const [pending, start] = useTransition();
   const [trial, setTrial] = useState({ trial_mode: settings.trial_mode, trial_documents: settings.trial_documents, trial_days: settings.trial_days, support_email: settings.support_email });
   const [billing, setBilling] = useState({ provider: settings.billing_provider, secretKey: "", webhookSecret: "" });
+  const { guarded, dialog: stepUpDialog } = useStepUp("platform");
   const run = (fn) => start(async () => { const r = await fn(); if (r.error) return toast(r.error, "error"); toast(r.message); router.refresh(); });
   return (
     <div className="grid gap-6 lg:grid-cols-2">
+      {stepUpDialog}
       <Card>
         <CardHeader title="Free trial" description="What every new business gets before choosing a plan." />
         <div className="flex flex-col gap-4 p-5">
@@ -65,7 +68,7 @@ export function PlatformSettings({ settings, webhooks }) {
                 : <p className="text-[13px] text-ink-3">Paystack signs its webhooks with your secret key, so there's no separate webhook secret.</p>}
             </>
           )}
-          <Button variant="primary" icon={pending ? Loader2 : Save} className="self-start" onClick={() => run(() => saveBilling(billing))}>Save billing settings</Button>
+          <Button variant="primary" icon={pending ? Loader2 : Save} className="self-start" onClick={() => run(() => guarded(() => saveBilling(billing)))}>Save billing settings</Button>
         </div>
       </Card>
     </div>

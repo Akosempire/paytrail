@@ -5,6 +5,8 @@ import { createSupabaseService } from "@/lib/supabase/server";
 import { encryptSecret, hint } from "@/lib/crypto";
 import { toMinor, CURRENCIES } from "@/lib/money";
 import { KEY_RULES, webhookSecretProblem } from "@/lib/payments/keys";
+import { requireStepUp } from "@/lib/step-up";
+import { notifyAdmins } from "@/lib/admin-alerts";
 
 export async function savePlan(id, form) {
   const ctx = await requirePlatformAdmin();
@@ -48,12 +50,16 @@ export async function saveTrial(form) {
 }
 
 export async function saveBilling(form) {
-  await requirePlatformAdmin();
+  const ctx = await requirePlatformAdmin();
   const provider = ["manual", ...Object.keys(KEY_RULES)].includes(form.provider) ? form.provider : "manual";
   const rule = KEY_RULES[provider];
   const update = { billing_provider: provider, updated_at: new Date().toISOString() };
   const key = String(form.secretKey || "").trim();
   const hook = String(form.webhookSecret || "").trim();
+  if (key || hook) {
+    const gate = await requireStepUp(ctx, "payment_keys", null);
+    if (gate) return gate;
+  }
   if (provider !== "manual" && key) {
     if (!rule.valid(key)) return { error: rule.badKey };
     const check = await rule.check(key);
@@ -76,6 +82,7 @@ export async function saveBilling(form) {
   if (provider !== "manual" && !update.billing_webhook_secret_enc && !current?.billing_webhook_secret_enc) return { error: "Paste the webhook secret." };
   const { error } = await service.from("platform_settings").update(update).eq("id", true);
   if (error) return { error: error.message };
+  if (key || hook) await notifyAdmins({ subject: `PayTrail billing keys changed (${provider})`, lines: [`${ctx.user.email} changed PayTrail's own ${provider} billing keys at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace the keys with your provider straight away."], link: "/admin/settings" });
   revalidatePath("/admin/settings");
   return { message: "Billing settings saved." };
 }

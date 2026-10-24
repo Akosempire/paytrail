@@ -16,7 +16,11 @@ export async function signIn(_prev, form) {
   const supabase = await createSupabaseServer();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
-    if (/confirm/i.test(error.message)) return { error: "Confirm your email first. We sent you a link when you signed up." };
+    if (/confirm/i.test(error.message)) {
+      // send a fresh code and let them finish verifying right here
+      await supabase.auth.resend({ type: "signup", email }).catch(() => {});
+      return { verify: email, next: safeNext(form.get("next"), "/onboarding") };
+    }
     return { error: "That email and password don't match." };
   }
   redirect(safeNext(form.get("next")));
@@ -37,7 +41,29 @@ export async function signUp(_prev, form) {
   });
   if (error) return { error: /registered/i.test(error.message) ? "An account with this email already exists. Sign in instead." : error.message };
   if (data.session) redirect(next);
-  return { sent: email };
+  return { verify: email, next };
+}
+
+// the 6-digit code from the sign-up email (Supabase sends it through your SMTP, e.g. Brevo)
+export async function verifySignup(_prev, form) {
+  const email = String(form.get("email") || "").trim().toLowerCase();
+  const token = String(form.get("code") || "").replace(/\D/g, "");
+  const next = safeNext(form.get("next"), "/onboarding");
+  if (!/^\d{6,10}$/.test(token)) return { verify: email, next, error: "Enter the code from the email." };
+  const supabase = await createSupabaseServer();
+  let { error } = await supabase.auth.verifyOtp({ email, token, type: "email" });
+  if (error) ({ error } = await supabase.auth.verifyOtp({ email, token, type: "signup" }));
+  if (error) return { verify: email, next, error: /expired/i.test(error.message) ? "That code has expired. Send a new one." : "That code isn't right. Check the email and try again." };
+  redirect(next);
+}
+
+export async function resendSignupCode(email) {
+  const address = String(email || "").trim().toLowerCase();
+  if (!/^\S+@\S+\.\S+$/.test(address)) return { error: "Enter a valid email address." };
+  const supabase = await createSupabaseServer();
+  const { error } = await supabase.auth.resend({ type: "signup", email: address });
+  if (error) return { error: /seconds|rate/i.test(error.message) ? "Wait a minute before asking for another code." : "Could not send a new code. Try again shortly." };
+  return { message: `A new code is on its way to ${address}.` };
 }
 
 export async function requestReset(_prev, form) {

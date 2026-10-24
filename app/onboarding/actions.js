@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
 import { businessFieldsFrom, uploadLogo } from "@/lib/business";
 import { inviteMember } from "@/lib/team";
+import { notifyAdmins } from "@/lib/admin-alerts";
 
 async function pendingBusiness() {
   const ctx = await getContext();
@@ -65,6 +66,14 @@ export async function finishOnboarding(_prev, form) {
   }
   await ctx.supabase.from("businesses").update({ onboarded_at: new Date().toISOString() }).eq("id", id);
   await ctx.supabase.from("profiles").upsert({ user_id: ctx.user.id, active_business_id: id });
+  if (!business.onboarded_at) await notifyAdmins({
+    subject: `New business: ${business.name}`,
+    lines: [
+      `${ctx.user.user_metadata?.full_name || "Someone"} (${ctx.user.email}) just set up ${business.name}.`,
+      `${business.kind === "company" ? "Company" : "Freelancer"} · ${business.country || "country not set"} · ${business.currency} · on the free trial.`,
+    ],
+    link: "/admin/businesses",
+  });
   revalidatePath("/", "layout");
   const next = form.get("next") === "payments" ? "/app/settings/payments?welcome=1" : "/app?welcome=1";
   redirect(next);

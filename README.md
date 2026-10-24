@@ -39,12 +39,13 @@ These rules are enforced **in the database** (row-level security and checked fun
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL Editor** → run each file in `supabase/migrations/` **in order**: first `20261024000100_paytrail.sql` (every table, the security rules and the `logos` storage bucket), then `20261024000200_global_payments.sql` (adds Stripe and Paystack), then `20261024000300_pricing.sql` (default plans and a 14-day trial), then `20261024000400_privacy.sql` (data download and deletion). All are safe to run again later.
+2. **SQL Editor** → run each file in `supabase/migrations/` **in order**: first `20261024000100_paytrail.sql` (every table, the security rules and the `logos` storage bucket), then `20261024000200_global_payments.sql` (adds Stripe and Paystack), then `20261024000300_pricing.sql` (default plans and a 14-day trial), then `20261024000400_privacy.sql` (data download and deletion), `20261024000500_templates.sql` (document templates and paper sizes) and `20261024000600_security_codes.sql` (emailed security codes). All are safe to run again later.
    - Choose an **EU region** (e.g. Frankfurt) when creating the project: Supabase has no Nigerian region, and the EU satisfies both NDPA and GDPR transfer rules.
 3. **Authentication → URL Configuration**
    - Site URL: your app address, e.g. `https://paytrail.yourdomain.com`
    - Redirect URLs: add `https://paytrail.yourdomain.com/auth/callback` (and `http://localhost:3000/auth/callback` for local work)
-4. **Authentication → Emails → SMTP**: add your email provider so confirmation and reset emails come from your domain. The built-in sender is rate-limited.
+4. **Authentication → Emails → SMTP**: add Brevo (host `smtp-relay.brevo.com`, port `587`, your Brevo SMTP login and SMTP key). The built-in sender is rate-limited.
+   - **Authentication → Emails → Confirm signup**: paste `supabase/email-templates/confirm-signup.html` and set the subject to `Your PayTrail code: {{ .Token }}`. New users type this 6-digit code to confirm their email (the link in the email works too).
 5. **Project Settings → API**: copy the URL, the `anon` key and the `service_role` key for step 2.
 
 ### 2. Environment variables
@@ -56,10 +57,11 @@ Copy `.env.example` to `.env.local` (locally) or add them in Vercel → Settings
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` | From Supabase. Keep the service role key secret. |
 | `NEXT_PUBLIC_SITE_URL` | Your app's public address, with no trailing slash. Used in payment links and webhook URLs. |
 | `APP_ENCRYPTION_KEY` | 32+ random characters. Encrypts every business's payment keys. Generate with `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"`. **Never change it later**, or saved keys can't be read. |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Optional. Without it PayTrail still works: teams copy links or share them on WhatsApp instead of emailing. |
+| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `MAIL_FROM` | Brevo: `smtp-relay.brevo.com`, `587`, your Brevo SMTP **login** (e.g. `9a1b2c001@smtp-brevo.com`), your SMTP **key** (`xsmtpsib-…`), and a sender you verified in Brevo. Needed for security codes, emailing documents and admin alerts. Without it PayTrail still runs, but security codes can't be sent, so that protection is off. |
+| `ADMIN_ALERT_EMAILS` | Optional. Who gets admin alerts (new businesses, payment key changes). Empty = every platform admin. |
 | `CRON_SECRET` | Random string. Protects the job that re-checks unconfirmed payments. |
 | `LEGAL_COMPANY_NAME`, `LEGAL_ADDRESS`, `LEGAL_EMAIL` | Shown on `/terms`, `/privacy` and `/dpa`. Use your registered business name and address. |
-| `LEGAL_DATA_REGION`, `LEGAL_EMAIL_PROVIDER` | Shown on `/subprocessors`, e.g. `European Union (Frankfurt)` and `Resend`. |
+| `LEGAL_DATA_REGION`, `LEGAL_EMAIL_PROVIDER` | Shown on `/subprocessors`, e.g. `European Union (Frankfurt)` and `Brevo`. |
 | `PAYTRAIL_ALLOW_TEST_PAYMENTS` | Leave **unset** in production. Set to `1` only on a staging site to try test-card payments end to end. |
 
 ### 3. Deploy to Vercel
@@ -111,6 +113,26 @@ Built in:
 Your side (not code): register with the Nigeria Data Protection Commission once you reach the threshold, file the yearly compliance audit return, name a Data Protection Officer if required, accept Supabase's and Vercel's DPAs in their dashboards, and keep a one-page breach plan (tell affected businesses within 48 hours, the regulator within 72). If you actively market to the EU or UK, appoint a representative there. Have a lawyer review the legal pages.
 
 ---
+
+## Documents, templates and printing
+
+- **Templates:** Essential (monochrome, ink-saving), Signature (default; restrained accent colour), Executive (serif, for professional services), POS Compact (thermal receipts).
+- **Paper:** A4, US Letter, A5, half letter, and 80 mm / 58 mm receipt rolls. US, Canada and Mexico businesses default to Letter.
+- **Defaults** per document type live in **Settings → Documents & printing**. Any document can be changed from its page (**Customise**).
+- **Frozen branding:** when a document is issued, the business details, logo, colour and bank details are saved with it. Later changes to the business never alter documents already sent. Changing an issued document's template is allowed, and it's logged.
+- **One set of rules everywhere:** the live preview, browser printing (`/print/...`, `/d/[token]/print`, `/r/[token]/print`) and the PDF download follow the same template rules and paper sizes. Thermal rolls print as one page exactly as long as the receipt. In the print dialog choose the receipt printer, margins "None" and scale 100%.
+- Fonts: Lato and Source Serif 4 (open licences) in `assets/fonts` (PDF) and `public/fonts` (screen and print).
+
+## Security codes and admin alerts
+
+- New users confirm their email with a **6-digit code** (sent by Supabase through Brevo).
+- **Changing payment keys** (any provider, including PayTrail's own billing keys) and **changing bank details** needs a fresh 6-digit code emailed to the person making the change. A correct code allows changes for 10 minutes. Bank details are also enforced in the database.
+- **Admin alerts** go by email to `ADMIN_ALERT_EMAILS` (or every platform admin) when a business finishes sign-up, and when payment keys are connected, changed or removed. Keys themselves are never emailed.
+
+## Install and offline (PWA)
+
+- PayTrail can be installed from the browser. On phones a pop-up offers it: Android/Chrome uses the browser's install prompt, and iPhone Safari shows the "Share → Add to Home Screen" steps. If dismissed, it stays hidden for 14 days.
+- **Offline:** pages you've opened stay readable offline, and other pages show `/offline` with links to the saved ones. Creating, sending and payments need a connection. Signing out clears saved pages from the device. The service worker (`public/sw.js`) only runs in production builds.
 
 ## How business payments work
 

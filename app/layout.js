@@ -1,13 +1,18 @@
 import Script from "next/script";
 import "./globals.css";
 import { ToastProvider } from "@/components/ui-client";
+import { ServiceWorker } from "@/components/pwa";
 
 export const metadata = {
   title: { default: "PayTrail — quotes, invoices & receipts", template: "%s · PayTrail" },
   description: "Send branded quotations, get paid online with Stripe, Paystack, Flutterwave or Bachs, and issue receipts automatically. Track your real costs and profit on every job.",
+  applicationName: "PayTrail",
+  appleWebApp: { capable: true, title: "PayTrail", statusBarStyle: "default" },
+  icons: { icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }], apple: "/icons/apple-touch-icon.png" },
+  formatDetection: { telephone: false },
 };
 
-export const viewport = { themeColor: "#1570EF", width: "device-width", initialScale: 1 };
+export const viewport = { themeColor: [{ media: "(prefers-color-scheme: light)", color: "#f5f7fa" }, { media: "(prefers-color-scheme: dark)", color: "#0c111d" }], width: "device-width", initialScale: 1, viewportFit: "cover" };
 
 // sets the saved theme before the page paints, so there is no flash
 // customer links (/d, /r) are always light: they show the business's own branding
@@ -25,6 +30,7 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ToastProvider>{children}</ToastProvider>
+        <ServiceWorker />
       </body>
     </html>
   );

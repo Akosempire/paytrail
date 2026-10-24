@@ -9,6 +9,7 @@ import {
 import { Avatar, Button, Logo, cx } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
 import { signOut } from "@/app/(auth)/actions";
+import { InstallPrompt, clearOfflinePages } from "@/components/pwa";
 import { switchBusiness } from "@/app/app/actions";
 
 function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts }) {
@@ -114,7 +115,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
             <span className="block truncate text-[13px] font-medium text-ink">{member.full_name || "You"}</span>
             <span className="block truncate text-xs text-ink-3">{member.email}</span>
           </span>
-          <form action={signOut}>
+          <form action={signOut} onSubmit={clearOfflinePages}>
             <button type="submit" aria-label="Sign out" title="Sign out" className="inline-flex size-8 items-center justify-center rounded-md text-ink-3 hover:bg-hover hover:text-ink">
               <LogOut className="size-4" />
             </button>
@@ -126,6 +127,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
 
   return (
     <div className="min-h-dvh bg-canvas">
+      <InstallPrompt />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-line bg-surface lg:block">{sidebar}</aside>
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">

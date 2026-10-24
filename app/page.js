@@ -3,6 +3,7 @@ import { ArrowDown, ArrowRight, Check, EyeOff, FileText, Palette, Receipt, Shiel
 import { Button, Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
 import { HeroFilm } from "@/components/hero-film";
+import { InstallPrompt } from "@/components/pwa";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
@@ -35,6 +36,7 @@ export default async function Home({ searchParams }) {
   const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Start free";
   return (
     <div className="min-h-dvh bg-canvas">
+      {ctx.user && <InstallPrompt delay={5000} />}
       <div className="overflow-hidden bg-hero text-hero-ink">
         <header className="relative z-10 mx-auto flex max-w-[1280px] items-center justify-between px-4 py-4 sm:px-6 lg:px-10">
           <Logo withWord wordClass="text-hero-ink" />

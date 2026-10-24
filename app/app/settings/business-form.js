@@ -1,5 +1,6 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useStepUp } from "@/components/step-up";
 import { ImagePlus, Save } from "lucide-react";
 import { Card, CardHeader, Checkbox, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { SubmitButton, Switch, useActionToast, FormMessage } from "@/components/ui-client";
@@ -12,12 +13,19 @@ const SWATCHES = ["#1570EF", "#079455", "#7A5AF8", "#DC6803", "#D92D20", "#0E938
 export function BusinessForm({ business: b, logo: initialLogo }) {
   const [state, action] = useActionState(updateBusiness, null);
   useActionToast(state);
+  const formRef = useRef(null);
+  const { ask, dialog: stepUpDialog } = useStepUp();
+  // changing bank details needs the emailed code; after it's verified, save again
+  useEffect(() => {
+    if (state?.stepUp) ask(state.stepUp).then((ok) => ok && formRef.current?.requestSubmit());
+  }, [state, ask]);
   const [color, setColor] = useState(b.brand_color);
   const [logo, setLogo] = useState(initialLogo);
   const [approval, setApproval] = useState(b.require_approval);
   const [footer, setFooter] = useState(b.footer_note || "");
   return (
-    <form action={action} className="grid gap-6 pb-24 lg:grid-cols-[minmax(0,1fr)_320px]">
+    <form ref={formRef} action={action} className="grid gap-6 pb-24 lg:grid-cols-[minmax(0,1fr)_320px]">
+      {stepUpDialog}
       <div className="flex min-w-0 flex-col gap-6">
         <FormMessage state={state} />
         <Card>

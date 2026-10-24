@@ -1,10 +1,10 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import { ArrowRight, Eye, EyeOff, Lock, Mail, MailCheck, User } from "lucide-react";
 import { Callout, Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton } from "@/components/ui-client";
-import { requestReset, signIn, signUp, updatePassword } from "@/app/(auth)/actions";
+import { requestReset, resendSignupCode, signIn, signUp, updatePassword, verifySignup } from "@/app/(auth)/actions";
 
 function PasswordInput({ name = "password", placeholder = "Enter your password", autoComplete = "current-password", id }) {
   const [show, setShow] = useState(false);
@@ -19,8 +19,40 @@ function PasswordInput({ name = "password", placeholder = "Enter your password",
   );
 }
 
+// 6-digit code from the sign-up email
+export function VerifyEmailForm({ email, next, intro }) {
+  const [state, action] = useActionState(verifySignup, null);
+  const [resend, setResend] = useState(null);
+  const [sending, start] = useTransition();
+  return (
+    <form action={action} className="flex flex-col gap-5">
+      <div className="flex flex-col items-center gap-3 text-center">
+        <span className="inline-flex size-14 items-center justify-center rounded-full bg-success-soft text-success ring-1 ring-success/25"><MailCheck className="size-6" /></span>
+        <h1 className="text-title-1 text-ink">Check your email</h1>
+        <p className="text-sm text-ink-2">{intro || "We sent a 6-digit code to"} <strong className="text-ink">{email}</strong>. Enter it to confirm your email.</p>
+      </div>
+      <FormMessage state={state} />
+      {resend?.message && <p role="status" className="rounded-md bg-success-soft px-3 py-2 text-[13px] font-medium text-success-ink">{resend.message}</p>}
+      {resend?.error && <p role="alert" className="rounded-md bg-danger-soft px-3 py-2 text-[13px] font-medium text-danger-ink">{resend.error}</p>}
+      <input type="hidden" name="email" value={email} />
+      <input type="hidden" name="next" value={next || ""} />
+      <Field label="Confirmation code" htmlFor="code">
+        <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12}
+          className="h-14 w-full rounded-lg bg-surface text-center font-mono text-[26px] tracking-[0.3em] text-ink ring-1 ring-inset ring-line-strong focus:ring-2 focus:ring-brand focus:outline-none" />
+      </Field>
+      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Checking…">Confirm email</SubmitButton>
+      <p className="text-center text-sm text-ink-2">
+        No email? Check spam, or{" "}
+        <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendSignupCode(email)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
+      </p>
+      <p className="text-center text-xs text-ink-3">The email also has a link: opening it works too.</p>
+    </form>
+  );
+}
+
 export function LoginForm({ next, notice }) {
   const [state, action] = useActionState(signIn, null);
+  if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} intro="Your email isn't confirmed yet. We sent a new 6-digit code to" />;
   return (
     <form action={action} className="flex flex-col gap-5">
       <div>
@@ -43,16 +75,7 @@ export function LoginForm({ next, notice }) {
 
 export function SignupForm({ next, email, trialText }) {
   const [state, action] = useActionState(signUp, null);
-  if (state?.sent) {
-    return (
-      <div className="flex flex-col items-center gap-4 text-center">
-        <span className="inline-flex size-14 items-center justify-center rounded-full bg-success-soft text-success ring-1 ring-success/25"><MailCheck className="size-6" /></span>
-        <h1 className="text-title-1 text-ink">Check your email</h1>
-        <p className="text-sm text-ink-2">We sent a confirmation link to <strong className="text-ink">{state.sent}</strong>. Open it to finish setting up your business.</p>
-        <Link href="/login" className="text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
-      </div>
-    );
-  }
+  if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} />;
   return (
     <form action={action} className="flex flex-col gap-5">
       <div>

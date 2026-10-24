@@ -5,6 +5,8 @@ import { createSupabaseService } from "@/lib/supabase/server";
 import { encryptSecret, hint } from "@/lib/crypto";
 import { KEY_RULES, webhookSecretProblem } from "@/lib/payments/keys";
 import { confirmAttempt, startCheckout, testAmountMinor, PROVIDERS } from "@/lib/payments";
+import { requireStepUp } from "@/lib/step-up";
+import { notifyAdmins } from "@/lib/admin-alerts";
 
 const done = () => revalidatePath("/app/settings/payments");
 
@@ -13,6 +15,10 @@ export async function saveConnection(provider, { secretKey, webhookSecret }) {
   if (!PROVIDERS[provider]) return { error: "Unknown provider." };
   const key = String(secretKey || "").trim();
   const hook = String(webhookSecret || "").trim();
+  if (key || hook) {
+    const gate = await requireStepUp(ctx, "payment_keys", ctx.business.id);
+    if (gate) return gate;
+  }
   const service = createSupabaseService();
   const { data: existing } = await service.from("payment_connections").select("secret_key_enc, webhook_secret_enc, mode").eq("business_id", ctx.business.id).eq("provider", provider).maybeSingle();
 
@@ -43,6 +49,15 @@ export async function saveConnection(provider, { secretKey, webhookSecret }) {
   const { error } = await service.from("payment_connections").upsert(update, { onConflict: "business_id,provider" });
   if (error) return { error: "Could not save. Try again." };
   await service.from("activity").insert({ business_id: ctx.business.id, actor_id: ctx.user.id, actor_label: ctx.member.full_name || ctx.user.email, action: "payments.keys_saved", detail: { provider, mode: update.mode || existing?.mode } });
+  await notifyAdmins({
+    subject: `Payment keys ${existing?.secret_key_enc ? "changed" : "connected"}: ${ctx.business.name} · ${PROVIDERS[provider].name}`,
+    lines: [
+      `${ctx.member.full_name || ctx.user.email} (${ctx.user.email}) ${existing?.secret_key_enc ? "changed" : "added"} ${PROVIDERS[provider].name} keys for ${ctx.business.name}.`,
+      `Mode: ${update.mode || existing?.mode || "unchanged"}${update.key_hint ? ` · key ending ${update.key_hint}` : ""}${hook ? " · webhook secret updated" : ""}.`,
+      `Time: ${new Date().toUTCString()}. The keys themselves are stored encrypted and are never emailed.`,
+    ],
+    link: "/admin/businesses",
+  });
   done();
   return { message: `${PROVIDERS[provider].name} keys saved and accepted. Now run a test payment.` };
 }
@@ -87,6 +102,7 @@ export async function setEnabled(provider, enabled) {
 export async function disconnect(provider) {
   const ctx = await requirePermission("settings.payments");
   await createSupabaseService().from("payment_connections").delete().eq("business_id", ctx.business.id).eq("provider", provider);
+  await notifyAdmins({ subject: `Payment provider disconnected: ${ctx.business.name} · ${PROVIDERS[provider]?.name || provider}`, lines: [`${ctx.member.full_name || ctx.user.email} (${ctx.user.email}) disconnected ${PROVIDERS[provider]?.name || provider} at ${new Date().toUTCString()}.`], link: "/admin/businesses" });
   done();
   return { message: `${PROVIDERS[provider].name} disconnected and its keys deleted.` };
 }

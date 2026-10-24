@@ -46,7 +46,7 @@ test("saved defaults apply to new documents", async () => {
 
 test("sending freezes branding; later changes don't alter the issued document", async () => {
   await as(owner, "select public.mark_document_sent($1)", [docId]);
-  await as(owner, "update public.businesses set name='Brand Two', bank_account_number='999' where id=$1", [biz]);
+  await pool.query("update public.businesses set name='Brand Two', bank_account_number='999' where id=$1", [biz]);
   const d = await one("select snapshot from public.documents where id=$1", [docId]);
   assert.equal(d.snapshot.name, "Brand One");
   assert.equal(d.snapshot.bank_account_number, "");

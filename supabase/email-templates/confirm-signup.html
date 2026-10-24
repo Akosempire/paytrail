@@ -1,0 +1,16 @@
+<!-- Supabase → Authentication → Emails → "Confirm signup". Subject: Your PayTrail code: {{ .Token }} -->
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f5f7fa;padding:32px 12px;font-family:Segoe UI,Arial,sans-serif">
+  <tr><td align="center">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #eaecf0;border-radius:16px">
+      <tr><td style="padding:32px">
+        <p style="margin:0 0 20px;font-size:18px;font-weight:700;color:#101828">PayTrail</p>
+        <h1 style="margin:0 0 12px;font-size:22px;color:#101828">Confirm your email</h1>
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:#344054">Enter this code in PayTrail to finish creating your account. It expires in 1 hour.</p>
+        <p style="margin:0 0 24px;font-size:34px;font-weight:700;letter-spacing:8px;color:#101828;font-family:Consolas,Menlo,monospace">{{ .Token }}</p>
+        <p style="margin:0 0 8px;font-size:13px;color:#667085">Or confirm with this link:</p>
+        <p style="margin:0 0 24px;font-size:13px;word-break:break-all"><a href="{{ .ConfirmationURL }}" style="color:#1570ef">{{ .ConfirmationURL }}</a></p>
+        <p style="margin:0;font-size:12px;color:#98a2b3">If you didn't sign up for PayTrail, ignore this email.</p>
+      </td></tr>
+    </table>
+  </td></tr>
+</table>

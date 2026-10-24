@@ -1,4 +1,5 @@
 "use client";
+import { useStepUp } from "@/components/step-up";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CircleDashed, ExternalLink, KeyRound, Loader2, PlugZap, RefreshCw, ShieldCheck, Webhook, CreditCard, Power, Trash2, TriangleAlert, Sparkles } from "lucide-react";
@@ -132,6 +133,7 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [pending, start] = useTransition();
   const status = statusOf(connection);
+  const { guarded, dialog: stepUpDialog } = useStepUp();
 
   const checks = [
     { label: "Keys saved and accepted", ok: Boolean(connection?.key_hint), hint: connection?.key_hint ? `…${connection.key_hint} · ${connection.mode === "live" ? "Live" : "Test"} key` : null },
@@ -155,6 +157,7 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
 
   return (
     <Card>
+      {stepUpDialog}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-4">
         <div className="flex items-center gap-3">
           <span className={cx("inline-flex size-10 items-center justify-center rounded-xl text-sm font-bold text-white", "")} style={{ background: guide.color }}>{guide.name[0]}</span>
@@ -227,7 +230,7 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
                     )}
                     {error && busy === null && <p role="alert" className="text-[13px] font-medium text-danger-ink">{error}</p>}
                     <Button variant="primary" icon={busy === "save" ? Loader2 : KeyRound} loading={busy === "save"} className="self-start"
-                      onClick={() => act("save", () => saveConnection(provider, { secretKey: key, webhookSecret: hook }))}>Save & check key</Button>
+                      onClick={() => act("save", () => guarded(() => saveConnection(provider, { secretKey: key, webhookSecret: hook })))}>Save & check key</Button>
                   </div>
                 )}
                 {s.test && (
