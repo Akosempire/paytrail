@@ -48,9 +48,9 @@ export default async function Dashboard({ searchParams }) {
 
       {sp.welcome && <Callout tone="success" icon={Check} title="You're all set up">Create your first quote. Add your hidden costs on the right to see your profit before you send it.</Callout>}
       {sp.denied && <Callout tone="warn">Your role doesn't have access to that page.</Callout>}
-      {ctx.allowance && !ctx.allowance.allowed && <Callout tone="danger" icon={AlertCircle} title={business.subscription_status === "trialing" ? "Your free trial is used up" : "Sending is paused"}
+      {ctx.allowance && !ctx.allowance.allowed && <Callout tone="danger" icon={AlertCircle} title={business.subscription_status === "trialing" ? "Your free trial has ended" : "Sending is paused"}
         action={can(member, "settings.billing") && <Button href="/app/settings/billing" size="sm" variant="primary">Choose a plan</Button>}>
-        You can still create drafts and record payments. {can(member, "settings.billing") ? "Pick a plan to send new quotes and invoices." : "Ask the account owner to choose a plan."}
+        You can still create drafts and record payments. {can(member, "settings.billing") ? "Choose the Free plan or a paid plan to keep sending quotes and invoices." : "Ask the account owner to choose a plan."}
       </Callout>}
 
       {remaining > 0 && (

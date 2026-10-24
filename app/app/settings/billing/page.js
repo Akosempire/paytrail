@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Check, CreditCard, Sparkles } from "lucide-react";
 import { requirePermission } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -5,20 +6,26 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { Badge, Callout, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import { PlanButton } from "./plan-button";
+import { hasYearly, monthlyEquivalent, plansFor } from "@/lib/plans";
+import { cx } from "@/components/ui";
 
 export const metadata = { title: "Plan & billing" };
 
 export default async function Billing({ searchParams }) {
-  const { payment } = await searchParams;
+  const { payment, interval: wanted } = await searchParams;
   const ctx = await requirePermission("settings.billing");
   const b = ctx.business;
   const service = createSupabaseService();
   const [{ data: plans }, { data: history }, { data: settings }] = await Promise.all([
-    ctx.supabase.from("plans").select("*").eq("active", true).order("sort_order").order("price_minor"),
+    // plans aren't secret; the service client also returns a hidden plan this business is on
+    service.from("plans").select("*").or(`active.eq.true,id.eq.${b.plan_id || "00000000-0000-0000-0000-000000000000"}`).order("sort_order").order("price_minor"),
     ctx.supabase.from("subscription_payments").select("*, plans(name)").eq("business_id", b.id).order("created_at", { ascending: false }).limit(24),
     service.from("platform_settings").select("trial_mode, trial_documents, trial_days, billing_provider, support_email").eq("id", true).single(),
   ]);
-  const visible = (plans || []).filter((p) => b.kind !== "company" || p.allow_company);
+  const currentInterval = (plans || []).find((p) => p.id === b.plan_id)?.billing_interval;
+  const interval = wanted === "year" || wanted === "month" ? wanted : currentInterval === "year" ? "year" : "month";
+  const { currency: planCurrency, plans: visible } = plansFor(plans, { currency: b.currency, interval, kind: b.kind, currentPlanId: b.subscription_status === "active" ? b.plan_id : null });
+  const yearly = hasYearly(plans, planCurrency);
   const a = ctx.allowance || {};
   const active = b.subscription_status === "active";
   let status;
@@ -37,23 +44,33 @@ export default async function Billing({ searchParams }) {
           <Badge tone={active ? "success" : b.subscription_status === "trialing" ? "brand" : "danger"}>{b.subscription_status.replace("_", " ")}</Badge>
         </div>
       </Card>
+      {yearly && (
+        <nav className="inline-flex items-center gap-0.5 self-start rounded-lg bg-tray p-1" aria-label="Billing period">
+          {[["month", "Monthly"], ["year", "Yearly · 2 months free"]].map(([v, l]) => (
+            <Link key={v} href={`/app/settings/billing?interval=${v}`} className={cx("inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium", interval === v ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3 hover:text-ink")}>{l}</Link>
+          ))}
+        </nav>
+      )}
       {visible.length === 0 ? (
         <EmptyState icon={CreditCard} title="Plans are coming soon" description={`Contact ${settings.support_email || "PayTrail support"} to subscribe.`} />
       ) : (
-        <div className="grid gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2 xl:grid-cols-3">
+        <div className={cx("grid gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2", visible.length >= 4 ? "xl:grid-cols-4" : visible.length === 3 ? "xl:grid-cols-3" : "")}>
           {visible.map((p) => {
             const current = active && b.plan_id === p.id;
+            const perMonth = monthlyEquivalent(p);
+            const free = p.price_minor === 0;
             return (
               <div key={p.id} className={`flex flex-col rounded-xl bg-surface p-5 ring-1 ${current ? "ring-2 ring-brand" : "ring-line"}`}>
-                <div className="flex items-center justify-between"><p className="text-title-3 text-ink">{p.name}</p>{current && <Badge tone="brand" size="sm">Current</Badge>}</div>
+                <div className="flex items-center justify-between gap-2"><p className="text-title-3 text-ink">{p.name}</p>{current && <Badge tone="brand" size="sm">Current</Badge>}</div>
                 {p.tagline && <p className="mt-1 text-[13px] text-ink-3">{p.tagline}</p>}
-                <p className="mt-4"><span className="text-[28px] font-semibold tracking-[-0.02em] text-ink tabular">{p.price_minor === 0 ? "Free" : formatMoney(p.price_minor, p.currency)}</span>{p.price_minor > 0 && <span className="text-sm text-ink-3"> / {p.billing_interval}</span>}</p>
+                <p className="mt-4"><span className="text-[28px] font-semibold tracking-[-0.02em] text-ink tabular">{free ? "Free" : formatMoney(p.price_minor, p.currency)}</span>{!free && <span className="text-sm text-ink-3"> / {p.billing_interval}</span>}</p>
+                {perMonth && <p className="text-xs text-ink-3">{formatMoney(perMonth, p.currency)} a month</p>}
                 <ul className="mt-4 flex-1 space-y-2 text-[13px] text-ink-2">
                   <li className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} quotes & invoices a month`}</li>
-                  {b.kind === "company" && <li className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{p.seat_limit == null ? "Unlimited team members" : `Up to ${p.seat_limit} team members`}</li>}
+                  <li className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
                   {(p.features || []).map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{f}</li>)}
                 </ul>
-                <PlanButton planId={p.id} label={current ? "Renew / pay ahead" : active ? "Switch to this plan" : "Choose plan"} primary={!current} />
+                {!(current && free) && <PlanButton planId={p.id} label={current ? "Renew / pay ahead" : free ? "Switch to Free" : active ? "Switch to this plan" : "Choose plan"} primary={!current && !free} />}
               </div>
             );
           })}

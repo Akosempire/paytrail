@@ -17,7 +17,7 @@ export default async function Businesses({ searchParams }) {
   if (status) query = query.eq("subscription_status", status);
   const [{ data: rows }, { data: plans }, { data: members }, { data: docs }] = await Promise.all([
     query,
-    ctx.supabase.from("plans").select("id, name, price_minor, currency").order("sort_order"),
+    ctx.supabase.from("plans").select("id, name, price_minor, currency, billing_interval, active").order("sort_order"),
     service.from("memberships").select("business_id"),
     service.from("documents").select("business_id").not("sent_at", "is", null),
   ]);

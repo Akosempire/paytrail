@@ -206,7 +206,7 @@ test("plan monthly limit blocks the next send", async () => {
 });
 
 test("subscription payments extend the period and are idempotent", async () => {
-  const plan = (await one("select id from public.plans limit 1")).id;
+  const plan = (await one("select id from public.plans where name='Starter'")).id;
   const attempt = (await one("insert into public.payment_attempts(business_id, provider, purpose, reference, amount_minor, currency, plan_id) values ($1,'bachs','subscription','PTSUB-1',500000,'NGN',$2) returning id", [otherBiz, plan])).id;
   const first = await as("service", ({ one }) => one("select public.activate_subscription($1) t", [attempt]));
   const again = await as("service", ({ one }) => one("select public.activate_subscription($1) t", [attempt]));
@@ -254,4 +254,18 @@ test("Stripe and Paystack payments settle like the others", async () => {
   assert.equal((await one("select status from public.documents where id=$1", [id])).status, "paid");
   await pool.query("update public.platform_settings set billing_provider='stripe'");
   await pool.query("update public.platform_settings set billing_provider='paystack'");
+});
+
+test("default pricing: plans seeded once, free plans never expire, founding plan hidden", async () => {
+  const plans = (await pool.query("select name, currency, billing_interval, price_minor, active from public.plans where name <> 'Starter' order by sort_order")).rows;
+  assert.ok(plans.filter((p) => p.active).length >= 14, "default naira and dollar plans are seeded");
+  assert.ok(plans.some((p) => p.name === "Founding Solo" && p.active === false && Number(p.price_minor) === 6000000));
+  const free = (await one("insert into public.plans(name, price_minor, currency, document_limit) values ('Free test', 0, 'NGN', 5) returning id")).id;
+  const ends = await as("service", ({ one }) => one("select public.extend_subscription($1,$2,'free','',0,'NGN',null) t", [otherBiz, free]));
+  assert.equal(ends.t, null);
+  const b = await one("select subscription_status, current_period_end from public.businesses where id=$1", [otherBiz]);
+  assert.equal(b.subscription_status, "active");
+  assert.equal(b.current_period_end, null);
+  const a = await as(stranger, ({ one }) => one("select public.business_allowance($1) a", [otherBiz]));
+  assert.equal(a.a.limit, 5);
 });

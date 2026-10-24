@@ -5,13 +5,14 @@ import { ThemeToggle } from "@/components/ui-client";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
+import { hasYearly, monthlyEquivalent, plansFor } from "@/lib/plans";
 
 
 async function publicData() {
   if (!supabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { plans: [], trial: null };
   const service = createSupabaseService();
   const [{ data: plans }, { data: trial }] = await Promise.all([
-    service.from("plans").select("name, tagline, price_minor, currency, billing_interval, document_limit, seat_limit, allow_company, features").eq("active", true).order("sort_order").order("price_minor"),
+    service.from("plans").select("id, name, tagline, price_minor, currency, billing_interval, document_limit, seat_limit, allow_company, features, active, sort_order").eq("active", true).order("sort_order").order("price_minor"),
     service.from("platform_settings").select("trial_mode, trial_documents, trial_days").eq("id", true).maybeSingle(),
   ]);
   return { plans: plans || [], trial };
@@ -24,8 +25,9 @@ const STEPS = [
   { icon: Receipt, title: "Receipt", text: "A numbered, branded receipt is issued for every payment, full or part." },
 ];
 
-export default async function Home() {
-  const [{ plans, trial }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
+export default async function Home({ searchParams }) {
+  const sp = await searchParams;
+  const [{ plans: allPlans, trial }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
   const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Start free";
   return (
     <div className="min-h-dvh bg-canvas">
@@ -81,19 +83,30 @@ export default async function Home() {
         </div>
       </section>
 
-      {plans.length > 0 && (
+      {allPlans.length > 0 && (() => {
+        const currencies = [...new Set(allPlans.filter((p) => p.price_minor > 0).map((p) => p.currency))];
+        const interval = sp.interval === "year" ? "year" : "month";
+        const { currency, plans } = plansFor(allPlans, { currency: currencies.includes(sp.currency) ? sp.currency : currencies.includes("NGN") ? "NGN" : "USD", interval });
+        const link = (c, i) => `/?currency=${c}&interval=${i}#pricing`;
+        const pill = (on) => `inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium ${on ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3 hover:text-ink"}`;
+        return (
         <section id="pricing" className="mx-auto max-w-[1200px] px-4 py-20 sm:px-6 lg:px-8">
           <h2 className="text-center text-[32px] font-semibold tracking-[-0.02em] text-ink">Simple pricing</h2>
-          <p className="mt-2 text-center text-ink-2">{trialText}, then pick a plan that fits.</p>
-          <div className="mx-auto mt-10 grid max-w-5xl gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2 lg:grid-cols-3">
+          <p className="mt-2 text-center text-ink-2">{trialText}, then pick a plan that fits. Cancel any time.</p>
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
+            {currencies.length > 1 && <nav className="inline-flex gap-0.5 rounded-lg bg-tray p-1" aria-label="Currency">{currencies.map((c) => <Link key={c} href={link(c, interval)} className={pill(c === currency)}>{c === "NGN" ? "₦ Naira" : c === "USD" ? "$ US dollar" : c}</Link>)}</nav>}
+            {hasYearly(allPlans, currency) && <nav className="inline-flex gap-0.5 rounded-lg bg-tray p-1" aria-label="Billing period"><Link href={link(currency, "month")} className={pill(interval === "month")}>Monthly</Link><Link href={link(currency, "year")} className={pill(interval === "year")}>Yearly · 2 months free</Link></nav>}
+          </div>
+          <div className={`mx-auto mt-6 grid max-w-6xl gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2 ${plans.length >= 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
             {plans.map((p) => (
-              <div key={p.name} className="flex flex-col rounded-xl bg-surface p-6 ring-1 ring-line">
+              <div key={p.id} className={`flex flex-col rounded-xl bg-surface p-6 ring-1 ${p.name === "Team" ? "ring-2 ring-brand" : "ring-line"}`}>
                 <p className="text-title-3 text-ink">{p.name}</p>
                 {p.tagline && <p className="mt-1 text-[13px] text-ink-3">{p.tagline}</p>}
                 <p className="mt-5"><span className="text-[32px] font-semibold tracking-[-0.02em] text-ink tabular">{p.price_minor === 0 ? "Free" : formatMoney(p.price_minor, p.currency)}</span>{p.price_minor > 0 && <span className="text-ink-3"> / {p.billing_interval}</span>}</p>
+                {monthlyEquivalent(p) && <p className="text-xs text-ink-3">{formatMoney(monthlyEquivalent(p), p.currency)} a month</p>}
                 <ul className="mt-5 flex-1 space-y-2 text-[13.5px] text-ink-2">
                   <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</li>
-                  <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : `Up to ${p.seat_limit} team members`}</li>
+                  <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
                   {(p.features || []).map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{f}</li>)}
                 </ul>
                 <Button href="/signup" variant="secondary" block className="mt-6">Start free</Button>
@@ -101,7 +114,8 @@ export default async function Home() {
             ))}
           </div>
         </section>
-      )}
+        );
+      })()}
 
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-4 px-4 py-8 text-[13px] text-ink-3 sm:px-6 lg:px-8">

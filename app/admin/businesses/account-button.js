@@ -28,7 +28,7 @@ export function AccountButton({ business, plans }) {
         </div>
         {tab === "extend" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Plan" htmlFor="ap" className="sm:col-span-2"><Select id="ap" value={form.plan_id} onChange={set("plan_id")}>{plans.map((p) => <option key={p.id} value={p.id}>{p.name} — {formatMoney(p.price_minor, p.currency)}</option>)}</Select></Field>
+            <Field label="Plan" htmlFor="ap" className="sm:col-span-2"><Select id="ap" value={form.plan_id} onChange={set("plan_id")}>{plans.map((p) => <option key={p.id} value={p.id}>{p.name} — {p.price_minor ? `${formatMoney(p.price_minor, p.currency)} / ${p.billing_interval}` : `Free (${p.currency})`}{p.active ? "" : " · hidden"}</option>)}</Select></Field>
             <Field label="Amount received" htmlFor="aa" hint="Leave empty to use the plan price."><Input id="aa" inputMode="decimal" value={form.amount} onChange={set("amount")} /></Field>
             <Field label="Reference" htmlFor="ar" optional><Input id="ar" value={form.reference} onChange={set("reference")} placeholder="Bank narration" /></Field>
             <p className="text-[13px] text-ink-3 sm:col-span-2">Activates the plan and adds one billing period (from today, or from the end of the current period if they're already on this plan).</p>

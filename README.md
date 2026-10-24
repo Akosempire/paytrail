@@ -39,7 +39,7 @@ These rules are enforced **in the database** (row-level security and checked fun
 ### 1. Supabase
 
 1. Create a project at [supabase.com](https://supabase.com).
-2. **SQL Editor** → run each file in `supabase/migrations/` **in order**: first `20261024000100_paytrail.sql` (every table, the security rules and the `logos` storage bucket), then `20261024000200_global_payments.sql` (adds Stripe and Paystack). Both are safe to run again later.
+2. **SQL Editor** → run each file in `supabase/migrations/` **in order**: first `20261024000100_paytrail.sql` (every table, the security rules and the `logos` storage bucket), then `20261024000200_global_payments.sql` (adds Stripe and Paystack), then `20261024000300_pricing.sql` (default plans and a 14-day trial). All are safe to run again later.
 3. **Authentication → URL Configuration**
    - Site URL: your app address, e.g. `https://paytrail.yourdomain.com`
    - Redirect URLs: add `https://paytrail.yourdomain.com/auth/callback` (and `http://localhost:3000/auth/callback` for local work)
@@ -77,9 +77,20 @@ Refresh the app. **Platform admin** now appears in the sidebar (`/admin`).
 
 ### 5. Set pricing and the trial (no code needed)
 
-- **/admin/plans**: create your plans: name, price, monthly or yearly, document limit, team seats, whether companies can choose it, and feature bullets. Prices show on the landing page and on every business's billing page immediately.
+- **Default plans** (added by the pricing migration, all editable):
+
+  | Plan | Naira monthly / yearly | US dollar monthly / yearly | Documents a month | Users |
+  |---|---|---|---|---|
+  | Free | ₦0 | $0 | 5 | 1 |
+  | Solo (freelancers) | ₦6,000 / ₦60,000 | $9 / $90 | 50 | 1 |
+  | Team | ₦18,000 / ₦180,000 | $29 / $290 | 200 | 5 |
+  | Business | ₦45,000 / ₦450,000 | $79 / $790 | Unlimited | 15 |
+  | Founding Solo (hidden) | ₦60,000 a year, locked | — | 50 | 1 |
+
+  Businesses see plans in their own currency (dollars if there's no plan in theirs). Free plans never expire, so a business whose trial ends can drop to Free instead of being locked out. Assign **Founding Solo** to early customers from **/admin/businesses → Manage**; it isn't shown publicly and its price doesn't change when you raise public prices.
+- **/admin/plans**: edit or add plans: name, price, monthly or yearly, document limit, team seats, whether companies can choose it, and feature bullets. Prices show on the landing page and on every business's billing page immediately.
 - **/admin/settings**:
-  - **Trial:** the default is **2 free documents** per business. You can switch to a number of days, or no trial. A document counts when it's sent; converting a quote into an invoice doesn't count twice.
+  - **Trial:** the default is a **14-day free trial**. You can switch to a number of free documents, or no trial. A document counts when it's sent; converting a quote into an invoice doesn't count twice.
   - **Collecting subscriptions:**
     - *Bank transfer:* you activate plans by hand in **/admin/businesses → Manage**.
     - *Stripe, Paystack, Flutterwave or Bachs:* paste PayTrail's **own** account keys and add the webhook URL shown there. Plans then activate automatically when paid. Use **Stripe** if you want businesses outside Africa to pay you in dollars, pounds or euros.
@@ -137,7 +148,7 @@ Set `PAYTRAIL_PREVIEW_ROLE` to `manager`, `finance` or `junior_finance` to see w
 
 ```bash
 npm test          # money maths, encryption, webhook signatures, provider responses
-npm run test:db   # 17 database security tests (needs a local PostgreSQL 16; see scripts/test-db.sh)
+npm run test:db   # 18 database security tests (needs a local PostgreSQL 16; see scripts/test-db.sh)
 ```
 
 ## Folder map

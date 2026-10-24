@@ -7,10 +7,11 @@ export async function choosePlan(planId) {
   const ctx = await requirePermission("settings.billing");
   const service = createSupabaseService();
   const [{ data: plan }, { data: settings }] = await Promise.all([
-    service.from("plans").select("*").eq("id", planId).eq("active", true).maybeSingle(),
+    // hidden plans (e.g. founding prices) can only be renewed by businesses already on them
+    service.from("plans").select("*").eq("id", planId).maybeSingle(),
     service.from("platform_settings").select("billing_provider, support_email").eq("id", true).single(),
   ]);
-  if (!plan) return { error: "That plan is no longer available." };
+  if (!plan || (!plan.active && !(ctx.business.plan_id === plan.id && ctx.business.subscription_status === "active"))) return { error: "That plan is no longer available." };
   if (ctx.business.kind === "company" && !plan.allow_company) return { error: "This plan is for freelancers. Choose a team plan." };
   if (plan.price_minor === 0) {
     const { error } = await service.rpc("extend_subscription", { target: ctx.business.id, new_plan: plan.id, pay_method: "free", pay_reference: "", pay_amount: 0, pay_currency: plan.currency, recorder: ctx.user.id });
