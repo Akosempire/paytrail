@@ -1,0 +1,77 @@
+import { Check, CreditCard, Sparkles } from "lucide-react";
+import { requirePermission } from "@/lib/context";
+import { createSupabaseService } from "@/lib/supabase/server";
+import { formatMoney } from "@/lib/money";
+import { formatDate } from "@/lib/format";
+import { Badge, Callout, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
+import { PlanButton } from "./plan-button";
+
+export const metadata = { title: "Plan & billing" };
+
+export default async function Billing({ searchParams }) {
+  const { payment } = await searchParams;
+  const ctx = await requirePermission("settings.billing");
+  const b = ctx.business;
+  const service = createSupabaseService();
+  const [{ data: plans }, { data: history }, { data: settings }] = await Promise.all([
+    ctx.supabase.from("plans").select("*").eq("active", true).order("sort_order").order("price_minor"),
+    ctx.supabase.from("subscription_payments").select("*, plans(name)").eq("business_id", b.id).order("created_at", { ascending: false }).limit(24),
+    service.from("platform_settings").select("trial_mode, trial_documents, trial_days, billing_provider, support_email").eq("id", true).single(),
+  ]);
+  const visible = (plans || []).filter((p) => b.kind !== "company" || p.allow_company);
+  const a = ctx.allowance || {};
+  const active = b.subscription_status === "active";
+  let status;
+  if (b.subscription_status === "trialing") status = settings.trial_mode === "documents" ? `Free trial: ${Math.max(0, (a.limit ?? 0) - (a.used ?? 0))} of ${a.limit ?? 0} free documents left` : settings.trial_mode === "days" ? `Free trial until ${formatDate(b.trial_ends_at)}` : "No free trial";
+  else if (active) status = `${b.plans?.name || "Plan"}${b.current_period_end ? ` · paid until ${formatDate(b.current_period_end)}` : ""}${a.limit != null ? ` · ${a.used} of ${a.limit} documents used this month` : ""}`;
+  else status = b.subscription_status === "suspended" ? "Suspended. Contact PayTrail support." : "Your subscription has ended";
+  return (
+    <div className="flex flex-col gap-6">
+      <PageHeader title="Plan & billing" description="Your PayTrail subscription. This is separate from the payments your customers make to you." />
+      {payment === "succeeded" && <Callout tone="success" icon={Check} title="Payment received">Your plan is active. Thank you!</Callout>}
+      {payment === "pending" && <Callout tone="info" title="Confirming payment">This page updates once the payment is confirmed. That usually takes under a minute.</Callout>}
+      {payment === "failed" && <Callout tone="danger" title="Payment didn't go through">Nothing was charged. Try again.</Callout>}
+      <Card className="p-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3"><Sparkles className="size-5 text-brand" /><div><p className="text-title-3 text-ink">{active ? "Current plan" : b.subscription_status === "trialing" ? "Trial" : "No active plan"}</p><p className="text-[13px] text-ink-2">{status}</p></div></div>
+          <Badge tone={active ? "success" : b.subscription_status === "trialing" ? "brand" : "danger"}>{b.subscription_status.replace("_", " ")}</Badge>
+        </div>
+      </Card>
+      {visible.length === 0 ? (
+        <EmptyState icon={CreditCard} title="Plans are coming soon" description={`Contact ${settings.support_email || "PayTrail support"} to subscribe.`} />
+      ) : (
+        <div className="grid gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2 xl:grid-cols-3">
+          {visible.map((p) => {
+            const current = active && b.plan_id === p.id;
+            return (
+              <div key={p.id} className={`flex flex-col rounded-xl bg-surface p-5 ring-1 ${current ? "ring-2 ring-brand" : "ring-line"}`}>
+                <div className="flex items-center justify-between"><p className="text-title-3 text-ink">{p.name}</p>{current && <Badge tone="brand" size="sm">Current</Badge>}</div>
+                {p.tagline && <p className="mt-1 text-[13px] text-ink-3">{p.tagline}</p>}
+                <p className="mt-4"><span className="text-[28px] font-semibold tracking-[-0.02em] text-ink tabular">{p.price_minor === 0 ? "Free" : formatMoney(p.price_minor, p.currency)}</span>{p.price_minor > 0 && <span className="text-sm text-ink-3"> / {p.billing_interval}</span>}</p>
+                <ul className="mt-4 flex-1 space-y-2 text-[13px] text-ink-2">
+                  <li className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} quotes & invoices a month`}</li>
+                  {b.kind === "company" && <li className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{p.seat_limit == null ? "Unlimited team members" : `Up to ${p.seat_limit} team members`}</li>}
+                  {(p.features || []).map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{f}</li>)}
+                </ul>
+                <PlanButton planId={p.id} label={current ? "Renew / pay ahead" : active ? "Switch to this plan" : "Choose plan"} primary={!current} />
+              </div>
+            );
+          })}
+        </div>
+      )}
+      <Card>
+        <CardHeader title="Billing history" />
+        {history?.length ? (
+          <ul className="divide-y divide-line">
+            {history.map((h) => (
+              <li key={h.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
+                <span><span className="font-medium text-ink">{h.plans?.name || "Plan"}</span><span className="block text-xs text-ink-3">{formatDate(h.period_start)} – {formatDate(h.period_end)} · {h.method}</span></span>
+                <span className="font-semibold tabular">{formatMoney(h.amount_minor, h.currency)}</span>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="px-5 py-4 text-[13px] text-ink-3">No payments yet.</p>}
+      </Card>
+    </div>
+  );
+}

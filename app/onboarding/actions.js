@@ -1,0 +1,71 @@
+"use server";
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { getContext } from "@/lib/context";
+import { businessFieldsFrom, uploadLogo } from "@/lib/business";
+import { inviteMember } from "@/lib/team";
+
+async function pendingBusiness() {
+  const ctx = await getContext();
+  if (!ctx.user) redirect("/login?next=/onboarding");
+  return ctx;
+}
+
+export async function startBusiness(_prev, form) {
+  const ctx = await pendingBusiness();
+  const kind = form.get("kind") === "company" ? "company" : "freelancer";
+  const name = String(form.get("name") || "").trim();
+  const ownerName = String(form.get("owner_name") || ctx.user.user_metadata?.full_name || "").trim();
+  if (!name) return { error: kind === "company" ? "Enter your company name." : "Enter the name you trade under." };
+  const { data: id, error } = await ctx.supabase.rpc("create_business", {
+    business_kind: kind, business_name: name, owner_name: ownerName, business_currency: String(form.get("currency") || "NGN"),
+  });
+  if (error) return { error: error.message };
+  const fields = businessFieldsFrom(form, ["legal_name", "email", "phone", "website", "address", "city", "country", "tax_id"]);
+  if (Object.keys(fields).length) await ctx.supabase.from("businesses").update(fields).eq("id", id);
+  redirect("/onboarding?step=brand");
+}
+
+export async function saveBrand(_prev, form) {
+  const ctx = await pendingBusiness();
+  const id = String(form.get("business_id"));
+  const fields = businessFieldsFrom(form, ["brand_color", "footer_note"]);
+  const logo = await uploadLogo(ctx.supabase, id, form.get("logo"));
+  if (logo.error) return { error: logo.error };
+  if (logo.path) fields.logo_path = logo.path;
+  const { error } = await ctx.supabase.from("businesses").update(fields).eq("id", id);
+  if (error) return { error: "Could not save your branding." };
+  redirect("/onboarding?step=money");
+}
+
+export async function saveMoney(_prev, form) {
+  const ctx = await pendingBusiness();
+  const id = String(form.get("business_id"));
+  const fields = businessFieldsFrom(form, ["currency", "tax_label", "tax_rate", "quote_validity_days", "invoice_due_days",
+    "quote_prefix", "invoice_prefix", "receipt_prefix", "bank_name", "bank_account_name", "bank_account_number", "default_terms"]);
+  const { error } = await ctx.supabase.from("businesses").update(fields).eq("id", id);
+  if (error) return { error: "Could not save these settings." };
+  redirect("/onboarding?step=finish");
+}
+
+export async function finishOnboarding(_prev, form) {
+  const ctx = await pendingBusiness();
+  const id = String(form.get("business_id"));
+  const { data: business } = await ctx.supabase.from("businesses").select("*").eq("id", id).single();
+  const mine = ctx.memberships.find((m) => m.business_id === id);
+  if (!business || mine?.role !== "owner") return { error: "Only the owner can finish setting up this business." };
+  const results = [];
+  if (business?.kind === "company") {
+    const emails = String(form.get("invites") || "").split(/[\s,;]+/).filter(Boolean).slice(0, 10);
+    const role = String(form.get("invite_role") || "finance");
+    const scoped = { ...ctx, business, member: { role: "owner", full_name: ctx.user.user_metadata?.full_name || "" } };
+    for (const email of emails) results.push(await inviteMember(scoped, { email, role, canViewCosts: role !== "junior_finance" }));
+    const failed = results.find((r) => r.error);
+    if (failed) return { error: failed.error };
+  }
+  await ctx.supabase.from("businesses").update({ onboarded_at: new Date().toISOString() }).eq("id", id);
+  await ctx.supabase.from("profiles").upsert({ user_id: ctx.user.id, active_business_id: id });
+  revalidatePath("/", "layout");
+  const next = form.get("next") === "payments" ? "/app/settings/payments?welcome=1" : "/app?welcome=1";
+  redirect(next);
+}

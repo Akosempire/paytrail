@@ -1,0 +1,269 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* ==========================================================================
+   PayTrail design tokens (from the Kasuwa design system)
+   Derived from the reference set: calm cool-grey canvas, white surfaces on
+   grey "trays", one confident blue, outlined pills, large radii, generous air.
+
+   SPACING (4px grid)
+     page gutter    px-4 sm:px-6 lg:px-8 · page top py-6 lg:py-8
+     section gap    gap-8 (32px) between page sections, gap-6 inside a section
+     card padding   p-5 (20px) · compact rows px-5 py-4
+     tray padding   p-1.5 (6px) around grouped cards
+     inline gap     gap-2 (8px) chips/buttons · gap-3 (12px) icon+text blocks
+   RADIUS
+     xs 6 (badges) · sm 8 · md 10 (inputs/buttons) · lg 12 (nav, list items)
+     xl 16 (cards) · 2xl 20 (trays, dialogs, hero) · full (pills, avatars)
+   CONTROL HEIGHTS
+     sm 32 · md 40 · lg 48
+   TYPE (Figtree; numerals tabular)
+     display 32/40 600 · title-1 24/32 600 · title-2 18/26 600
+     title-3 15/22 600 · body 14/22 400 · body-sm 13/20 · caption 12/16 · overline 11/16 600 +6% caps
+   ========================================================================== */
+
+@theme {
+  --font-sans: "Figtree", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Consolas, monospace;
+
+  /* Radius */
+  --radius-xs: 6px;
+  --radius-sm: 8px;
+  --radius-md: 10px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 20px;
+  --radius-3xl: 24px;
+
+  /* Surfaces (light) */
+  --color-canvas: #f5f7fa;
+  --color-surface: #ffffff;
+  --color-subtle: #f8f9fb;
+  --color-tray: #f2f4f7;
+  --color-hover: #f2f4f7;
+  --color-line: #eaecf0;
+  --color-line-strong: #d0d5dd;
+
+  /* Text */
+  --color-ink: #101828;
+  --color-ink-2: #475467;
+  --color-ink-3: #98a2b3;
+
+  /* Solid "contrast" slab — dark in both themes (hero, toasts, code) */
+  --color-contrast: #101828;
+  --color-contrast-hover: #1d2939;
+
+  /* Primary — blue */
+  --color-brand: #1570ef;
+  --color-brand-hover: #175cd3;
+  --color-brand-soft: #eff6ff;
+  --color-brand-line: #b2ddff;
+  --color-brand-ink: #175cd3;
+
+  /* Semantic */
+  --color-success: #079455;
+  --color-success-soft: #ecfdf3;
+  --color-success-ink: #067647;
+
+  --color-warn: #dc6803;
+  --color-warn-soft: #fffaeb;
+  --color-warn-ink: #b54708;
+
+  --color-info: #0086c9;
+  --color-info-soft: #f0f9ff;
+  --color-info-ink: #026aa2;
+
+  --color-violet: #7a5af8;
+  --color-violet-soft: #f4f3ff;
+  --color-violet-ink: #5925dc;
+
+  --color-danger: #d92d20;
+  --color-danger-soft: #fef3f2;
+  --color-danger-ink: #b42318;
+
+  /* Tinted feature cards (quick-action cards in the reference) */
+  --color-tint-mint: #f1fbf6;
+  --color-tint-mint-line: #d3f3e3;
+  --color-tint-amber: #fffaf0;
+  --color-tint-amber-line: #fcebcb;
+  --color-tint-rose: #fff6f5;
+  --color-tint-rose-line: #fcdcd8;
+  --color-tint-blue: #f3f8ff;
+  --color-tint-blue-line: #d6e7ff;
+
+  --color-chat: #efeae2;
+
+  /* Elevation */
+  --shadow-xs: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.03);
+  --shadow-pop: 0 12px 24px -6px rgba(16, 24, 40, 0.14), 0 4px 8px -4px rgba(16, 24, 40, 0.06);
+  --shadow-dialog: 0 24px 48px -12px rgba(16, 24, 40, 0.24);
+  --shadow-focus: 0 0 0 4px rgba(21, 112, 239, 0.16);
+
+  --animate-fade-in: fade-in 160ms ease-out;
+  --animate-rise: rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Dark theme — matches the dark reference: near-black canvas, charcoal trays, darker cards */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --color-canvas: #141414;
+  --color-surface: #1b1b1b;
+  --color-subtle: #181818;
+  --color-tray: #202020;
+  --color-hover: #262626;
+  --color-line: #2a2a2a;
+  --color-line-strong: #3a3a3a;
+
+  --color-ink: #f5f5f6;
+  --color-ink-2: #b4b4b8;
+  --color-ink-3: #7c7c82;
+
+  --color-contrast: #262626;
+  --color-contrast-hover: #303030;
+
+  --color-brand: #3b8cff;
+  --color-brand-hover: #5a9dff;
+  --color-brand-soft: rgba(59, 140, 255, 0.12);
+  --color-brand-line: rgba(59, 140, 255, 0.35);
+  --color-brand-ink: #84b6ff;
+
+  --color-success: #2fbf7a;
+  --color-success-soft: rgba(47, 191, 122, 0.12);
+  --color-success-ink: #6ee0a6;
+  --color-warn: #f79009;
+  --color-warn-soft: rgba(247, 144, 9, 0.12);
+  --color-warn-ink: #fdb022;
+  --color-info: #36bffa;
+  --color-info-soft: rgba(54, 191, 250, 0.12);
+  --color-info-ink: #7cd4fd;
+  --color-violet: #9b8afb;
+  --color-violet-soft: rgba(155, 138, 251, 0.14);
+  --color-violet-ink: #bdb4fe;
+  --color-danger: #f97066;
+  --color-danger-soft: rgba(249, 112, 102, 0.12);
+  --color-danger-ink: #fda29b;
+
+  --color-tint-mint: #0d1a14;
+  --color-tint-mint-line: #163a29;
+  --color-tint-amber: #1a1307;
+  --color-tint-amber-line: #3b2a0b;
+  --color-tint-rose: #1c0b0b;
+  --color-tint-rose-line: #4a1717;
+  --color-tint-blue: #0b1424;
+  --color-tint-blue-line: #17325c;
+
+  --color-chat: #0f1a17;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.35);
+  --shadow-pop: 0 16px 32px -8px rgba(0, 0, 0, 0.6);
+  --shadow-dialog: 0 24px 48px -12px rgba(0, 0, 0, 0.7);
+  --shadow-focus: 0 0 0 4px rgba(59, 140, 255, 0.25);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    color-scheme: light;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-size: 14px;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+  }
+
+  ::selection {
+    background: var(--color-brand);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  button {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    opacity: 0.4;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+  .scroll-thin {
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-line-strong) transparent;
+  }
+  /* Type scale helpers */
+  .text-display { font-size: 32px; line-height: 40px; font-weight: 600; letter-spacing: -0.02em; }
+  .text-title-1 { font-size: 24px; line-height: 32px; font-weight: 600; letter-spacing: -0.015em; }
+  .text-title-2 { font-size: 18px; line-height: 26px; font-weight: 600; letter-spacing: -0.01em; }
+  .text-title-3 { font-size: 15px; line-height: 22px; font-weight: 600; }
+  .text-overline { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+  /* Primary button gradient from the reference ("Add new") */
+  .bg-primary-gradient {
+    background-image: linear-gradient(180deg, color-mix(in srgb, var(--color-brand) 78%, white) 0%, var(--color-brand) 100%);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), 0 1px 2px rgba(16, 24, 40, 0.12), 0 0 0 1px color-mix(in srgb, var(--color-brand) 85%, black);
+  }
+  .bg-primary-gradient:hover {
+    background-image: linear-gradient(180deg, var(--color-brand) 0%, var(--color-brand-hover) 100%);
+  }
+  .bg-dots {
+    background-image: radial-gradient(var(--color-line-strong) 1px, transparent 1px);
+    background-size: 16px 16px;
+  }
+}
+
+
+/* Documents carry each business's own colour: pages set --doc-brand inline. */
+.doc-brand-bg { background: var(--doc-brand, var(--color-brand)); }
+.doc-brand-text { color: var(--doc-brand, var(--color-brand)); }
+.doc-brand-border { border-color: var(--doc-brand, var(--color-brand)); }
+
+@media print {
+  body { background: #fff !important; }
+  .no-print { display: none !important; }
+  .print-plain { box-shadow: none !important; border: 0 !important; }
+}
