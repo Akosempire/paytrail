@@ -50,7 +50,7 @@ export default async function Dashboard({ searchParams }) {
       {sp.denied && <Callout tone="warn">Your role doesn't have access to that page.</Callout>}
       {ctx.allowance && !ctx.allowance.allowed && <Callout tone="danger" icon={AlertCircle} title={business.subscription_status === "trialing" ? "Your free trial has ended" : "Sending is paused"}
         action={can(member, "settings.billing") && <Button href="/app/settings/billing" size="sm" variant="primary">Choose a plan</Button>}>
-        You can still create drafts and record payments. {can(member, "settings.billing") ? "Choose the Free plan or a paid plan to keep sending quotes and invoices." : "Ask the account owner to choose a plan."}
+        You can still create drafts and record payments. {can(member, "settings.billing") ? "Choose a plan to keep sending quotes and invoices. Your drafts, customers and records are all kept." : "Ask the account owner to choose a plan."}
       </Callout>}
 
       {remaining > 0 && (

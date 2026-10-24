@@ -1,9 +1,9 @@
--- PayTrail pricing: naira and dollar plans, a Free plan that never expires,
--- a 14-day trial, and a hidden founding-customer plan. Safe to run more than once:
+-- PayTrail pricing: naira and dollar plans, a 14-day free trial (then a paid
+-- plan is needed to keep sending), and a hidden founding-customer plan. Safe to run more than once:
 -- plans are only added when the plans table is still empty, and the founding plan
 -- only when it doesn't exist yet. Edit prices any time in Admin → Plans & pricing.
 
--- Free plans never expire, so a business can always fall back to one
+-- A plan priced at 0 (if you ever create one) never expires
 create or replace function public.extend_subscription(
   target uuid, new_plan uuid, pay_method text, pay_reference text, pay_amount bigint, pay_currency text, recorder uuid
 ) returns timestamptz
@@ -46,26 +46,27 @@ update public.platform_settings set trial_mode = 'days', trial_days = 14
 -- default plans (amounts in kobo / cents)
 insert into public.plans (name, tagline, price_minor, currency, billing_interval, document_limit, seat_limit, allow_company, features, active, sort_order)
 select * from (values
-  ('Free',     'Try PayTrail at no cost',            0::bigint, 'NGN', 'month',   5, 1,  true,  array['Branded quotes, invoices and receipts','Hidden costs and profit per job'], true, 10),
-  ('Solo',     'For freelancers',                600000::bigint, 'NGN', 'month',  50, 1,  false, array['Online payments','Hidden costs and profit per job','Your logo and colours'], true, 20),
-  ('Solo',     'For freelancers, billed yearly', 6000000::bigint, 'NGN', 'year',   50, 1,  false, array['2 months free','Online payments','Hidden costs and profit per job'], true, 21),
-  ('Team',     'For small companies',           1800000::bigint, 'NGN', 'month', 200, 5,  true,  array['Approvals for junior staff','Choose who sees costs','Online payments'], true, 30),
-  ('Team',     'For small companies, billed yearly', 18000000::bigint, 'NGN', 'year', 200, 5, true, array['2 months free','Approvals for junior staff','Choose who sees costs'], true, 31),
-  ('Business', 'For growing finance teams',     4500000::bigint, 'NGN', 'month', null, 15, true,  array['Priority support','Everything in Team'], true, 40),
-  ('Business', 'For growing finance teams, billed yearly', 45000000::bigint, 'NGN', 'year', null, 15, true, array['2 months free','Priority support','Everything in Team'], true, 41),
-  ('Free',     'Try PayTrail at no cost',            0::bigint, 'USD', 'month',   5, 1,  true,  array['Branded quotes, invoices and receipts','Hidden costs and profit per job'], true, 50),
-  ('Solo',     'For freelancers',                   900::bigint, 'USD', 'month',  50, 1,  false, array['Online payments with Stripe','Hidden costs and profit per job','Your logo and colours'], true, 60),
-  ('Solo',     'For freelancers, billed yearly',    9000::bigint, 'USD', 'year',   50, 1,  false, array['2 months free','Online payments with Stripe','Hidden costs and profit per job'], true, 61),
-  ('Team',     'For small companies',               2900::bigint, 'USD', 'month', 200, 5,  true,  array['Approvals for junior staff','Choose who sees costs','Online payments with Stripe'], true, 70),
-  ('Team',     'For small companies, billed yearly', 29000::bigint, 'USD', 'year', 200, 5, true, array['2 months free','Approvals for junior staff','Choose who sees costs'], true, 71),
-  ('Business', 'For growing finance teams',         7900::bigint, 'USD', 'month', null, 15, true,  array['Priority support','Everything in Team'], true, 80),
-  ('Business', 'For growing finance teams, billed yearly', 79000::bigint, 'USD', 'year', null, 15, true, array['2 months free','Priority support','Everything in Team'], true, 81)
+  ('Solo',     'For freelancers',                300000::bigint, 'NGN', 'month',  50, 1,  false, array['Online payments','Hidden costs and profit per job','Your logo and colours'], true, 20),
+  ('Solo',     'For freelancers, billed yearly', 3000000::bigint, 'NGN', 'year',   50, 1,  false, array['2 months free','Online payments','Hidden costs and profit per job'], true, 21),
+  ('Team',     'For small companies',           750000::bigint, 'NGN', 'month', 200, 5,  true,  array['Approvals for junior staff','Choose who sees costs','Online payments'], true, 30),
+  ('Team',     'For small companies, billed yearly', 7500000::bigint, 'NGN', 'year', 200, 5, true, array['2 months free','Approvals for junior staff','Choose who sees costs'], true, 31),
+  ('Business', 'For growing finance teams',     2000000::bigint, 'NGN', 'month', null, 15, true,  array['Priority support','Everything in Team'], true, 40),
+  ('Business', 'For growing finance teams, billed yearly', 20000000::bigint, 'NGN', 'year', null, 15, true, array['2 months free','Priority support','Everything in Team'], true, 41),
+  ('Solo',     'For freelancers',                   500::bigint, 'USD', 'month',  50, 1,  false, array['Online payments with Stripe','Hidden costs and profit per job','Your logo and colours'], true, 60),
+  ('Solo',     'For freelancers, billed yearly',    5000::bigint, 'USD', 'year',   50, 1,  false, array['2 months free','Online payments with Stripe','Hidden costs and profit per job'], true, 61),
+  ('Team',     'For small companies',               1500::bigint, 'USD', 'month', 200, 5,  true,  array['Approvals for junior staff','Choose who sees costs','Online payments with Stripe'], true, 70),
+  ('Team',     'For small companies, billed yearly', 15000::bigint, 'USD', 'year', 200, 5, true, array['2 months free','Approvals for junior staff','Choose who sees costs'], true, 71),
+  ('Business', 'For growing finance teams',         3900::bigint, 'USD', 'month', null, 15, true,  array['Priority support','Everything in Team'], true, 80),
+  ('Business', 'For growing finance teams, billed yearly', 39000::bigint, 'USD', 'year', null, 15, true, array['2 months free','Priority support','Everything in Team'], true, 81)
 ) as v(name, tagline, price_minor, currency, billing_interval, document_limit, seat_limit, allow_company, features, active, sort_order)
 where not exists (select 1 from public.plans);
 
--- founding customers: hidden from the plan list, assigned by the platform owner,
--- and the price stays the same even if public prices go up
+-- founding customers: Team features at NGN 60,000 a year, hidden from the plan
+-- list, assigned by the platform owner, price locked even if public prices go up
 insert into public.plans (name, tagline, price_minor, currency, billing_interval, document_limit, seat_limit, allow_company, features, active, sort_order)
-select 'Founding Solo', 'Founding customer price, locked for life', 6000000, 'NGN', 'year', 50, 1, true,
-  array['Founding customer: price locked for life','Online payments','Hidden costs and profit per job'], false, 5
-where not exists (select 1 from public.plans where name = 'Founding Solo');
+select 'Founding', 'Founding customer: Team features, price locked for life', 6000000, 'NGN', 'year', 200, 5, true,
+  array['Founding customer: price locked for life','Approvals for junior staff','Choose who sees costs','Online payments'], false, 5
+where not exists (select 1 from public.plans where name in ('Founding', 'Founding Solo'));
+
+-- no free-forever plan: after the 14-day trial, businesses choose a paid plan
+update public.plans set active = false where price_minor = 0 and name = 'Free';

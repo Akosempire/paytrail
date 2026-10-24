@@ -109,7 +109,7 @@ export default async function Home({ searchParams }) {
                   <li className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
                   {(p.features || []).map((f) => <li key={f} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-success" />{f}</li>)}
                 </ul>
-                <Button href="/signup" variant="secondary" block className="mt-6">Start free</Button>
+                <Button href="/signup" variant="secondary" block className="mt-6">Start 14-day free trial</Button>
               </div>
             ))}
           </div>

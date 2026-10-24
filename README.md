@@ -81,13 +81,12 @@ Refresh the app. **Platform admin** now appears in the sidebar (`/admin`).
 
   | Plan | Naira monthly / yearly | US dollar monthly / yearly | Documents a month | Users |
   |---|---|---|---|---|
-  | Free | ₦0 | $0 | 5 | 1 |
-  | Solo (freelancers) | ₦6,000 / ₦60,000 | $9 / $90 | 50 | 1 |
-  | Team | ₦18,000 / ₦180,000 | $29 / $290 | 200 | 5 |
-  | Business | ₦45,000 / ₦450,000 | $79 / $790 | Unlimited | 15 |
-  | Founding Solo (hidden) | ₦60,000 a year, locked | — | 50 | 1 |
+  | Solo (freelancers) | ₦3,000 / ₦30,000 | $5 / $50 | 50 | 1 |
+  | Team | ₦7,500 / ₦75,000 | $15 / $150 | 200 | 5 |
+  | Business | ₦20,000 / ₦200,000 | $39 / $390 | Unlimited | 15 |
+  | Founding (hidden) | ₦60,000 a year, locked | — | 200 | 5 |
 
-  Businesses see plans in their own currency (dollars if there's no plan in theirs). Free plans never expire, so a business whose trial ends can drop to Free instead of being locked out. Assign **Founding Solo** to early customers from **/admin/businesses → Manage**; it isn't shown publicly and its price doesn't change when you raise public prices.
+  Businesses see plans in their own currency (dollars if there's no plan in theirs). There's no free-forever plan: after the 14-day trial a business keeps all its data but needs a paid plan to send new quotes and invoices. Assign **Founding** (Team features) to early customers from **/admin/businesses → Manage**; it isn't shown publicly and its price doesn't change when you raise public prices.
 - **/admin/plans**: edit or add plans: name, price, monthly or yearly, document limit, team seats, whether companies can choose it, and feature bullets. Prices show on the landing page and on every business's billing page immediately.
 - **/admin/settings**:
   - **Trial:** the default is a **14-day free trial**. You can switch to a number of free documents, or no trial. A document counts when it's sent; converting a quote into an invoice doesn't count twice.

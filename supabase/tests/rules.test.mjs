@@ -256,10 +256,11 @@ test("Stripe and Paystack payments settle like the others", async () => {
   await pool.query("update public.platform_settings set billing_provider='paystack'");
 });
 
-test("default pricing: plans seeded once, free plans never expire, founding plan hidden", async () => {
+test("default pricing: paid plans only, founding plan hidden, zero-priced plans never expire", async () => {
   const plans = (await pool.query("select name, currency, billing_interval, price_minor, active from public.plans where name <> 'Starter' order by sort_order")).rows;
-  assert.ok(plans.filter((p) => p.active).length >= 14, "default naira and dollar plans are seeded");
-  assert.ok(plans.some((p) => p.name === "Founding Solo" && p.active === false && Number(p.price_minor) === 6000000));
+  assert.ok(plans.filter((p) => p.active).length >= 12, "default naira and dollar plans are seeded");
+  assert.ok(!plans.some((p) => p.active && Number(p.price_minor) === 0), "no free-forever plan is offered");
+  assert.ok(plans.some((p) => p.name === "Founding" && p.active === false && Number(p.price_minor) === 6000000));
   const free = (await one("insert into public.plans(name, price_minor, currency, document_limit) values ('Free test', 0, 'NGN', 5) returning id")).id;
   const ends = await as("service", ({ one }) => one("select public.extend_subscription($1,$2,'free','',0,'NGN',null) t", [otherBiz, free]));
   assert.equal(ends.t, null);
