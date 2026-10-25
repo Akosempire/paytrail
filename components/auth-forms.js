@@ -1,7 +1,7 @@
 "use client";
 import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
-import { ArrowRight, Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
+import { Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
 import { Alert, Callout, Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton } from "@/components/ui-client";
 import { requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
@@ -40,7 +40,7 @@ export function VerifyEmailForm({ email, next, intro }) {
       <Field label="Confirmation code" htmlFor="code">
         <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12} className={CODE_INPUT} />
       </Field>
-      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Checking…">Confirm email</SubmitButton>
+      <SubmitButton size="lg" block pendingText="Checking…">Confirm email</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
         <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendSignupCode(email, next)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
@@ -67,7 +67,7 @@ export function LoginForm({ next, notice }) {
         <PasswordInput id="password" />
         <Link href="/forgot" className="self-end text-xs font-medium text-brand-ink hover:underline">Forgot password?</Link>
       </Field>
-      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Signing in…">Sign in</SubmitButton>
+      <SubmitButton size="lg" block pendingText="Signing in…">Sign in</SubmitButton>
       <p className="text-center text-sm text-ink-2">New to {BRAND.name}? <Link href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-brand-ink hover:underline">Create an account</Link></p>
     </form>
   );
@@ -87,7 +87,7 @@ export function SignupForm({ next, email, trialText }) {
       <Field label="Your full name" htmlFor="name"><Input id="name" icon={User} name="name" placeholder="Tolu Adeyemi" autoComplete="name" required /></Field>
       <Field label="Work email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={email || ""} placeholder="you@company.com" autoComplete="email" required /></Field>
       <Field label="Password" htmlFor="password" hint="At least 8 characters."><PasswordInput id="password" placeholder="Create a password" autoComplete="new-password" /></Field>
-      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Creating account…">Create account</SubmitButton>
+      <SubmitButton size="lg" block pendingText="Creating account…">Create account</SubmitButton>
       <p className="text-center text-xs text-ink-3">By creating an account you agree to the <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-ink">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-ink">Privacy Policy</Link>.</p>
       <p className="text-center text-sm text-ink-2">Already have an account? <Link href={`/login${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-brand-ink hover:underline">Sign in</Link></p>
     </form>
@@ -107,7 +107,7 @@ export function ForgotForm() {
       </div>
       <FormMessage state={state} />
       <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" placeholder="you@company.com" autoComplete="email" required /></Field>
-      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Sending…">Send reset code</SubmitButton>
+      <SubmitButton size="lg" block pendingText="Sending…">Send reset code</SubmitButton>
       <Link href="/login" className="text-center text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
     </form>
   );
@@ -132,7 +132,7 @@ function ResetCodeForm({ email }) {
       <Field label="Reset code" htmlFor="code">
         <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12} className={CODE_INPUT} />
       </Field>
-      <SubmitButton size="lg" block iconRight={ArrowRight} pendingText="Checking…">Continue</SubmitButton>
+      <SubmitButton size="lg" block pendingText="Checking…">Continue</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
         <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendResetCode(email)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.

@@ -370,3 +370,50 @@
 }
 .receipt-shadow { filter: drop-shadow(0 1px 1px rgb(20 16 8 / 0.06)) drop-shadow(0 18px 30px rgb(20 16 8 / 0.14)); }
 :root[data-theme="dark"] .receipt-shadow { filter: drop-shadow(0 18px 32px rgb(0 0 0 / 0.55)); }
+
+/* Sign in / sign up / reset: the landing page's look applied to the shared
+   form components by re-pointing their tokens inside .auth-skin only. */
+.auth-skin {
+  --color-canvas: var(--color-hero);
+  --color-surface: var(--color-hero-paper);
+  --color-subtle: var(--color-hero-tint);
+  --color-tray: var(--color-hero-tint);
+  --color-hover: var(--color-hero-tint);
+  --color-line: var(--color-hero-line);
+  --color-line-strong: color-mix(in srgb, var(--color-hero-line) 65%, var(--color-hero-ink-2));
+  --color-ink: var(--color-hero-ink);
+  --color-ink-2: var(--color-hero-ink-2);
+  --color-ink-3: color-mix(in srgb, var(--color-hero-ink-2) 75%, transparent);
+  --color-brand: #175cd3;
+  --color-brand-hover: #1765e6;
+  --color-brand-ink: var(--color-hero-accent);
+  --shadow-focus: 0 0 0 4px rgb(23 92 211 / 0.16);
+}
+.auth-skin h1 {
+  font-family: "Chintzy CPU", var(--font-sans);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0;
+  word-spacing: -0.12em;
+  font-size: 34px;
+  line-height: 1.05;
+}
+.auth-skin :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {
+  border-radius: 14px;
+  background-color: var(--color-hero);
+}
+.auth-skin .bg-primary-gradient {
+  background: #175cd3;
+  border-radius: 9999px;
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.28), 0 1px 2px rgb(10 30 80 / 0.25), 0 14px 30px -14px rgb(23 92 211 / 0.7);
+  transition: transform 0.2s, background-color 0.2s, box-shadow 0.2s;
+}
+.auth-skin .bg-primary-gradient:hover { background: #1765e6; transform: translateY(-1px); }
+:root[data-theme="dark"] .auth-skin .bg-primary-gradient { background: #2563eb; }
+:root[data-theme="dark"] .auth-skin .bg-primary-gradient:hover { background: #3171f0; }
+
+/* the welcome receipt prints out of its slot once, on load */
+@keyframes receipt-print { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+.receipt-print { animation: receipt-print 1.6s cubic-bezier(.22, .9, .3, 1) 0.25s both; }
+@media (prefers-reduced-motion: reduce) { .receipt-print { animation: none; } }
+.auth-skin h1 + p { margin-top: 0.75rem; }
