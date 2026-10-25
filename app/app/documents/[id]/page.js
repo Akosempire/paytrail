@@ -1,6 +1,7 @@
+import { ShowToast } from "@/components/show-toast";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, EyeOff, Printer, Link2, Receipt, Wallet, History, ExternalLink, MessageCircle, ArrowRight, CheckCircle2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, EyeOff, Printer, Link2, Receipt, Wallet, History, ExternalLink, MessageCircle, ArrowRight, ShieldCheck } from "lucide-react";
 import { requireBusiness } from "@/lib/context";
 import { getDocument } from "@/lib/documents";
 import { can } from "@/lib/permissions";
@@ -56,8 +57,8 @@ export default async function DocumentPage({ params, searchParams }) {
             canRecord: can(ctx.member, "payments.record"), canConvert: can(ctx.member, "documents.convert"), canVoid: can(ctx.member, "documents.void") }} />
       </div>
 
-      {sp.converted && <Callout tone="success" icon={CheckCircle2} title="Invoice created from the quote">Items and hidden costs were copied across. It's ready to share with your customer.</Callout>}
-      {sp.sent && <Callout tone="success" icon={CheckCircle2} title={`${quote ? "Quote" : "Invoice"} sent`}>Your customer can open it from the link, {quote ? "accept it and pay" : "and pay online"}.</Callout>}
+      {sp.converted && <ShowToast title="Invoice created from the quote" message="Items and hidden costs were copied across. It's ready to share with your customer." clear={["converted"]} />}
+      {sp.sent && <ShowToast title={`${quote ? "Quote" : "Invoice"} sent`} message={`Your customer can open it from the link, ${quote ? "accept it and pay" : "and pay online"}.`} clear={["sent"]} />}
       {doc.status === "pending_approval" && <Callout tone="violet" icon={ShieldCheck} title="Waiting for approval">{can(ctx.member, "documents.approve") ? "Check it, then approve & send, or return it with a note." : "A manager or finance officer will review it before it goes to the customer."}</Callout>}
       {doc.status === "draft" && lastReturn && <Callout tone="warn" title="Returned for changes">{lastReturn.actor_label}: "{lastReturn.detail?.reason || "Please review."}"</Callout>}
       {doc.status === "declined" && <Callout tone="danger" title="Your customer declined this quote">{doc.decline_reason ? `"${doc.decline_reason}"` : "No reason given."}</Callout>}

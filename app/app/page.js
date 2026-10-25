@@ -1,3 +1,4 @@
+import { ShowToast } from "@/components/show-toast";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Banknote, Check, CircleDashed, FileClock, FileText, PiggyBank, Plus, ShieldCheck, Wallet } from "lucide-react";
 import { requireBusiness } from "@/lib/context";
@@ -46,7 +47,7 @@ export default async function Dashboard({ searchParams }) {
     <div className="flex flex-col gap-8">
       <PageHeader title={`${greeting()}${firstName ? `, ${firstName}` : ""}`} description={`Here's how ${business.name} is doing.`} />
 
-      {sp.welcome && <Callout tone="success" icon={Check} title="You're all set up">Create your first quote. Add your hidden costs on the right to see your profit before you send it.</Callout>}
+      {sp.welcome && <ShowToast title="You're all set up" message="Create your first quote. Add your hidden costs to see your profit before you send it." clear={["welcome"]} duration={7000} />}
       {ctx.allowance?.reason === "deletion_pending" && <Callout tone="danger" icon={AlertCircle} title={`${business.name} will be permanently deleted on ${formatDate(ctx.allowance.deletes_at)}`}
         action={member.role === "owner" && <Button href="/app/settings/privacy" size="sm" variant="primary">Keep my business</Button>}>
         Sending is switched off. Download anything you need from Settings → Privacy & data before then.

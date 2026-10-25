@@ -1,3 +1,4 @@
+import { ShowToast } from "@/components/show-toast";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { reconcileSoon } from "@/lib/payments";
@@ -55,7 +56,6 @@ export default async function PublicDocument({ params, searchParams }) {
   else if (payment === "failed") banner = { tone: "danger", icon: XCircle, title: "The payment didn't go through", text: "No money was taken. You can try again or pay by bank transfer." };
   else if (payment === "cancelled") banner = { tone: "warn", icon: XCircle, title: "Payment cancelled", text: "You can try again whenever you're ready." };
 
-  const tones = { success: "bg-[#ecfdf3] text-[#067647] ring-[#079455]/25", info: "bg-[#f0f9ff] text-[#026aa2] ring-[#0086c9]/25", danger: "bg-[#fef3f2] text-[#b42318] ring-[#d92d20]/25", warn: "bg-[#fffaeb] text-[#b54708] ring-[#dc6803]/25" };
 
   return (
     <div className="min-h-dvh bg-[#f5f7fa] text-[#101828]" data-theme="light" style={{ "--doc-brand": business.brand_color, colorScheme: "light" }}>
@@ -75,12 +75,7 @@ export default async function PublicDocument({ params, searchParams }) {
 
       <main className="mx-auto grid max-w-[1100px] grid-cols-[minmax(0,1fr)] gap-6 px-4 pt-6 pb-24 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-10">
         <div className="flex min-w-0 flex-col gap-4">
-          {banner && (
-            <div className={`flex gap-3 rounded-xl p-4 text-sm ring-1 ring-inset ${tones[banner.tone]}`}>
-              <banner.icon className="mt-0.5 size-5 shrink-0" />
-              <div><p className="font-semibold">{banner.title}</p><p className="opacity-90">{banner.text}</p></div>
-            </div>
-          )}
+          {banner && <ShowToast intent={{ success: "success", info: "info", danger: "error", warn: "warning" }[banner.tone]} title={banner.title} message={banner.text} clear={["payment"]} duration={banner.tone === "info" ? 9000 : undefined} />}
           {doc.status === "void" && <div className="flex gap-3 rounded-xl bg-[#f2f4f7] p-4 text-sm ring-1 ring-[#d0d5dd]"><Ban className="size-5 shrink-0 text-[#475467]" />This document has been cancelled by {business.name}.</div>}
           <div className="rounded-2xl bg-[#eceeef] p-2 sm:p-4">
             <DocPreview model={buildModel({ doc, items, business })} label={`${quote ? "Quotation" : "Invoice"} ${doc.number}`} />

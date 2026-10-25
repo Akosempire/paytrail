@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, KeyRound, Mail, Save, Send } from "lucide-react";
-import { Alert, Button, Card, CardHeader, Field, Input } from "@/components/ui";
+import { Badge, Button, Card, CardHeader, Field, Input } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { useStepUp } from "@/components/step-up";
 import { saveEmailSettings, sendTestEmail } from "../actions";
@@ -38,32 +38,16 @@ export function EmailStatus({ status }) {
   return (
     <Card>
       {dialog}
-      <CardHeader icon={Mail} title="Email delivery" description="Sign-up codes, password resets, security codes, invoices and receipts all go out through your Brevo account." />
+      <CardHeader icon={Mail} title="Email delivery" description="Sign-up codes, password resets, security codes, invoices and receipts all go out through your Brevo account."
+        actions={status.source === "dashboard" ? <Badge tone="success" size="sm">Connected</Badge> : status.source === "vercel" ? <Badge tone="warn" size="sm">Using Vercel SMTP</Badge> : <Badge tone="neutral" size="sm">Not set up</Badge>} />
       <div className="flex flex-col gap-4 px-5 pb-5">
-        {status.source === "dashboard" && (
-          <Alert intent="success" title="Connected to Brevo" live={false}>
-            Sending as <strong>{saved.email_from_name} &lt;{saved.email_from_address}&gt;</strong>
-            {saved.email_account ? <> through Brevo (<strong>{saved.email_account}</strong>)</> : null}. Key ending {saved.email_key_hint}.
-          </Alert>
-        )}
-        {status.source === "vercel" && (
-          <Alert intent="warning" title="Using the SMTP settings in Vercel" live={false}>
-            Paste a Brevo API key below to switch to the simpler setup. Once it's saved, the SMTP_* settings in Vercel are no longer used.
-          </Alert>
-        )}
-        {!status.source && (
-          <Alert intent="error" title="Not set up yet" live={false}>
-            Until it is, Supabase sends plain sign-up emails and invoices can't be emailed.
-          </Alert>
-        )}
-
         <ol className="list-decimal space-y-1 rounded-xl bg-tray px-5 py-3.5 pl-9 text-[13px] leading-relaxed text-ink-2">
           <li>In Brevo: your name (top right) → <strong>Settings → Security → Authorized IPs</strong> → <strong>Deactivate blocking</strong>. Vercel's servers change address, so Brevo must not block new ones.</li>
           <li>Go to <strong>SMTP &amp; API</strong>. Paste either an <strong>API key</strong> (starts <code className="font-mono text-ink">xkeysib-</code>), or an <strong>SMTP key</strong> (starts <code className="font-mono text-ink">xsmtpsib-</code>) together with the <strong>Login</strong> shown on the SMTP tab.</li>
           <li>Use an address on a domain you've authenticated in Brevo, like <code className="font-mono text-ink">hello@usetally.cc</code>.</li>
         </ol>
 
-        <Field label="Brevo key" htmlFor="brevo-key" hint={saved ? `Saved key ends ${saved.email_key_hint}. Leave empty to keep it.` : "Stored encrypted. Only the last 4 characters are ever shown again."}>
+        <Field label="Brevo key" htmlFor="brevo-key" hint={saved ? `Saved key ends ${saved.email_key_hint}${saved.email_account ? ` (${saved.email_account})` : ""}. Leave empty to keep it.` : "Stored encrypted. Only the last 4 characters are ever shown again."}>
           <div className="relative">
             <Input id="brevo-key" icon={KeyRound} type={show ? "text" : "password"} autoComplete="off" spellCheck={false}
               placeholder={saved ? "•••••••• (saved)" : "xkeysib-… or xsmtpsib-…"} value={form.apiKey} onChange={set("apiKey")} />

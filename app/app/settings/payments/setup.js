@@ -3,7 +3,7 @@ import { useStepUp } from "@/components/step-up";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, CircleDashed, ExternalLink, KeyRound, Loader2, PlugZap, RefreshCw, ShieldCheck, Webhook, CreditCard, Power, Trash2, TriangleAlert, Sparkles } from "lucide-react";
-import { Alert, Badge, Button, Callout, Card, Field, Input, cx } from "@/components/ui";
+import { Badge, Button, Callout, Card, Field, Input, cx } from "@/components/ui";
 import { CopyButton, Modal, useToast } from "@/components/ui-client";
 import { disconnect, recheckConnection, runTestPayment, saveConnection, setEnabled } from "./actions";
 
@@ -128,7 +128,6 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
   const [key, setKey] = useState("");
   const [hook, setHook] = useState("");
   const [suggested] = useState(() => (typeof crypto !== "undefined" && crypto.randomUUID ? `pt_${crypto.randomUUID().replace(/-/g, "")}` : ""));
-  const [error, setError] = useState(null);
   const [busy, setBusy] = useState(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
   const [pending, start] = useTransition();
@@ -142,12 +141,11 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
   ];
 
   function act(name, fn) {
-    setError(null);
     setBusy(name);
     start(async () => {
       const r = await fn();
       setBusy(null);
-      if (r?.error) { setError(r.error); return; }
+      if (r?.error) { toast.error({ title: "Didn't work", message: r.error }, { duration: 12000 }); return; }
       if (r?.url) { window.location.href = r.url; return; }
       if (r?.message) toast(r.message);
       if (name === "save") { setKey(""); setHook(""); }
@@ -228,7 +226,6 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
                         <Input id={`${provider}-hook`} type="password" autoComplete="off" value={hook} onChange={(e) => setHook(e.target.value)} placeholder={guide.hookPlaceholder} />
                       </Field>
                     )}
-                    {error && busy === null && <Alert intent="error" size="sm">{error}</Alert>}
                     <Button variant="primary" icon={busy === "save" ? Loader2 : KeyRound} loading={busy === "save"} className="self-start"
                       onClick={() => act("save", () => guarded(() => saveConnection(provider, { secretKey: key, webhookSecret: hook })))}>Save & check key</Button>
                   </div>

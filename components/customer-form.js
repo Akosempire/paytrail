@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Loader2, Pencil, Plus } from "lucide-react";
-import { Alert, Button, Field, Input, Textarea } from "@/components/ui";
+import { Button, Field, Input, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { archiveCustomer, saveCustomer } from "@/app/app/customers/actions";
 
@@ -11,14 +11,12 @@ export function CustomerButton({ customer, variant = "primary", size = "md" }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(customer || { name: "", company: "", email: "", phone: "", address: "", notes: "" });
-  const [error, setError] = useState(null);
   const [pending, start] = useTransition();
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   function save() {
-    setError(null);
     start(async () => {
       const r = await saveCustomer(customer?.id || null, form);
-      if (r.error) return setError(r.error);
+      if (r.error) return toast.error({ title: "Not saved", message: r.error });
       toast(r.message);
       setOpen(false);
       if (!customer) setForm({ name: "", company: "", email: "", phone: "", address: "", notes: "" });
@@ -35,7 +33,6 @@ export function CustomerButton({ customer, variant = "primary", size = "md" }) {
           <Button variant="primary" icon={pending ? Loader2 : undefined} loading={pending} onClick={save}>Save</Button>
         </>}>
         <div className="grid gap-4 sm:grid-cols-2">
-          {error && <Alert intent="error" size="sm" className="sm:col-span-2">{error}</Alert>}
           <Field label="Contact name" htmlFor="c-name"><Input id="c-name" value={form.name} onChange={set("name")} /></Field>
           <Field label="Company" htmlFor="c-co" optional><Input id="c-co" value={form.company} onChange={set("company")} /></Field>
           <Field label="Email" htmlFor="c-em"><Input id="c-em" type="email" value={form.email} onChange={set("email")} /></Field>

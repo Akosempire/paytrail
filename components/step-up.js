@@ -1,9 +1,9 @@
 "use client";
 import { useCallback, useRef, useState } from "react";
 import { Loader2, MailCheck, ShieldCheck } from "lucide-react";
-import { Alert, Button } from "@/components/ui";
+import { Button } from "@/components/ui";
 import { OtpInput, ResendCode } from "@/components/otp-input";
-import { Modal } from "@/components/ui-client";
+import { Modal, useToast } from "@/components/ui-client";
 import { confirmSecurityCode, requestSecurityCode } from "@/app/app/security/actions";
 
 const WHAT = { payment_keys: "change payment keys", bank_details: "change bank details" };
@@ -16,6 +16,7 @@ export function useStepUp(scope = "business") {
   const [open, setOpen] = useState(null); // purpose
   const [code, setCode] = useState("");
   const [status, setStatus] = useState({});
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const resolver = useRef(null);
 
@@ -23,6 +24,7 @@ export function useStepUp(scope = "business") {
     setStatus({ sending: true });
     const r = await requestSecurityCode(purpose, scope);
     if (r.granted) { resolver.current?.(true); resolver.current = null; setOpen(null); return; }
+    if (r.error) toast.error({ title: "Code not sent", message: r.error });
     setStatus(r.error ? { error: r.error } : { sent: r.email });
   }, [scope]);
 
@@ -46,7 +48,8 @@ export function useStepUp(scope = "business") {
     setBusy(true);
     const r = await confirmSecurityCode(open, value, scope);
     setBusy(false);
-    if (r.verified) close(true); else setStatus((s) => ({ ...s, error: r.error, errorAt: Date.now() }));
+    if (r.verified) close(true);
+    else { toast.error({ title: "Code not accepted", message: r.error }); setStatus((s) => ({ ...s, error: r.error, errorAt: Date.now() })); }
   };
 
   const dialog = (
@@ -59,7 +62,6 @@ export function useStepUp(scope = "business") {
           {status.sending ? "Sending your code…" : status.sent ? <>Sent to <strong className="text-ink">{status.sent}</strong>. It expires in 10 minutes.</> : "We'll email you a code."}
         </p>
         {open && <OtpInput key={open} name="stepup-code" label="6-digit security code" errorKey={status.errorAt} onChange={setCode} onComplete={(c) => verify(c)} disabled={busy} />}
-        {status.error && <Alert intent="error" size="sm">{status.error}</Alert>}
         <p className="text-[13px]">{open && <ResendCode key={open} onResend={() => send(open)} />}</p>
       </div>
     </Modal>

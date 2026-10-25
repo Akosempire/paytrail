@@ -1,10 +1,11 @@
+import { ShowToast } from "@/components/show-toast";
 import Link from "next/link";
 import { Check, CreditCard, Sparkles } from "lucide-react";
 import { requirePermission } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
-import { Badge, Callout, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
+import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import { PlanButton } from "./plan-button";
 import { hasYearly, monthlyEquivalent, plansFor } from "@/lib/plans";
 import { cx } from "@/components/ui";
@@ -35,9 +36,9 @@ export default async function Billing({ searchParams }) {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Plan & billing" description="Your Usetally subscription. This is separate from the payments your customers make to you." />
-      {payment === "succeeded" && <Callout tone="success" icon={Check} title="Payment received">Your plan is active. Thank you!</Callout>}
-      {payment === "pending" && <Callout tone="info" title="Confirming payment">This page updates once the payment is confirmed. That usually takes under a minute.</Callout>}
-      {payment === "failed" && <Callout tone="danger" title="Payment didn't go through">Nothing was charged. Try again.</Callout>}
+      {payment === "succeeded" && <ShowToast title="Payment received" message="Your plan is active. Thank you!" clear={["payment"]} />}
+      {payment === "pending" && <ShowToast intent="info" title="Confirming payment" message="Your plan updates once the payment is confirmed. That usually takes under a minute; refresh this page shortly." clear={["payment"]} duration={9000} />}
+      {payment === "failed" && <ShowToast intent="error" title="Payment didn't go through" message="Nothing was charged. Try again." clear={["payment"]} />}
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3"><Sparkles className="size-5 text-brand" /><div><p className="text-title-3 text-ink">{active ? "Current plan" : b.subscription_status === "trialing" ? "Trial" : "No active plan"}</p><p className="text-[13px] text-ink-2">{status}</p></div></div>

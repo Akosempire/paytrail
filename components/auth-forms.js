@@ -2,7 +2,7 @@
 import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
-import { Alert, Callout, Field, Input } from "@/components/ui";
+import { Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton, useActionToast } from "@/components/ui-client";
 import { requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
 import { BRAND } from "@/lib/brand";
@@ -58,7 +58,6 @@ export function LoginForm({ next, notice }) {
         <h1 className="text-title-1 text-ink">Sign in to {BRAND.name}</h1>
         <p className="mt-1 text-sm text-ink-2">Welcome back. Pick up where you left off.</p>
       </div>
-      {notice && <Callout tone="info">{notice}</Callout>}
       <FormMessage state={state} />
       <input type="hidden" name="next" value={next || ""} />
       <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
