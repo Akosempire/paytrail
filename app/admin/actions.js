@@ -125,6 +125,6 @@ export async function sendTestEmail() {
   const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Brevo is connected", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email through Brevo."] }) });
   if (r.sent) return { message: `Sent to ${ctx.user.email}. Check your inbox (and spam).` };
   const login = /535|auth/i.test(r.detail || "");
-  return { error: `Brevo refused the email: ${r.detail || "no reason given"}`, hints: login ? (status.hints.length ? status.hints : ["SMTP_USER and SMTP_PASS look the right shape, so one of them is out of date. In Brevo → SMTP & API → SMTP tab, copy the Login again and generate a new SMTP key, update both in Vercel, then redeploy. If it still fails, Brevo may not have activated SMTP on your account yet: contact Brevo support to enable it."]) : [] };
+  return { error: `Brevo refused the email: ${r.detail || "no reason given"}`, hints: status.hints.length ? status.hints : login ? ( ["SMTP_USER and SMTP_PASS look the right shape, so one of them is out of date. In Brevo → SMTP & API → SMTP tab, copy the Login again and generate a new SMTP key, update both in Vercel, then redeploy. If it still fails, Brevo may not have activated SMTP on your account yet: contact Brevo support to enable it."]) : [] };
 }
 
