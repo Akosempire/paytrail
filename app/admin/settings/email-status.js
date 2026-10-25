@@ -19,7 +19,8 @@ export function EmailStatus({ status }) {
               Missing in Vercel → Settings → Environment Variables: <strong>{status.missing.join(", ")}</strong>. Add them, then redeploy.
             </Alert>}
         {result?.message && <Alert intent="success" size="sm" title="Test sent">{result.message}</Alert>}
-        {result?.error && <Alert intent="error" size="sm" title="Test failed">{result.error}</Alert>}
+        {result?.error && <Alert intent="error" size="sm" title="Test failed">{result.error}{result.hints?.length > 0 && <ul className="mt-2 list-disc space-y-1 pl-4">{result.hints.map((h) => <li key={h}>{h}</li>)}</ul>}</Alert>}
+        {!result?.error && status.ready && status.hints?.length > 0 && <Alert intent="warning" size="sm" title="Check these settings" live={false}><ul className="list-disc space-y-1 pl-4">{status.hints.map((h) => <li key={h}>{h}</li>)}</ul></Alert>}
         <div><Button icon={Send} loading={pending} disabled={pending} onClick={() => start(async () => setResult(await sendTestEmail()))}>Send test email to me</Button></div>
       </div>
     </Card>
