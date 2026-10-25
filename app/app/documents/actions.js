@@ -165,6 +165,10 @@ export async function saveDocumentLayout(id, input, { asDefault = false } = {}) 
   const { data: doc } = await ctx.supabase.from("documents").select("id, kind, status").eq("id", id).eq("business_id", ctx.business.id).maybeSingle();
   if (!doc) return { error: "Document not found." };
   if (!fits(doc.kind, input.template, input.paper)) return { error: "That template isn't available for this paper size." };
+  const { TEMPLATES } = await import("@/lib/doc-templates");
+  const { readyTemplates, SQL_FOR } = await import("@/lib/templates-ready");
+  const update = TEMPLATES[input.template]?.needsUpdate;
+  if (update && !(await readyTemplates(ctx.supabase)).includes(input.template)) return { error: `This template needs a quick database update first. Run ${SQL_FOR[update]} in Supabase, then try again.` };
   const layout = cleanLayout(input.layout);
   const { error } = await ctx.supabase.rpc("set_document_layout", {
     doc_id: id, tpl: input.template, paper_size: input.paper, new_layout: layout, instructions: String(input.payment_instructions || "").slice(0, 2000),

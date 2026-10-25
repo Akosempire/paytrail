@@ -270,3 +270,79 @@
 .pt-p-a5 .lg-meta, .pt-p-half .lg-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 .pt-p-a5 .lg-foot, .pt-p-half .lg-foot { display: none; }
+
+/* ---------- Merchant: title band, numbered items, coloured amount column ---------- */
+.mc { --mc-grey: #f1f2f4; --mc-shade: #f6f7f8; --mc-rule: #dfe1e5; }
+.mc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8mm; padding-bottom: 5mm; }
+.mc-brand { display: flex; align-items: center; gap: 4mm; min-width: 0; }
+.mc-logo { display: block; max-height: 16mm; max-width: 34mm; object-fit: contain; flex-shrink: 0; }
+.mc-bid { min-width: 0; color: var(--pt-ink-2); line-height: 1.5; }
+.mc-bname { font-size: 1.55em; font-weight: 700; color: var(--pt-ink); line-height: 1.2; margin-bottom: 0.8mm; text-transform: uppercase; letter-spacing: 0.01em; }
+.mc-contact { text-align: right; color: var(--pt-ink-2); line-height: 1.6; flex-shrink: 0; max-width: 45%; }
+.mc-tax { color: var(--pt-ink-3); font-size: 0.92em; margin-top: 0.6mm; }
+.mc-band { display: flex; align-items: stretch; margin: 0 calc(var(--pt-m) * -1); background: var(--mc-grey); }
+.mc-band-title { flex: 1; display: flex; align-items: center; justify-content: flex-end; padding: 3.5mm 6mm; font-size: 1.5em; color: var(--pt-ink); letter-spacing: 0.01em; }
+.mc-band-num { background: var(--pt-accent); color: var(--pt-on-accent, #fff); padding: 3mm var(--pt-m) 3mm 5mm; min-width: 48mm; }
+.mc-number { font-size: 1.55em; font-weight: 700; line-height: 1.2; }
+.mc-date { font-size: 0.9em; opacity: 0.9; margin-top: 0.6mm; }
+.mc-bill { display: flex; justify-content: space-between; gap: 8mm; padding: 6mm 0 5mm; color: var(--pt-ink-2); line-height: 1.6; }
+.mc-label { font-size: 0.8em; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--pt-ink-3); margin-bottom: 1.4mm; }
+.mc-cname { color: var(--pt-accent); font-weight: 700; font-size: 1.1em; text-transform: uppercase; margin-bottom: 0.6mm; }
+.mc-meta div { display: flex; justify-content: flex-end; gap: 3mm; }
+.mc-meta dt { color: var(--pt-ink-3); }
+.mc-meta dd { color: var(--pt-ink); font-weight: 700; }
+.mc-subject { margin: 0 calc(var(--pt-m) * -1); padding: 3mm var(--pt-m); border-top: 0.25mm solid var(--mc-rule); border-bottom: 0.25mm solid var(--mc-rule); font-weight: 700; font-size: 1.12em; }
+.mc-table { width: 100%; border-collapse: collapse; margin-top: 5mm; }
+.mc-table thead { display: table-header-group; }
+.mc-table th { background: var(--mc-grey); font-weight: 700; text-align: left; padding: 2.6mm 3mm; border-top: 0.25mm solid var(--mc-rule); border-bottom: 0.25mm solid var(--mc-rule); }
+.mc-table td { padding: 3.4mm 3mm; vertical-align: top; border-bottom: 0.25mm solid var(--mc-rule); }
+.mc-table tr { break-inside: avoid; page-break-inside: avoid; }
+.mc-table .mc-sr { width: 15mm; text-align: center; white-space: nowrap; }
+.mc-sr-short { display: none; }
+.pt-p-a5 .mc-sr-long, .pt-p-half .mc-sr-long { display: none; }
+.pt-p-a5 .mc-sr-short, .pt-p-half .mc-sr-short { display: inline; }
+.mc-table .mc-shade { background: var(--mc-shade); }
+.mc-table th.mc-amt, .mc-table td.mc-amt { background: var(--pt-accent); color: var(--pt-on-accent, #fff); font-weight: 700; }
+.mc-item { font-weight: 700; text-transform: uppercase; }
+.mc-details { margin-top: 1mm; color: var(--pt-ink-2); font-size: 0.92em; line-height: 1.55; white-space: pre-line; text-transform: uppercase; }
+.mc-total-row td { font-weight: 700; padding-top: 3mm; padding-bottom: 3mm; }
+.mc-panel { margin: 6mm calc(var(--pt-m) * -1) 0; background: var(--mc-shade); break-inside: avoid; }
+.mc-panel-head { padding: 2.6mm var(--pt-m); background: var(--mc-grey); font-weight: 700; }
+.mc-panel-grid { display: grid; grid-template-columns: 1.25fr 1fr; gap: 10mm; padding: 4mm var(--pt-m) 5mm; }
+.mc-notes { color: var(--pt-ink-2); line-height: 1.6; }
+.mc-notes ol { list-style: decimal; padding-left: 4.5mm; display: flex; flex-direction: column; gap: 1.6mm; }
+.mc-note-text { margin-top: 2.5mm; white-space: pre-line; }
+.mc-muted { color: var(--pt-ink-3); }
+.mc-sums { display: flex; flex-direction: column; gap: 1.8mm; }
+.mc-sums div { display: flex; justify-content: space-between; gap: 4mm; color: var(--pt-ink-2); }
+.mc-sums dd { color: var(--pt-ink); font-weight: 700; white-space: nowrap; }
+.mc-grand dt, .mc-grand dd { color: var(--pt-ink) !important; font-weight: 700; }
+.mc-grand { padding-top: 1.8mm; border-top: 0.25mm solid var(--mc-rule); }
+.mc-words { margin-top: 5mm; display: flex; flex-direction: column; gap: 1.6mm; line-height: 1.55; }
+.mc-sign { display: flex; flex-direction: row-reverse; justify-content: flex-start; align-items: flex-end; gap: 8mm; margin-top: 6mm; break-inside: avoid; }
+.mc-sign-box { width: 62mm; text-align: center; }
+.mc-sign-img { display: block; max-width: 100%; max-height: 16mm; margin: 0 auto 1.5mm; object-fit: contain; }
+.mc-sign-space { height: 12mm; border-bottom: 0.25mm solid var(--pt-ink-3); margin-bottom: 1.5mm; }
+.mc-sign-name { font-weight: 700; text-transform: uppercase; }
+.mc-sign-title { color: var(--pt-ink-3); font-size: 0.9em; }
+.mc-sign-label { margin-top: 0.8mm; color: var(--pt-ink-2); font-size: 0.9em; }
+.mc-stamp { margin-bottom: 4mm; transform: rotate(-6deg); border: 0.8mm solid #b42318; color: #b42318; border-radius: 1.5mm; padding: 0.8mm 3.5mm; font-size: 1.6em; font-weight: 700; letter-spacing: 0.15em; opacity: 0.9; }
+.mc-stamp-void { border-color: #475467; color: #475467; }
+.mc-bank { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5mm; margin-top: 5mm; text-align: center; break-inside: avoid; }
+.mc-bank > div { background: var(--mc-grey); padding: 3mm 2mm; line-height: 1.5; }
+.mc-bank-k { font-weight: 700; color: var(--pt-ink); margin-bottom: 0.6mm; }
+.mc-foot { margin-top: 4mm; padding-top: 3mm; border-top: 0.25mm solid var(--mc-rule); color: var(--pt-ink-2); font-weight: 700; white-space: pre-line; }
+.pt-p-a5 .mc-logo, .pt-p-half .mc-logo { max-height: 12mm; max-width: 26mm; }
+.pt-p-a5 .mc-band-num, .pt-p-half .mc-band-num { min-width: 36mm; }
+.pt-p-a5 .mc-panel-grid, .pt-p-half .mc-panel-grid { grid-template-columns: 1fr; gap: 3mm; }
+.pt-p-a5 .mc-sign-box, .pt-p-half .mc-sign-box { width: 48mm; }
+.pt-p-a5 .mc-table td, .pt-p-half .mc-table td { padding: 2.4mm 2mm; }
+.pt-p-a5 .mc-table th, .pt-p-half .mc-table th { padding: 2mm; }
+.pt-p-a5 .mc-sr, .pt-p-half .mc-sr { width: 8mm !important; }
+
+/* roomier From / Bill to on the standard templates */
+.pt-sheet .pt-parties { gap: 10mm; margin-top: 8mm; line-height: 1.6; }
+.pt-sheet .pt-parties .pt-label { margin-bottom: 1.8mm; }
+.pt-sheet .pt-parties .pt-pname { margin-bottom: 0.8mm; line-height: 1.4; }
+.pt-t-signature .pt-parties { padding: 6mm 7mm; border-radius: 2.5mm; }
+.pt-p-a5.pt-t-signature .pt-parties, .pt-p-half.pt-t-signature .pt-parties { padding: 4.5mm 5mm; gap: 6mm; }

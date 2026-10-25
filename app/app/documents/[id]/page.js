@@ -16,6 +16,7 @@ import { DocumentActions } from "@/components/document-actions";
 import { StatusBadge, activityText } from "@/components/doc-bits";
 import { DocumentFiles } from "@/components/document-files";
 import { r2Ready } from "@/lib/storage";
+import { readyTemplates } from "@/lib/templates-ready";
 
 // files attached to this document (null when the table isn't installed yet)
 async function filesFor(ctx, documentId) {
@@ -49,6 +50,7 @@ export default async function DocumentPage({ params, searchParams }) {
   const canEditLayout = draft || can(ctx.member, "documents.send");
   const files = await filesFor(ctx, doc.id);
   const storageOn = await r2Ready();
+  const extraTemplates = await readyTemplates(ctx.supabase);
 
   return (
     <div className="flex flex-col gap-6">
@@ -78,7 +80,7 @@ export default async function DocumentPage({ params, searchParams }) {
         <div className="min-w-0">
           <DocumentLayoutEditor doc={doc} items={items.map(({ description, details, quantity, unit_price_minor }) => ({ description, details, quantity, unit_price_minor }))}
             business={ctx.business} payLink={payLink} canEdit={canEditLayout} canSetDefault={can(ctx.member, "settings.business")}
-            printHref={`/print/doc/${doc.id}`} pdfHref={`/app/documents/${doc.id}/pdf?download`} />
+            printHref={`/print/doc/${doc.id}`} pdfHref={`/app/documents/${doc.id}/pdf?download`} extraTemplates={extraTemplates} />
         </div>
 
         <aside className="flex flex-col gap-4">

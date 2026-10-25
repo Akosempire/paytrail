@@ -1,7 +1,7 @@
 import { requirePermission } from "@/lib/context";
 import { PageHeader } from "@/components/ui";
 import { DocumentDefaults } from "./defaults";
-import { newTemplatesReady } from "@/lib/templates-ready";
+import { readyTemplates } from "@/lib/templates-ready";
 
 export const metadata = { title: "Documents & printing" };
 
@@ -19,7 +19,7 @@ export default async function DocumentsSettings() {
   const [quote, invoice, receiptRow, extra] = await Promise.all([
     latest(ctx, "quote"), latest(ctx, "invoice"),
     ctx.supabase.from("receipts").select("*").eq("business_id", ctx.business.id).order("issued_at", { ascending: false }).limit(1).maybeSingle().then((r) => r.data),
-    newTemplatesReady(ctx.supabase),
+    readyTemplates(ctx.supabase),
   ]);
   let receipt = null;
   if (receiptRow) {

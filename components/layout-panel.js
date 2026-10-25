@@ -48,6 +48,21 @@ export function TemplateThumb({ id, accent = SIGNATURE_BLUE }) {
       </span>
     );
   }
+  if (id === "merchant") {
+    return (
+      <span className="flex h-full w-full flex-col bg-white shadow-sm ring-1 ring-black/5">
+        <span className="flex items-center gap-1 px-2 pt-2 pb-1.5"><span className="block size-3 rounded-[2px] bg-[#cfd3da]" /><span className="flex flex-col gap-[2px]">{bar(30, "#222", 4)}{bar(22)}</span></span>
+        <span className="flex h-[9px] bg-[#eef0f3]"><span className="flex-1" /><span className="block w-[34%]" style={{ background: accent }} /></span>
+        <span className="flex flex-col gap-[2px] px-2 py-1.5">{bar("26%", accent)}{bar("40%")}</span>
+        <span className="mx-2 flex flex-col">
+          <span className="flex h-[5px] bg-[#e8eaee]"><span className="flex-1" /><span className="block w-[26%]" style={{ background: accent }} /></span>
+          {[1, 2].map((i) => <span key={i} className="flex h-[7px] border-b border-[#e2e4e8]"><span className="flex-1 pl-1 pt-[2px]">{bar("50%")}</span><span className="block w-[14%] bg-[#f3f4f6]" /><span className="block w-[26%]" style={{ background: accent }} /></span>)}
+        </span>
+        <span className="mt-1.5 grid grid-cols-2 gap-1 bg-[#f5f6f8] px-2 py-1">{[0, 1].map((i) => <span key={i} className="flex flex-col gap-[2px]">{bar("70%")}{bar("55%")}</span>)}</span>
+        <span className="mt-auto grid grid-cols-3 gap-[2px] px-2 pb-2">{[0, 1, 2].map((i) => <span key={i} className="block h-[6px] bg-[#eceef1]" />)}</span>
+      </span>
+    );
+  }
   const exec = id === "executive";
   const ink = id === "essential" ? "#222" : accent;
   return (
@@ -87,7 +102,7 @@ export function LayoutPanel({ kind, value, onChange, brandColor, showInstruction
       <fieldset>
         <legend className="mb-2 text-[13px] font-medium text-ink">Template</legend>
         <div className="grid grid-cols-2 gap-2" role="radiogroup">
-          {templatesFor(kind, { extra: extraTemplates || Boolean(TEMPLATES[value.template]?.needsUpdate) }).map((t) => {
+          {templatesFor(kind, { extra: extraTemplates === true ? true : [...(Array.isArray(extraTemplates) ? extraTemplates : []), value.template] }).map((t) => {
             const on = value.template === t.id;
             return (
               <button key={t.id} type="button" role="radio" aria-checked={on} onClick={() => pickTemplate(t.id)}

@@ -11,7 +11,7 @@ import { saveDocumentLayout } from "@/app/app/documents/actions";
 
 // The document as the customer will see it, with print/PDF and an optional
 // layout panel. Financial values come from the saved document only.
-export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, canSetDefault, printHref, pdfHref }) {
+export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, canSetDefault, printHref, pdfHref, extraTemplates = false }) {
   const toast = useToast();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
@@ -53,7 +53,7 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
         {open && (
           <Card className="p-5 xl:sticky xl:top-24 xl:max-h-[calc(100dvh-7rem)] xl:self-start xl:overflow-y-auto">
             {issued && <Alert intent="info" size="sm" live={false} title="Already issued" className="mb-4">You can change how it looks. Amounts, items and the branding it was sent with stay the same, and the change is logged.</Alert>}
-            <LayoutPanel kind={doc.kind} value={value} onChange={setValue} brandColor={business.brand_color} />
+            <LayoutPanel kind={doc.kind} value={value} onChange={setValue} brandColor={business.brand_color} extraTemplates={extraTemplates} />
             <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4">
               {canSetDefault && (
                 <label className="flex items-center gap-2 text-[13px] text-ink-2">
