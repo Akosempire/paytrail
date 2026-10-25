@@ -36,7 +36,7 @@ export async function GET() {
       settingsProblems: email.env?.hints || [],
       lastFailure: lastEmailFailure(),
     },
-    storage: { images: r2.ready ? "cloudflare-r2" : "supabase", note: r2.note, maxImageSize: "1 MB" },
+    storage: { images: r2.ready ? "cloudflare-r2" : "supabase", note: r2.note, target: r2.target || null, maxImageSize: "1 MB" },
     google: { enabled: google, note: google ? "Google sign-in button is showing" : googleCheckProblem() || "Supabase reports Google as switched off (Authentication → Sign In / Providers → Google)" },
   }, { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });
 }
