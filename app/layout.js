@@ -40,6 +40,10 @@ export default function RootLayout({ children }) {
       <body>
         <ToastProvider>{children}<Suspense fallback={null}><UrlToasts /></Suspense></ToastProvider>
         <ServiceWorker />
+        {/* Sabilytics web analytics, live site only (not previews or local) */}
+        {process.env.VERCEL_ENV === "production" && (
+          <Script src="https://www.sabilytics.com/script.js" strategy="afterInteractive" data-site="9h09ynxhgfc3" data-domain="usesally.cc" />
+        )}
       </body>
     </html>
   );
