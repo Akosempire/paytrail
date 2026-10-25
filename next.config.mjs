@@ -1,6 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   poweredByHeader: false,
+  // logos are resized in the browser to well under 2 MB; leave room for form overhead
+  experimental: { serverActions: { bodySizeLimit: "3mb" } },
   serverExternalPackages: ["pdf-lib", "@pdf-lib/fontkit", "nodemailer"],
   // the PDF fonts are read from disk at runtime
   outputFileTracingIncludes: { "/**": ["./assets/fonts/**"] },

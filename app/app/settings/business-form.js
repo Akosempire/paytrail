@@ -1,7 +1,8 @@
 "use client";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useStepUp } from "@/components/step-up";
-import { ImagePlus, Save } from "lucide-react";
+import { Save } from "lucide-react";
+import { LogoInput } from "@/components/logo-input";
 import { Card, CardHeader, Checkbox, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { SubmitButton, Switch, useActionToast, FormMessage } from "@/components/ui-client";
 import { CURRENCIES } from "@/lib/money";
@@ -31,14 +32,16 @@ export function BusinessForm({ business: b, logo: initialLogo }) {
         <Card>
           <CardHeader title="Branding" description="Logo, colour and footer on documents." />
           <div className="flex flex-col gap-5 p-5">
-            <Field label="Logo" hint="PNG or JPG under 1 MB. (WebP works on screen but PDFs will show your name instead.)">
+            <Field label="Logo" hint="Any image, any size: PNG, JPG, SVG, WebP or a phone photo. We trim empty edges and resize it for you.">
               <div className="flex flex-wrap items-center gap-4">
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-line-strong bg-subtle p-3 pr-5 hover:border-brand">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  {logo ? <img src={logo} alt="" className="h-12 w-28 rounded bg-white object-contain ring-1 ring-line" /> : <span className="inline-flex size-12 items-center justify-center rounded-lg bg-surface ring-1 ring-line"><ImagePlus className="size-5 text-ink-3" /></span>}
-                  <span className="text-sm font-medium text-brand-ink">{logo ? "Replace logo" : "Upload logo"}</span>
-                  <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" className="sr-only" onChange={(e) => { const f = e.target.files?.[0]; if (f) setLogo(URL.createObjectURL(f)); }} />
-                </label>
+                <LogoInput onChange={setLogo}>{({ busy, input, icon }) => (
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-dashed border-line-strong bg-subtle p-3 pr-5 hover:border-brand">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    {logo && !busy ? <img src={logo} alt="" className="h-12 w-28 rounded bg-white object-contain ring-1 ring-line" /> : <span className="inline-flex size-12 items-center justify-center rounded-lg bg-surface ring-1 ring-line">{icon}</span>}
+                    <span className="text-sm font-medium text-brand-ink">{busy ? "Preparing…" : logo ? "Replace logo" : "Upload logo"}</span>
+                    {input}
+                  </label>
+                )}</LogoInput>
                 {initialLogo && <Checkbox name="remove_logo" label="Remove logo" />}
               </div>
             </Field>

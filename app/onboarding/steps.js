@@ -1,11 +1,12 @@
 "use client";
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Briefcase, Building2, Check, ImagePlus, PlugZap, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Briefcase, Building2, Check, PlugZap, UserRound } from "lucide-react";
 import { Callout, Card, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { FormMessage, SubmitButton } from "@/components/ui-client";
 import { CURRENCIES, formatMoney } from "@/lib/money";
 import { finishOnboarding, saveBrand, saveMoney, startBusiness } from "./actions";
+import { LogoInput } from "@/components/logo-input";
 
 const SWATCHES = ["#1570EF", "#079455", "#7A5AF8", "#DC6803", "#D92D20", "#0E9384", "#101828", "#C11574"];
 
@@ -122,14 +123,15 @@ export function StepBrand({ business, logo: initialLogo }) {
         <FormMessage state={state} />
         <div className="grid gap-8 md:grid-cols-[1fr_300px]">
           <div className="flex flex-col gap-6">
-            <Field label="Logo" hint="PNG, JPG or WebP under 1 MB. A wide logo on a transparent background works best.">
-              <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-dashed border-line-strong bg-subtle p-4 hover:border-brand">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                {logo ? <img src={logo} alt="" className="h-12 w-24 rounded bg-white object-contain ring-1 ring-line" /> : <span className="inline-flex size-12 items-center justify-center rounded-lg bg-surface ring-1 ring-line"><ImagePlus className="size-5 text-ink-3" /></span>}
-                <span className="text-sm"><span className="font-medium text-brand-ink">{logo ? "Change logo" : "Upload logo"}</span><span className="block text-[13px] text-ink-3">Click to choose a file</span></span>
-                <input type="file" name="logo" accept="image/png,image/jpeg,image/webp" className="sr-only"
-                  onChange={(e) => { const f = e.target.files?.[0]; if (f) setLogo(URL.createObjectURL(f)); }} />
-              </label>
+            <Field label="Logo" hint="Any image, any size: PNG, JPG, SVG, WebP or a phone photo. We trim empty edges and resize it for you.">
+              <LogoInput onChange={setLogo}>{({ busy, input, icon }) => (
+                <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-dashed border-line-strong bg-subtle p-4 hover:border-brand">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  {logo && !busy ? <img src={logo} alt="" className="h-12 w-24 rounded bg-white object-contain ring-1 ring-line" /> : <span className="inline-flex size-12 items-center justify-center rounded-lg bg-surface ring-1 ring-line">{icon}</span>}
+                  <span className="text-sm"><span className="font-medium text-brand-ink">{busy ? "Preparing…" : logo ? "Change logo" : "Upload logo"}</span><span className="block text-[13px] text-ink-3">Click to choose a file</span></span>
+                  {input}
+                </label>
+              )}</LogoInput>
             </Field>
             <Field label="Brand colour" hint="Used for headings, the total box and the Pay button.">
               <div className="flex flex-wrap items-center gap-2">
