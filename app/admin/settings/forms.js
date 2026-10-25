@@ -1,10 +1,10 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { BarChart3, Bell, Building, Save } from "lucide-react";
+import { BarChart3, Bell, Building, Globe, Save } from "lucide-react";
 import { Badge, Button, Card, CardHeader, Field, Input, Textarea } from "@/components/ui";
-import { useToast } from "@/components/ui-client";
-import { saveAlerts, saveAnalytics, saveCompanyLegal } from "../actions";
+import { Switch, useToast } from "@/components/ui-client";
+import { saveAlerts, saveAnalytics, saveCompanyLegal, savePublicStats } from "../actions";
 
 function useSave(action, title) {
   const router = useRouter();
@@ -77,6 +77,30 @@ export function AlertSettings({ saved }) {
           <Input id="ae" value={emails} onChange={(e) => setEmails(e.target.value)} placeholder="you@usetally.cc, cofounder@usetally.cc" />
         </Field>
         <Button variant="primary" icon={Save} loading={pending} className="self-start" onClick={() => save({ emails })}>Save alerts</Button>
+      </div>
+    </Card>
+  );
+}
+
+const fmt = (n, c = "") => (n == null ? "—" : `${c}${new Intl.NumberFormat("en", { maximumFractionDigits: 0 }).format(n)}`);
+
+// the live totals on the website's home page
+export function PublicStatsSettings({ on, stats }) {
+  const [value, setValue] = useState(on);
+  const [pending, save] = useSave(savePublicStats, "Saved");
+  return (
+    <Card>
+      <CardHeader icon={Globe} title="Numbers on the website" description="People using Usetally and money processed, shown on the home page." />
+      <div className="flex flex-col gap-4 p-5">
+        <Switch checked={value} onChange={(v) => { setValue(v); save(v); }} disabled={pending} label="Show live numbers on the home page"
+          description="Totals only, never any business's details. Updated every few minutes. A currency with nothing processed yet isn't shown." />
+        {stats && (
+          <dl className="grid grid-cols-3 gap-2">
+            {[["People", fmt(stats.users)], ["Naira", fmt(stats.ngnMinor / 100, "₦")], ["Dollars", fmt(stats.usdMinor / 100, "$")]].map(([k, v]) => (
+              <div key={k} className="rounded-lg bg-tray px-3 py-2.5"><dt className="text-xs text-ink-3">{k}</dt><dd className="mt-0.5 truncate text-[15px] font-semibold text-ink tabular-nums">{v}</dd></div>
+            ))}
+          </dl>
+        )}
       </div>
     </Card>
   );

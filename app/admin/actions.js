@@ -338,3 +338,11 @@ export async function saveAlerts(form) {
   if (err) return err;
   return { message: list.length ? `Alerts go to ${list.length} address${list.length === 1 ? "" : "es"}.` : "Alerts go to every platform admin." };
 }
+
+// show or hide the live totals on the website
+export async function savePublicStats(on) {
+  await requirePlatformAdmin();
+  const err = await savePlatform({ public_stats: Boolean(on) }, ["/"]);
+  if (err) return /public_stats/.test(err.error) || err.error === NEEDS_SETTINGS_SQL ? { error: "Run supabase/RUN_NEW_2026-10-25i.sql in Supabase → SQL Editor first, then try again." } : err;
+  return { message: on ? "The live numbers show on the website within 10 minutes." : "The live numbers are hidden from the website." };
+}

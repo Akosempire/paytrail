@@ -14,6 +14,7 @@ import { Platforms } from "@/components/landing/platforms";
 import { Pricing } from "@/components/landing/pricing";
 import { Team } from "@/components/landing/team";
 import { SiteFooter } from "@/components/landing/site-footer";
+import { LiveStats } from "@/components/landing/live-stats";
 import { supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
@@ -120,6 +121,7 @@ export default async function Home({ searchParams }) {
         {/* trust facts on receipt tape */}
         <div className="pb-4"><ReceiptTape /></div>
         <Platforms wrap={WRAP} kicker={KICKER} />
+        <LiveStats wrap={WRAP} kicker={KICKER} />
       </div>
 
       {/* ------------------------------------------------ story */}
