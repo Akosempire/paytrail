@@ -114,3 +114,15 @@ export async function updateBusinessAccount(businessId, form) {
   revalidatePath("/admin/businesses");
   return { message: "Account updated." };
 }
+
+// sends a test email to the signed-in admin and reports the mail server's answer
+export async function sendTestEmail() {
+  const ctx = await requirePlatformAdmin();
+  const { emailStatus, sendEmail } = await import("@/lib/email");
+  const { adminAlertEmail } = await import("@/lib/emails");
+  const status = emailStatus();
+  if (status.missing.length) return { error: `Missing in Vercel: ${status.missing.join(", ")}. Add them, then redeploy.` };
+  const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Brevo is connected", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email through Brevo."] }) });
+  return r.sent ? { message: `Sent to ${ctx.user.email}. Check your inbox (and spam).` } : { error: `Brevo refused the email: ${r.detail || "no reason given"}` };
+}
+
