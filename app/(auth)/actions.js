@@ -61,7 +61,7 @@ export async function verifySignup(_prev, form) {
   const supabase = await createSupabaseServer();
   let { error } = await supabase.auth.verifyOtp({ email, token, type: "signup" });
   if (error) ({ error } = await supabase.auth.verifyOtp({ email, token, type: "email" }));
-  if (error) return { verify: email, next, error: /expired/i.test(error.message) ? "That code has expired. Send a new one." : "That code isn't right. Check the email and try again." };
+  if (error) return { verify: email, next, ...{ errorTitle: "Code not accepted", error: /rate|too many/i.test(error.message) ? "Too many tries. Wait a minute, then try again." : "That code is wrong or has expired. Check the latest email, or send a new code." } };
   redirect(next);
 }
 
@@ -99,7 +99,7 @@ export async function verifyResetCode(_prev, form) {
   if (!/^\d{6,10}$/.test(token)) return { sent: email, error: "Enter the code from the email." };
   const supabase = await createSupabaseServer();
   const { error } = await supabase.auth.verifyOtp({ email, token, type: "recovery" });
-  if (error) return { sent: email, error: /expired/i.test(error.message) ? "That code has expired. Send a new one." : "That code isn't right. Check the email and try again." };
+  if (error) return { sent: email, ...{ errorTitle: "Code not accepted", error: /rate|too many/i.test(error.message) ? "Too many tries. Wait a minute, then try again." : "That code is wrong or has expired. Check the latest email, or send a new code." } };
   redirect("/reset");
 }
 

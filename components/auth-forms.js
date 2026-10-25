@@ -1,11 +1,12 @@
 "use client";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
 import { Alert, Callout, Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton, useActionToast } from "@/components/ui-client";
 import { requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
 import { BRAND } from "@/lib/brand";
+import { OtpInput, ResendCode } from "@/components/otp-input";
 
 function PasswordInput({ name = "password", placeholder = "Enter your password", autoComplete = "current-password", id }) {
   const [show, setShow] = useState(false);
@@ -25,24 +26,23 @@ export function VerifyEmailForm({ email, next, intro }) {
   const [state, action] = useActionState(verifySignup, null);
   const [resend, setResend] = useState(null);
   useActionToast(resend);
-  const [sending, start] = useTransition();
+  const form = useRef(null);
+  const [code, setCode] = useState("");
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form ref={form} action={action} className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="inline-flex size-14 items-center justify-center rounded-full border border-notice-line bg-notice text-intent-success"><MailCheck className="size-6" aria-hidden="true" /></span>
         <h1 className="text-title-1 text-ink">Check your email</h1>
-        <p className="text-sm text-ink-2">{intro || "We sent a 6-digit code to"} <strong className="text-ink">{email}</strong>. Enter it to confirm your email.</p>
+        <p className="text-sm text-ink-2">{intro || "We sent a 6-digit code to"} <strong className="text-ink break-all">{email}</strong>. Enter it to confirm your email.</p>
       </div>
       <FormMessage state={state} />
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="next" value={next || ""} />
-      <Field label="Confirmation code" htmlFor="code">
-        <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12} className={CODE_INPUT} />
-      </Field>
-      <SubmitButton size="lg" block pendingText="Checking…">Confirm email</SubmitButton>
+      <OtpInput label="Confirmation code" errorKey={state?.error ? state : null} onChange={setCode} onComplete={() => form.current?.requestSubmit()} />
+      <SubmitButton size="lg" block pendingText="Checking…" disabled={code.length < 6}>Confirm email</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
-        <button type="button" disabled={sending} onClick={() => start(async () => setResend({ messageTitle: "New code sent", ...(await resendSignupCode(email, next)) }))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
+        <ResendCode onResend={async () => { const r = { messageTitle: "New code sent", ...(await resendSignupCode(email, next)) }; setResend(r); return r; }} label="send a new code" />
       </p>
       <p className="text-center text-xs text-ink-3">The email also has a button. Opening it works too.</p>
     </form>
@@ -93,8 +93,6 @@ export function SignupForm({ next, email, trialText }) {
   );
 }
 
-const CODE_INPUT = "h-14 w-full rounded-lg bg-surface text-center font-mono text-[26px] tracking-[0.3em] text-ink ring-1 ring-inset ring-line-strong focus:ring-2 focus:ring-brand focus:outline-none";
-
 export function ForgotForm() {
   const [state, action] = useActionState(requestReset, null);
   if (state?.sent) return <ResetCodeForm email={state.sent} />;
@@ -117,9 +115,10 @@ function ResetCodeForm({ email }) {
   const [state, action] = useActionState(verifyResetCode, null);
   const [resend, setResend] = useState(null);
   useActionToast(resend);
-  const [sending, start] = useTransition();
+  const form = useRef(null);
+  const [code, setCode] = useState("");
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form ref={form} action={action} className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="inline-flex size-14 items-center justify-center rounded-full border border-notice-line bg-notice text-intent-info"><KeyRound className="size-6" aria-hidden="true" /></span>
         <h1 className="text-title-1 text-ink">Check your email</h1>
@@ -127,13 +126,11 @@ function ResetCodeForm({ email }) {
       </div>
       <FormMessage state={state} />
       <input type="hidden" name="email" value={email} />
-      <Field label="Reset code" htmlFor="code">
-        <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12} className={CODE_INPUT} />
-      </Field>
-      <SubmitButton size="lg" block pendingText="Checking…">Continue</SubmitButton>
+      <OtpInput label="Reset code" errorKey={state?.error ? state : null} onChange={setCode} onComplete={() => form.current?.requestSubmit()} />
+      <SubmitButton size="lg" block pendingText="Checking…" disabled={code.length < 6}>Continue</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
-        <button type="button" disabled={sending} onClick={() => start(async () => setResend({ messageTitle: "New code sent", ...(await resendResetCode(email)) }))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
+        <ResendCode onResend={async () => { const r = { messageTitle: "New code sent", ...(await resendResetCode(email)) }; setResend(r); return r; }} label="send a new code" />
       </p>
       <Link href="/login" className="text-center text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
     </form>
