@@ -22,10 +22,21 @@ const PRICE = 500000;
 export function PainStory() {
   return (
     <ScrollScene steps={COSTS.length + 2} heightVh={320} label="The real cost of a job" className="bg-hero text-hero-ink">
-      {(step) => {
+      {(step, still, compact) => {
         const shown = Math.min(COSTS.length, Math.max(0, step));
         const spent = COSTS.slice(0, shown).reduce((s, [, v]) => s + v, 0);
         const done = step >= COSTS.length + 1 || shown === COSTS.length;
+        if (compact && !still) return (
+          // phones: heading on top, the card fills in as you scroll
+          <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-4 sm:px-6">
+            <div>
+              <p className="text-[12px] font-semibold tracking-[0.14em] text-hero-accent uppercase">The problem</p>
+              <h2 className="font-display mt-3 text-[clamp(28px,8vw,42px)] leading-[1.05]">You quoted ₦500,000.<br /><span className="text-hero-ink-2">What did you keep?</span></h2>
+              <p className="mt-3 text-[15px] leading-snug text-hero-ink-2 [@media(max-height:700px)]:hidden">None of these costs show on the invoice. Usetally keeps them on every job, hidden from your customer.</p>
+            </div>
+            <CostCard shown={shown} spent={spent} done={done} compact />
+          </div>
+        );
         return (
           <div className="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:gap-16 lg:px-10 lg:py-0">
             <div className="max-w-[560px]">
@@ -37,8 +48,17 @@ export function PainStory() {
                 text="Data, fuel, transport, software and the friend who helped you finish. None of it shows on the invoice, so most small businesses never see their real profit. Usetally keeps those costs on every job, hidden from your customer and visible to you." />
             </div>
 
-            <div className="relative mx-auto w-full max-w-[440px]">
-              <div className={cx(PAPER, "p-6 sm:p-7")}>
+            <div className="relative mx-auto w-full max-w-[440px]"><CostCard shown={shown} spent={spent} done={done} /></div>
+          </div>
+        );
+      }}
+    </ScrollScene>
+  );
+}
+
+function CostCard({ shown, spent, done, compact }) {
+  return (
+    <div className={cx(PAPER, compact ? "p-4" : "p-6 sm:p-7")}>
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <p className="text-[11px] font-semibold tracking-[0.18em] text-hero-ink-2">QUOTATION</p>
@@ -48,14 +68,14 @@ export function PainStory() {
                 </div>
                 <div className="mt-5 flex items-baseline justify-between border-b border-hero-line pb-4">
                   <span className="text-[14px] text-hero-ink-2">Customer pays</span>
-                  <span className="text-[26px] font-semibold tracking-[-0.02em] tabular-nums">{naira(PRICE)}</span>
+                  <span className={cx("font-semibold tracking-[-0.02em] tabular-nums", compact ? "text-[22px]" : "text-[26px]")}>{naira(PRICE)}</span>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-[12px] font-semibold text-hero-violet">
                   <EyeOff className="size-3.5" aria-hidden="true" />YOUR COSTS · ONLY YOUR TEAM SEES THESE
                 </div>
-                <ul className="mt-2.5 space-y-1.5">
+                <ul className={cx("mt-2.5", compact ? "space-y-1" : "space-y-1.5")}>
                   {COSTS.map(([label, value], i) => (
-                    <li key={label} className={cx("flex items-center justify-between rounded-lg px-3 py-2 text-[14px] transition-all duration-500",
+                    <li key={label} className={cx("flex items-center justify-between rounded-lg px-3 transition-all duration-500", compact ? "py-1.5 text-[13px]" : "py-2 text-[14px]",
                       i < shown ? "translate-x-0 bg-hero-tint/70 opacity-100" : "translate-x-3 opacity-0")}>
                       <span className="text-hero-ink-2">{label}</span>
                       <span className="tabular-nums">−{naira(value)}</span>
@@ -64,18 +84,13 @@ export function PainStory() {
                 </ul>
                 <div className="mt-4 flex items-baseline justify-between border-t border-hero-line pt-4">
                   <span className="text-[14px] font-semibold">Real profit</span>
-                  <span className={cx("text-[26px] font-semibold tracking-[-0.02em] tabular-nums transition-colors duration-500", done ? "text-hero-accent" : "text-hero-ink")}>{naira(PRICE - spent)}</span>
+                  <span className={cx("font-semibold tracking-[-0.02em] tabular-nums transition-colors duration-500", compact ? "text-[22px]" : "text-[26px]", done ? "text-hero-accent" : "text-hero-ink")}>{naira(PRICE - spent)}</span>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-hero-tint" aria-hidden="true">
                   <div className="h-full rounded-full bg-hero-accent transition-[width] duration-500" style={{ width: `${((PRICE - spent) / PRICE) * 100}%` }} />
                 </div>
                 <p className="mt-2 text-right text-[12px] text-hero-ink-2 tabular-nums">{Math.round(((PRICE - spent) / PRICE) * 100)}% margin</p>
               </div>
-            </div>
-          </div>
-        );
-      }}
-    </ScrollScene>
   );
 }
 
@@ -91,9 +106,9 @@ const CHAPTERS = [
 export function Chapters() {
   return (
     <div id="how-it-works" className="scroll-mt-0 bg-hero text-hero-ink">
-      {/* phones & reduced motion: a simple stacked story */}
+      {/* reduced motion: a simple stacked story; phones: a compact pinned story */}
       <ScrollScene steps={CHAPTERS.length} heightVh={CHAPTERS.length * 110} label="How Usetally works">
-        {(step, still) => still ? (
+        {(step, still, compact) => compact && !still ? <ChaptersCompact step={step} /> : still ? (
           <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-16 px-4 py-20 sm:px-6 lg:px-10">
             <ChapterIntro />
             {CHAPTERS.map((c) => (
@@ -126,6 +141,37 @@ export function Chapters() {
           </div>
         )}
       </ScrollScene>
+    </div>
+  );
+}
+
+// phones: progress on top, the step's words, and its picture below, all on one screen
+function ChaptersCompact({ step }) {
+  return (
+    <div className="mx-auto flex w-full max-w-[560px] flex-col px-4 py-4 sm:px-6">
+      <div className="flex items-center justify-between">
+        <p className="text-[12px] font-semibold tracking-[0.14em] text-hero-accent uppercase">How it works</p>
+        <p className="font-mono text-[12px] text-hero-ink-2 tabular-nums">0{step + 1} / 0{CHAPTERS.length}</p>
+      </div>
+      <div className="mt-3 grid grid-cols-4 gap-1.5" aria-hidden="true">
+        {CHAPTERS.map((c, i) => <span key={c.kicker} className={cx("h-1 rounded-full transition-colors duration-300", i <= step ? "bg-hero-accent" : "bg-hero-line")} />)}
+      </div>
+      <div className="relative mt-5 h-[184px] shrink-0 [@media(max-height:700px)]:h-[150px]">
+        {CHAPTERS.map((c, i) => (
+          <div key={c.kicker} aria-hidden={i !== step} className={cx("absolute inset-0 transition-all duration-500", i === step ? "translate-y-0 opacity-100" : i < step ? "-translate-y-3 opacity-0" : "translate-y-3 opacity-0")}>
+            <p className="text-[12px] font-semibold text-hero-ink-2 tabular-nums">{c.kicker}</p>
+            <h3 className="font-display mt-2 text-[clamp(24px,7vw,32px)] leading-[1.06]">{c.title}</h3>
+            <p className="mt-2.5 line-clamp-4 text-[15px] leading-snug text-hero-ink-2 [@media(max-height:700px)]:line-clamp-2">{c.body}</p>
+          </div>
+        ))}
+      </div>
+      <div className="relative h-[360px] [@media(max-height:700px)]:h-[270px]">
+        {CHAPTERS.map((c, i) => (
+          <div key={c.kicker} aria-hidden={i !== step} className={cx("absolute inset-0 flex justify-center transition-all duration-700", i === step ? "opacity-100" : "pointer-events-none opacity-0")}>
+            <div className="w-full max-w-[400px] origin-top scale-[.86] [@media(max-height:700px)]:scale-[.72]"><c.Visual active={i === step} /></div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -229,7 +275,7 @@ function PayVisual({ active }) {
       <div className={cx(PAPER, "p-6")}>
         <div className="flex items-center justify-between">
           <span className="text-[11px] font-semibold tracking-[0.18em] text-hero-ink-2">INVOICE · INV-0042</span>
-          <span className={cx("rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors delay-500 duration-500", active ? "bg-[#e3f1e8] text-[#175cd3]" : "bg-[#f6eedc] text-[#8a5a12]")}>{active ? "Paid" : "Due 31 Oct"}</span>
+          <span className={cx("rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors delay-500 duration-500", active ? "bg-[#e6eefc] text-[#175cd3]" : "bg-[#f6eedc] text-[#8a5a12]")}>{active ? "Paid" : "Due 31 Oct"}</span>
         </div>
         <div className="mt-4 divide-y divide-hero-line">
           <Row label="Subtotal" value="₦500,000" muted />
