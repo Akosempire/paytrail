@@ -15,15 +15,13 @@ export function EmailStatus({ status }) {
   const { guarded, dialog } = useStepUp("platform");
   const [form, setForm] = useState({ apiKey: "", smtpLogin: "", fromName: status.fromName, fromAddress: status.fromAddress || "hello@usetally.cc" });
   const [show, setShow] = useState(false);
-  const [result, setResult] = useState(null);
   const [saving, startSave] = useTransition();
   const [testing, startTest] = useTransition();
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   const save = () => startSave(async () => {
     const r = await guarded(() => saveEmailSettings(form));
-    setResult(r);
-    if (r.error) return toast.error({ title: "Not saved", message: r.error });
+    if (r.error) return toast.error({ title: "Not saved", message: r.error}, { duration: 15000 });
     if (r.warning) toast.warning({ title: r.messageTitle, message: r.message });
     else toast.success({ title: "Email connected", message: r.message });
     setForm((f) => ({ ...f, apiKey: "" }));
@@ -31,8 +29,8 @@ export function EmailStatus({ status }) {
   });
   const test = () => startTest(async () => {
     const r = await sendTestEmail();
-    setResult(r);
-    if (r.error) toast.error({ title: "Test failed", message: r.error });
+    // hints (what to change) go in the same toast, after Brevo's answer
+    if (r.error) toast.error({ title: "Test failed", message: [r.error, ...(r.hints || [])].join(" ")}, { duration: 15000 });
     else toast.success({ title: "Test sent", message: r.message });
   });
 
@@ -88,15 +86,6 @@ export function EmailStatus({ status }) {
             <Input id="from-address" type="email" value={form.fromAddress} onChange={set("fromAddress")} placeholder="hello@usetally.cc" />
           </Field>
         </div>
-
-        {result?.error && (
-          <Alert intent="error" size="sm" title={result.stepUp ? "Security code needed" : "Not working yet"}>
-            {result.error}
-            {result.hints?.length > 0 && <ul className="mt-2 list-disc space-y-1 pl-4">{result.hints.map((h) => <li key={h}>{h}</li>)}</ul>}
-          </Alert>
-        )}
-        {result?.warning && <Alert intent="warning" size="sm" title={result.messageTitle}>{result.message}</Alert>}
-        {result?.message && !result.warning && !result.error && <Alert intent="success" size="sm">{result.message}</Alert>}
 
         <div className="flex flex-wrap gap-2">
           <Button variant="primary" icon={Save} loading={saving} disabled={saving || testing} onClick={save}>{saved ? "Save and check" : "Connect Brevo"}</Button>
