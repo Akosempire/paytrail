@@ -225,13 +225,14 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4 sm:bottom-6">
+      {/* phones: top of the screen, newest first; larger screens: bottom */}
+      <div className="pointer-events-none fixed inset-x-0 top-[max(12px,env(safe-area-inset-top))] z-[60] flex flex-col-reverse items-center gap-2 px-3 sm:top-auto sm:bottom-6 sm:flex-col sm:px-4">
         {toasts.map((t) => {
           const it = t.intent === "loading" ? LOADING : INTENTS[t.intent];
           return (
             <div key={t.id} role={it.role} aria-live={it.role === "alert" ? "assertive" : "polite"}
               onMouseEnter={() => clear(t.id)} onMouseLeave={() => arm(t.id, t.intent, t.duration)}
-              className="pointer-events-auto flex w-full max-w-[440px] animate-rise items-start gap-3 rounded-2xl border border-notice-line bg-notice px-4 py-3 shadow-[var(--shadow-pop)]">
+              className="pointer-events-auto flex w-full max-w-[440px] animate-[toast-drop_.28s_cubic-bezier(.2,.9,.3,1)] items-start sm:animate-rise gap-3 rounded-2xl border border-notice-line bg-notice px-4 py-3 shadow-[var(--shadow-pop)]">
               <it.icon className={cx("mt-0.5 size-[18px] shrink-0", it.text, t.intent === "loading" && "animate-spin")} aria-hidden="true" />
               <div className="min-w-0 flex-1 leading-snug">
                 <span className="sr-only">{it.label}: </span>
