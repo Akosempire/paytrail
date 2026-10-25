@@ -13,7 +13,7 @@ export function EmailStatus({ status }) {
   const router = useRouter();
   const toast = useToast();
   const { guarded, dialog } = useStepUp("platform");
-  const [form, setForm] = useState({ apiKey: "", fromName: status.fromName, fromAddress: status.fromAddress || "hello@usetally.cc" });
+  const [form, setForm] = useState({ apiKey: "", smtpLogin: "", fromName: status.fromName, fromAddress: status.fromAddress || "hello@usetally.cc" });
   const [show, setShow] = useState(false);
   const [result, setResult] = useState(null);
   const [saving, startSave] = useTransition();
@@ -45,7 +45,7 @@ export function EmailStatus({ status }) {
         {status.source === "dashboard" && (
           <Alert intent="success" title="Connected to Brevo" live={false}>
             Sending as <strong>{saved.email_from_name} &lt;{saved.email_from_address}&gt;</strong>
-            {saved.email_account ? <> from the Brevo account <strong>{saved.email_account}</strong></> : null}. Key ending {saved.email_key_hint}.
+            {saved.email_account ? <> through Brevo (<strong>{saved.email_account}</strong>)</> : null}. Key ending {saved.email_key_hint}.
           </Alert>
         )}
         {status.source === "vercel" && (
@@ -60,21 +60,26 @@ export function EmailStatus({ status }) {
         )}
 
         <ol className="list-decimal space-y-1 rounded-xl bg-tray px-5 py-3.5 pl-9 text-[13px] leading-relaxed text-ink-2">
-          <li>In Brevo, open the top-right menu → <strong>SMTP &amp; API</strong> → <strong>API Keys</strong> → <strong>Generate a new API key</strong>.</li>
-          <li>Copy the key (it starts <code className="font-mono text-ink">xkeysib-</code>) and paste it below.</li>
+          <li>In Brevo: your name (top right) → <strong>Settings → Security → Authorized IPs</strong> → <strong>Deactivate blocking</strong>. Vercel's servers change address, so Brevo must not block new ones.</li>
+          <li>Go to <strong>SMTP &amp; API</strong>. Paste either an <strong>API key</strong> (starts <code className="font-mono text-ink">xkeysib-</code>), or an <strong>SMTP key</strong> (starts <code className="font-mono text-ink">xsmtpsib-</code>) together with the <strong>Login</strong> shown on the SMTP tab.</li>
           <li>Use an address on a domain you've authenticated in Brevo, like <code className="font-mono text-ink">hello@usetally.cc</code>.</li>
         </ol>
 
-        <Field label="Brevo API key" htmlFor="brevo-key" hint={saved ? `Saved key ends ${saved.email_key_hint}. Leave empty to keep it.` : "Stored encrypted. Only the last 4 characters are ever shown again."}>
+        <Field label="Brevo key" htmlFor="brevo-key" hint={saved ? `Saved key ends ${saved.email_key_hint}. Leave empty to keep it.` : "Stored encrypted. Only the last 4 characters are ever shown again."}>
           <div className="relative">
             <Input id="brevo-key" icon={KeyRound} type={show ? "text" : "password"} autoComplete="off" spellCheck={false}
-              placeholder={saved ? "•••••••• (saved)" : "xkeysib-…"} value={form.apiKey} onChange={set("apiKey")} />
+              placeholder={saved ? "•••••••• (saved)" : "xkeysib-… or xsmtpsib-…"} value={form.apiKey} onChange={set("apiKey")} />
             <button type="button" onClick={() => setShow(!show)} aria-label={show ? "Hide key" : "Show key"}
               className="absolute top-1/2 right-2 -translate-y-1/2 rounded-md p-1.5 text-ink-3 hover:text-ink">
               {show ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
         </Field>
+        {/^\s*xsmtpsib-/.test(form.apiKey) && (
+          <Field label="SMTP login" htmlFor="smtp-login" hint="On Brevo → SMTP & API → SMTP tab, next to “Login”. It ends @smtp-brevo.com and isn't your account email.">
+            <Input id="smtp-login" type="email" autoComplete="off" spellCheck={false} value={form.smtpLogin} onChange={set("smtpLogin")} placeholder="9a1b2c001@smtp-brevo.com" />
+          </Field>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Sender name" htmlFor="from-name" hint="Invoices use the business's own name instead.">
             <Input id="from-name" value={form.fromName} onChange={set("fromName")} placeholder="Usetally" />

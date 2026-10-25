@@ -121,7 +121,12 @@ export async function updateBusinessAccount(businessId, form) {
 // every sign-up and reset code.
 export async function saveEmailSettings(form) {
   const ctx = await requirePlatformAdmin();
-  const { checkBrevo, forgetEmailConfig } = await import("@/lib/email");
+  const { checkBrevo, checkBrevoSmtp, forgetEmailConfig } = await import("@/lib/email");
+  const smtpLogin = String(form.smtpLogin || "").trim().toLowerCase();
+  // works with either kind of Brevo key: an API key (xkeysib-) or an SMTP key (xsmtpsib-) plus its login
+  const verify = (secret, address) => secret.includes("\n")
+    ? checkBrevoSmtp(...secret.split("\n"))
+    : checkBrevo(secret, address);
   const key = String(form.apiKey || "").trim().replace(/^["']|["']$/g, "");
   const fromName = String(form.fromName || "").trim().slice(0, 80) || "Usetally";
   const fromAddress = String(form.fromAddress || "").trim().toLowerCase();
@@ -132,16 +137,16 @@ export async function saveEmailSettings(form) {
   if (!key && !current?.email_api_key_enc) return { error: "Paste your Brevo API key." };
   // the saved key still works: changing it needs a code. If it no longer
   // works, a code couldn't be delivered anyway, so let the admin replace it.
-  const savedWorks = current?.email_api_key_enc ? (await checkBrevo(decryptSecret(current.email_api_key_enc), current.email_from_address || fromAddress)).ok : false;
+  const savedWorks = current?.email_api_key_enc ? (await verify(decryptSecret(current.email_api_key_enc), current.email_from_address || fromAddress)).ok : false;
   if (savedWorks && (key || fromAddress !== current.email_from_address)) {
     const gate = await requireStepUp(ctx, "email_settings", null);
     if (gate) return gate;
   }
-  const useKey = key || decryptSecret(current.email_api_key_enc);
-  const check = await checkBrevo(useKey, fromAddress);
+  const secret = key ? (/^xsmtpsib-/.test(key) ? `${smtpLogin}\n${key}` : key) : decryptSecret(current.email_api_key_enc);
+  const check = await verify(secret, fromAddress);
   if (!check.ok) return { error: check.error };
   const update = { email_from_name: fromName, email_from_address: fromAddress, email_account: check.account || null, email_checked_at: new Date().toISOString(), updated_at: new Date().toISOString() };
-  if (key) { update.email_api_key_enc = encryptSecret(key); update.email_key_hint = hint(key); }
+  if (key) { update.email_api_key_enc = encryptSecret(secret); update.email_key_hint = hint(key); }
   const { error } = await service.from("platform_settings").update(update).eq("id", true);
   if (error) return { error: error.message };
   forgetEmailConfig();
