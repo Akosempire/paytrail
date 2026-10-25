@@ -18,14 +18,17 @@ const BADGES = [
 function Badge({ b }) {
   return (
     <figure className={cx("group relative pt-14 transition-transform duration-500 ease-[cubic-bezier(.34,1.56,.64,1)] hover:z-10 hover:!translate-y-0 hover:!rotate-0", b.tilt)}>
+      <div className="badge-sway relative origin-[50%_-3.5rem]">
       {/* lanyard strap and clip */}
-      <span aria-hidden="true" className={cx("absolute top-0 left-1/2 h-12 w-3 -translate-x-1/2 rounded-b-sm", b.strap)} />
-      <span aria-hidden="true" className="absolute top-10 left-1/2 h-5 w-7 -translate-x-1/2 rounded-md bg-gradient-to-b from-[#d6d3cb] to-[#a9a59b] shadow-[inset_0_1px_0_rgba(255,255,255,.6)] dark:from-[#5b5852] dark:to-[#3b3934]" />
+      <span aria-hidden="true" className={cx("absolute -top-14 left-1/2 h-12 w-3 -translate-x-1/2 rounded-b-sm", b.strap)} />
+      <span aria-hidden="true" className="absolute -top-4 left-1/2 h-5 w-7 -translate-x-1/2 rounded-md bg-gradient-to-b from-[#d6d3cb] to-[#a9a59b] shadow-[inset_0_1px_0_rgba(255,255,255,.6)] dark:from-[#5b5852] dark:to-[#3b3934]" />
       <div className="relative overflow-hidden rounded-[20px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.06),0_26px_50px_-26px_rgba(20,16,8,.45)] ring-1 ring-black/[.05] transition-shadow duration-300 group-hover:shadow-[0_1px_2px_rgba(20,16,8,.06),0_34px_60px_-26px_rgba(20,16,8,.55)] dark:ring-white/[.06]">
+        {/* reader scan line, plays on hover */}
+        <span aria-hidden="true" className="badge-scan pointer-events-none absolute inset-x-0 top-0 z-20 h-[9%] opacity-0 [background:linear-gradient(180deg,transparent,rgb(90_157_255/.18)_60%,rgb(90_157_255/.9)_96%,transparent)]" />
         {/* punched slot */}
         <span aria-hidden="true" className="absolute top-3 left-1/2 z-10 h-2 w-12 -translate-x-1/2 rounded-full bg-hero ring-1 ring-black/10 dark:ring-white/10" />
         <div className={cx("flex items-center justify-between px-5 pt-8 pb-3 font-mono text-[10.5px] tracking-[0.16em] uppercase", b.band)}>
-          <span>Staff pass</span>
+          <span className="flex items-center gap-2"><span aria-hidden="true" className="size-1.5 rounded-full bg-current opacity-40 transition-[opacity,box-shadow,background-color] duration-300 group-hover:bg-[#4ade80] group-hover:opacity-100 group-hover:shadow-[0_0_8px_#4ade80]" />Staff pass</span>
           <span>Lvl {b.level}</span>
         </div>
         <div className="px-5 pt-5 pb-5">
@@ -47,8 +50,8 @@ function Badge({ b }) {
                   <span className={a === NO ? "text-hero-ink-2/70" : ""}>{row}</span>
                   <span aria-hidden="true" className="min-w-3 flex-1 -translate-y-[3px] border-b border-dotted border-hero-ink/20" />
                   {a.label
-                    ? <span className={cx("font-mono text-[10.5px] tracking-[0.1em] uppercase", a.tone)}>{a.label}</span>
-                    : <span className={cx("font-mono text-[12px]", a.tone)}><span className="sr-only">{a === YES ? "Yes" : "No"}</span><span aria-hidden="true">{a.mark}</span></span>}
+                    ? <span className={cx("tick-pop inline-block font-mono text-[10.5px] tracking-[0.1em] uppercase", a.tone)} style={{ animationDelay: `${250 + i * 80}ms` }}>{a.label}</span>
+                    : <span className={cx("font-mono text-[12px]", a.tone)}><span className="sr-only">{a === YES ? "Yes" : "No"}</span><span aria-hidden="true" className="tick-pop inline-block" style={{ animationDelay: `${250 + i * 80}ms` }}>{a.mark}</span></span>}
                 </li>
               );
             })}
@@ -60,6 +63,7 @@ function Badge({ b }) {
             <span className="font-mono text-[10.5px] tracking-[0.14em] text-hero-ink-2/70">{b.id}</span>
           </div>
         </div>
+      </div>
       </div>
     </figure>
   );
