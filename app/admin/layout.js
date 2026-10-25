@@ -7,6 +7,14 @@ import { AdminNav } from "./nav";
 
 export const metadata = { title: { default: "Platform admin", template: "%s · Usetally admin" } };
 
+const NAV = [
+  { href: "/admin", label: "Overview", icon: "overview" },
+  { href: "/admin/businesses", label: "Businesses", icon: "businesses" },
+  { href: "/admin/plans", label: "Plans & pricing", icon: "plans" },
+  { href: "/admin/integrations", label: "Integrations", icon: "integrations" },
+  { href: "/admin/settings", label: "Settings", icon: "settings" },
+];
+
 export default async function AdminLayout({ children }) {
   await requirePlatformAdmin();
   return (
@@ -14,16 +22,12 @@ export default async function AdminLayout({ children }) {
       <header className="sticky top-0 z-20 border-b border-line bg-surface/90 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-4 sm:px-6 lg:px-8">
           <Link href="/admin" className="flex items-center gap-2.5"><Logo withWord /><Badge tone="violet" size="sm">Admin</Badge></Link>
-          <AdminNav items={[
-            { href: "/admin", label: "Overview", icon: "overview" },
-            { href: "/admin/businesses", label: "Businesses", icon: "businesses" },
-            { href: "/admin/plans", label: "Plans & pricing", icon: "plans" },
-            { href: "/admin/settings", label: "Trial & billing", icon: "settings" },
-          ]} />
+          <AdminNav items={NAV} />
           <div className="flex-1" />
           <ThemeToggle />
           <Link href="/app" className="hidden items-center gap-1.5 text-[13px] font-medium text-ink-2 hover:text-ink sm:inline-flex"><ArrowLeft className="size-4" />Back to app</Link>
         </div>
+        <AdminNav items={NAV} mobile />
       </header>
       <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
     </div>

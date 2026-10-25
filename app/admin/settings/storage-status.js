@@ -41,7 +41,7 @@ export function StorageStatus({ status, saved, waiting }) {
       {dialog}
       <CardHeader icon={HardDrive} title="File storage" description="Logos and signatures (up to 1 MB) and files attached to documents (up to 4 MB)."
         actions={connected ? <Badge tone="success" size="sm">Cloudflare R2{status.source === "vercel" ? " · Vercel" : ""}</Badge> : <Badge tone="warn" size="sm">Supabase Storage</Badge>} />
-      <div className="flex flex-col gap-4 px-5 pb-5">
+      <div className="flex flex-col gap-4 p-5">
         <p className="text-[13px] leading-relaxed text-ink-2">
           {connected ? status.note : <>Not connected: {status.note}</>}
           {saved?.keyHint && <span className="text-ink-3"> · Saved key ends {saved.keyHint}</span>}

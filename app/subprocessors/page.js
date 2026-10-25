@@ -7,7 +7,7 @@ export const metadata = { title: "Sub-processors" };
 
 export default async function Subprocessors() {
   const { email, updated } = await legalDetails();
-  const list = subprocessors();
+  const list = await subprocessors();
   return (
     <LegalLayout title="Sub-processors" updated={updated}>
       <p>

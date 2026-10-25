@@ -45,7 +45,7 @@ export async function saveTrial(form) {
   };
   const { error } = await ctx.supabase.from("platform_settings").update(row).eq("id", true);
   if (error) return { error: error.message };
-  revalidatePath("/admin/settings");
+  revalidatePath("/admin", "layout");
   return { message: "Trial settings saved. They apply to new sign-ups and current trials." };
 }
 
@@ -82,8 +82,8 @@ export async function saveBilling(form) {
   if (provider !== "manual" && !update.billing_webhook_secret_enc && !current?.billing_webhook_secret_enc) return { error: "Paste the webhook secret." };
   const { error } = await service.from("platform_settings").update(update).eq("id", true);
   if (error) return { error: error.message };
-  if (key || hook) await notifyAdmins({ subject: `Usetally billing keys changed (${provider})`, lines: [`${ctx.user.email} changed Usetally's own ${provider} billing keys at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace the keys with your provider straight away."], link: "/admin/settings" });
-  revalidatePath("/admin/settings");
+  if (key || hook) await notifyAdmins({ subject: `Usetally billing keys changed (${provider})`, lines: [`${ctx.user.email} changed Usetally's own ${provider} billing keys at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace the keys with your provider straight away."], link: "/admin/integrations" });
+  revalidatePath("/admin", "layout");
   return { message: "Billing settings saved." };
 }
 
@@ -169,8 +169,8 @@ async function saveEmailSettingsInner(ctx, form) {
   const { error } = await service.from("platform_settings").update(update).eq("id", true);
   if (error) return { error: error.message };
   forgetEmailConfig();
-  if (key && current?.email_api_key_enc) await notifyAdmins({ subject: "Usetally email key changed", lines: [`${ctx.user.email} replaced the Brevo API key at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace it straight away."], link: "/admin/settings" });
-  revalidatePath("/admin/settings");
+  if (key && current?.email_api_key_enc) await notifyAdmins({ subject: "Usetally email key changed", lines: [`${ctx.user.email} replaced the Brevo API key at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace it straight away."], link: "/admin/integrations" });
+  revalidatePath("/admin", "layout");
   return check.senderNote
     ? { warning: true, messageTitle: "Key saved, one step left", message: check.senderNote }
     : { message: /^sh_/.test(secret) ? "Connected to Sendhiiv. Send a test email to be sure." : `Connected to Brevo${check.account ? ` (${check.account})` : ""}. Send a test email to be sure.` };
@@ -231,7 +231,7 @@ export async function moveImagesToR2() {
       if (upError) { failed += Object.keys(update).length; moved -= Object.keys(update).length; }
     }
   }
-  revalidatePath("/admin/settings");
+  revalidatePath("/admin", "layout");
   return { moved, failed };
 }
 
@@ -284,7 +284,57 @@ async function saveStorageSettingsInner(ctx, form) {
   }).eq("id", true);
   if (error) return { error: storageProblem(error) };
   forgetStorageConfig();
-  if (savedRaw && changed) await notifyAdmins({ subject: "Usetally file storage changed", lines: [`${ctx.user.email} changed the Cloudflare R2 settings at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and fix them straight away."], link: "/admin/settings" });
-  revalidatePath("/admin/settings");
+  if (savedRaw && changed) await notifyAdmins({ subject: "Usetally file storage changed", lines: [`${ctx.user.email} changed the Cloudflare R2 settings at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and fix them straight away."], link: "/admin/integrations" });
+  revalidatePath("/admin", "layout");
   return { message: `Connected to bucket ${next.bucket}. New logos, signatures and attachments are saved to Cloudflare.` };
+}
+
+// ---------------------------------------------------------------- dashboard-managed settings
+const NEEDS_SETTINGS_SQL = "The database needs the settings update first. Run supabase/RUN_NEW_2026-10-25h.sql in Supabase → SQL Editor, then try again.";
+async function savePlatform(row, paths = []) {
+  const { forgetPlatformConfig } = await import("@/lib/platform-config");
+  const { error } = await createSupabaseService().from("platform_settings").update({ ...row, updated_at: new Date().toISOString() }).eq("id", true);
+  if (error) return { error: /column|schema cache/i.test(error.message) ? NEEDS_SETTINGS_SQL : error.message };
+  forgetPlatformConfig();
+  revalidatePath("/admin", "layout");
+  for (const p of paths) revalidatePath(p);
+  return null;
+}
+const field = (v, max = 300) => String(v ?? "").trim().slice(0, max);
+
+// Sabilytics and/or Google Analytics, loaded on the live site
+export async function saveAnalytics(form) {
+  await requirePlatformAdmin();
+  const site = field(form.sabilyticsSite, 60), domain = field(form.sabilyticsDomain, 120).replace(/^https?:\/\//, "").replace(/\/.*$/, "").toLowerCase();
+  const ga = field(form.gaId, 30).toUpperCase();
+  if (site && !/^[A-Za-z0-9_-]{4,60}$/.test(site)) return { error: "The Sabilytics site ID should be letters and numbers, like 9h09ynxhgfc3 (data-site in their snippet)." };
+  if (site && !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) return { error: "Enter the domain exactly as set up in Sabilytics, like usetally.cc (data-domain in their snippet)." };
+  if (ga && !/^G-[A-Z0-9]{4,}$/.test(ga)) return { error: "A Google Analytics measurement ID looks like G-XXXXXXXXXX." };
+  const err = await savePlatform({ analytics_sabilytics_site: site || null, analytics_sabilytics_domain: site ? domain : null, analytics_ga_id: ga || null }, ["/subprocessors"]);
+  if (err) return err;
+  return { message: site || ga ? "Analytics saved. It starts loading on the live site within 5 minutes, no redeploy needed." : "Analytics turned off." };
+}
+
+// who operates Usetally, shown on the Terms, Privacy, DPA and Sub-processors pages
+export async function saveCompanyLegal(form) {
+  await requirePlatformAdmin();
+  const email = field(form.email, 200);
+  if (email && !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) return { error: "Enter a valid contact email." };
+  const err = await savePlatform({
+    legal_company: field(form.company, 200) || null, legal_address: field(form.address, 500) || null, legal_email: email || null,
+    legal_law: field(form.law, 200) || null, legal_courts: field(form.courts, 200) || null, legal_data_region: field(form.region, 120) || null,
+  }, ["/terms", "/privacy", "/dpa", "/subprocessors"]);
+  if (err) return err;
+  return { message: "Company details saved. The legal pages update within a minute." };
+}
+
+// who gets security and billing alerts
+export async function saveAlerts(form) {
+  await requirePlatformAdmin();
+  const list = field(form.emails, 1000).split(/[\s,;]+/).filter(Boolean);
+  const bad = list.find((e) => !/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(e));
+  if (bad) return { error: `"${bad}" isn't a valid email address.` };
+  const err = await savePlatform({ alert_emails: list.length ? list.join(", ") : null });
+  if (err) return err;
+  return { message: list.length ? `Alerts go to ${list.length} address${list.length === 1 ? "" : "es"}.` : "Alerts go to every platform admin." };
 }

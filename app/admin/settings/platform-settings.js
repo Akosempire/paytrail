@@ -14,17 +14,25 @@ const PROVIDER_INFO = {
   bachs: { name: "Bachs", key: "sk_live_…", hook: "Webhook signing secret" },
 };
 
-export function PlatformSettings({ settings, webhooks, billingMode }) {
+function useRun() {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
+  const run = (fn) => start(async () => {
+    const r = await fn();
+    if (r?.error) return toast.error({ title: "Not saved", message: r.error }, { duration: 12000 });
+    if (r?.stepUp) return;
+    toast.success({ title: "Saved", message: r.message });
+    router.refresh();
+  });
+  return [pending, run];
+}
+
+// What every new business gets before choosing a plan, and the support address.
+export function TrialSettings({ settings }) {
+  const [pending, run] = useRun();
   const [trial, setTrial] = useState({ trial_mode: settings.trial_mode, trial_documents: settings.trial_documents, trial_days: settings.trial_days, support_email: settings.support_email });
-  const [billing, setBilling] = useState({ provider: settings.billing_provider, secretKey: "", webhookSecret: "" });
-  const { guarded, dialog: stepUpDialog } = useStepUp("platform");
-  const run = (fn) => start(async () => { const r = await fn(); if (r.error) return toast(r.error, "error"); toast(r.message); router.refresh(); });
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {stepUpDialog}
       <Card>
         <CardHeader title="Free trial" description="What every new business gets before choosing a plan." />
         <div className="flex flex-col gap-4 p-5">
@@ -42,7 +50,17 @@ export function PlatformSettings({ settings, webhooks, billingMode }) {
           <Button variant="primary" icon={pending ? Loader2 : Save} className="self-start" onClick={() => run(() => saveTrial(trial))}>Save trial settings</Button>
         </div>
       </Card>
+  );
+}
+
+// Usetally's own payment account for plan subscriptions.
+export function BillingSettings({ settings, webhooks, billingMode }) {
+  const [pending, run] = useRun();
+  const [billing, setBilling] = useState({ provider: settings.billing_provider, secretKey: "", webhookSecret: "" });
+  const { guarded, dialog: stepUpDialog } = useStepUp("platform");
+  return (
       <Card>
+        {stepUpDialog}
         <CardHeader title="Collecting subscriptions" description="Usetally's own payment account, separate from the businesses' accounts."
           actions={settings.billing_provider === "manual" ? <Badge tone="neutral" size="sm">Bank transfer</Badge> : billingMode === "live" ? <Badge tone="success" size="sm">Live key</Badge> : billingMode === "test" ? <Badge tone="warn" size="sm">Test key · no real payments</Badge> : null} />
         {settings.billing_provider !== "manual" && billingMode === "test" && (
@@ -77,6 +95,5 @@ export function PlatformSettings({ settings, webhooks, billingMode }) {
           <Button variant="primary" icon={pending ? Loader2 : Save} className="self-start" onClick={() => run(() => guarded(() => saveBilling(billing)))}>Save billing settings</Button>
         </div>
       </Card>
-    </div>
   );
 }
