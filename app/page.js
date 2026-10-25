@@ -14,21 +14,19 @@ import { Platforms } from "@/components/landing/platforms";
 import { Pricing } from "@/components/landing/pricing";
 import { Team } from "@/components/landing/team";
 import { SiteFooter } from "@/components/landing/site-footer";
-import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
+import { supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
 import { hasYearly, monthlyEquivalent, plansFor } from "@/lib/plans";
 import { BRAND } from "@/lib/brand";
+import { SEO } from "@/lib/seo";
+import { publicPlans } from "@/lib/public-plans";
+import { siteUrl } from "@/lib/site";
 
-async function publicData() {
-  if (!supabaseConfigured() || !process.env.SUPABASE_SERVICE_ROLE_KEY) return { plans: [], trial: null };
-  const service = createSupabaseService();
-  const [{ data: plans }, { data: trial }] = await Promise.all([
-    service.from("plans").select("id, name, tagline, price_minor, currency, billing_interval, document_limit, seat_limit, allow_company, features, active, sort_order").eq("active", true).order("sort_order").order("price_minor"),
-    service.from("platform_settings").select("trial_mode, trial_documents, trial_days").eq("id", true).maybeSingle(),
-  ]);
-  return { plans: plans || [], trial };
-}
+const publicData = publicPlans;
+
+// page metadata replaces (not merges) the layout's openGraph, so repeat it in full
+export const metadata = { alternates: { canonical: "/" }, openGraph: { type: "website", siteName: "Usetally", title: SEO.title, description: SEO.short, url: "/", locale: "en" } };
 
 const PAPER = "rounded-[18px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.05),0_18px_40px_-24px_rgba(20,16,8,.3)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
 const WRAP = "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10";
@@ -43,15 +41,31 @@ const PROVIDERS = [
   ["Bank transfer", "Your account details on every invoice"],
 ];
 
-const FAQ = [
-  ["Do you hold my money?", "No. Customers pay through your own Paystack, Stripe, Flutterwave or Bachs account, so money goes straight to you. We confirm each payment with the provider, then mark the invoice paid and issue the receipt."],
-  ["Can my customers see my costs?", "Never. Hidden costs live only inside your account. In a team, you choose who can see them, and they never appear on quotes, invoices, receipts or PDFs."],
-  ["Do my customers need an account?", "No. They open a secure link on any phone or computer, accept the quote with their name, and pay. They can download the PDF and their receipt."],
-  ["Can I print receipts on a POS printer?", "Yes. Every document prints on A4, US Letter, A5 or half letter, and receipts also print on 80 mm and 58 mm thermal rolls."],
-  ["What happens after the free trial?", "You get 14 days free with no card. After that, choose a plan to keep sending. Your quotes, invoices, customers and receipts stay safe either way."],
-  ["Can I use it on my phone?", "Yes. It works in any browser, and you can install it to your home screen. Pages you've opened stay readable offline."],
-  ["Is my data safe?", "Each business's data is kept separate in the database, payment keys are encrypted, and changing bank details or payment keys needs a code sent to your email. You can download or delete your data at any time."],
-];
+const FAQ = SEO.faq;
+
+function structuredData(plans) {
+  const base = siteUrl();
+  const offers = (plans || []).filter((p) => p.active).map((p) => ({
+    "@type": "Offer", name: p.name, price: (p.price_minor / 100).toFixed(2), priceCurrency: p.currency,
+    ...(p.price_minor > 0 ? { priceSpecification: { "@type": "UnitPriceSpecification", price: (p.price_minor / 100).toFixed(2), priceCurrency: p.currency, billingDuration: 1, unitCode: p.billing_interval === "year" ? "ANN" : "MON" } } : {}),
+    url: `${base}/signup`,
+  }));
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "Organization", "@id": `${base}/#org`, name: BRAND.name, url: base, logo: `${base}/icons/icon-512.png` },
+      { "@type": "WebSite", "@id": `${base}/#site`, name: BRAND.name, url: base, publisher: { "@id": `${base}/#org` }, description: SEO.short },
+      {
+        "@type": "SoftwareApplication", "@id": `${base}/#app`, name: BRAND.name, url: base,
+        applicationCategory: "BusinessApplication", applicationSubCategory: "Invoicing software", operatingSystem: "Web, iOS, Android, Windows, macOS",
+        description: SEO.description, keywords: SEO.keywords.join(", "), audience: { "@type": "BusinessAudience", name: SEO.audience },
+        featureList: SEO.features.map(([t, d]) => `${t}: ${d}`), publisher: { "@id": `${base}/#org` },
+        ...(offers.length ? { offers } : { offers: { "@type": "Offer", price: "0", priceCurrency: "USD", description: "Free trial" } }),
+      },
+      { "@type": "FAQPage", "@id": `${base}/#faq`, mainEntity: SEO.faq.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) },
+    ],
+  };
+}
 
 export default async function Home({ searchParams }) {
   preload("/fonts/chintzy-cpu.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
@@ -59,9 +73,12 @@ export default async function Home({ searchParams }) {
   const [{ plans: allPlans, trial }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
   const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Free trial";
   const signedIn = Boolean(ctx.user);
+  const jsonLd = structuredData(allPlans);
 
   return (
     <div className="relative min-h-dvh bg-hero text-hero-ink">
+      {/* facts for search engines and AI assistants (no ratings or reviews: only what's true) */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       {/* interactive dot field behind the whole page */}
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0"><DotField /></div>
       <div className="relative z-[1]">

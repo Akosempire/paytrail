@@ -57,6 +57,7 @@ export function OtpInput({ name = "code", length = 6, onComplete, onChange, erro
       {digits.map((d, i) => (
         <input key={i} ref={(el) => (boxes.current[i] = el)}
           aria-label={`Digit ${i + 1} of ${digits.length}`}
+          data-keep-size=""
           inputMode="numeric" pattern="[0-9]*" maxLength={i === 0 ? 10 : 1}
           autoComplete={i === 0 ? "one-time-code" : "off"} autoFocus={autoFocus && i === 0} disabled={disabled}
           value={d}

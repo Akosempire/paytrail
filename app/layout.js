@@ -4,10 +4,17 @@ import { Suspense } from "react";
 import { ToastProvider } from "@/components/ui-client";
 import { UrlToasts } from "@/components/url-toasts";
 import { ServiceWorker } from "@/components/pwa";
+import { SEO } from "@/lib/seo";
+import { siteUrl } from "@/lib/site";
 
 export const metadata = {
-  title: { default: "Usetally — quotes, invoices & payments", template: "%s · Usetally" },
-  description: "Send branded quotations, get paid online with Stripe, Paystack, Flutterwave or Bachs, and issue receipts automatically. Track your real costs and profit on every job.",
+  metadataBase: new URL(siteUrl()),
+  title: { default: SEO.title, template: "%s · Usetally" },
+  description: SEO.short,
+  keywords: SEO.keywords,
+  openGraph: { type: "website", siteName: "Usetally", title: SEO.title, description: SEO.short, locale: "en" },
+  twitter: { card: "summary_large_image", title: SEO.title, description: SEO.short },
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large" } },
   applicationName: "Usetally",
   appleWebApp: { capable: true, title: "Usetally", statusBarStyle: "default" },
   icons: { icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }, { url: "/icons/favicon-32.png", sizes: "32x32", type: "image/png" }], apple: "/icons/apple-touch-icon.png" },

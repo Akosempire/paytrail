@@ -450,3 +450,15 @@
 /* wrong one-time code */
 @keyframes otp-shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-6px); } 40% { transform: translateX(6px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(3px); } }
 @media (prefers-reduced-motion: reduce) { [class*="otp-shake"] { animation: none !important; } }
+
+/* Phones zoom the page when a text field under 16px gets focus. Keep form
+   fields at 16px on small touch screens so tapping one never zooms (pinch
+   zoom still works). Unlayered, so it wins over Tailwind's text-sm etc. */
+@media (max-width: 767px) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="color"]):not([type="file"]):not([data-keep-size]),
+  select:not([data-keep-size]),
+  textarea:not([data-keep-size]),
+  [contenteditable="true"]:not([data-keep-size]) {
+    font-size: 16px;
+  }
+}
