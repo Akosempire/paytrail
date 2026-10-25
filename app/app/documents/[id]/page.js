@@ -19,9 +19,7 @@ export async function generateMetadata({ params }) {
 }
 
 export default async function DocumentPage({ params, searchParams }) {
-  const { id } = await params;
-  const sp = await searchParams;
-  const ctx = await requireBusiness();
+  const [{ id }, sp, ctx] = await Promise.all([params, searchParams, requireBusiness()]);
   const full = await getDocument(ctx, id);
   if (!full) notFound();
   const { doc, items, costs, payments, receipts, activity, related, link } = full;
@@ -37,7 +35,7 @@ export default async function DocumentPage({ params, searchParams }) {
   const converted = related.find((r) => r.id === doc.converted_invoice_id);
   const whatsapp = `https://wa.me/${(doc.customer_phone || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hello ${doc.customer_name.split(" ")[0] || ""}, here is ${quote ? "our quotation" : "your invoice"} ${doc.number} from ${ctx.business.name} for ${money(quote ? doc.total_minor : balance)}: ${link}`)}`;
   const lastReturn = activity.find((a) => a.action === "document.returned");
-  const payLink = await payLinkFor(ctx.supabase, doc);
+  const payLink = await payLinkFor(ctx.supabase, doc, full.connections);
   const canEditLayout = draft || can(ctx.member, "documents.send");
 
   return (

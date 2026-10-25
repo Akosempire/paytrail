@@ -14,9 +14,11 @@ export const metadata = { title: "Customer" };
 export default async function CustomerPage({ params }) {
   const { id } = await params;
   const ctx = await requireBusiness();
-  const { data: c } = await ctx.supabase.from("customers").select("*").eq("id", id).eq("business_id", ctx.business.id).maybeSingle();
+  const [{ data: c }, docs] = await Promise.all([
+    ctx.supabase.from("customers").select("*").eq("id", id).eq("business_id", ctx.business.id).maybeSingle(),
+    listDocuments(ctx, { customerId: id, limit: 200 }),
+  ]);
   if (!c) notFound();
-  const docs = await listDocuments(ctx, { customerId: id, limit: 200 });
   const money = (v) => formatMoney(v, ctx.business.currency);
   const owed = docs.filter((d) => d.kind === "invoice" && ["sent", "viewed", "partially_paid"].includes(d.status)).reduce((s, d) => s + d.total_minor - d.amount_paid_minor, 0);
   const paid = docs.filter((d) => d.kind === "invoice").reduce((s, d) => s + Number(d.amount_paid_minor), 0);

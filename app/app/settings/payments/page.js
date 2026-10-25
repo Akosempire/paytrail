@@ -12,9 +12,10 @@ export const metadata = { title: "Payment setup" };
 export default async function Page({ searchParams }) {
   const sp = await searchParams;
   const ctx = await requirePermission("settings.payments");
-  const { data: rows } = await ctx.supabase.from("payment_connections").select("provider, mode, key_hint, enabled, payment_confirmed_at, webhook_confirmed_at, last_test_reference, last_error, last_event_at, updated_at").eq("business_id", ctx.business.id);
+  const [{ data: rows }, { data: platform }] = await Promise.all([ctx.supabase.from("payment_connections").select("provider, mode, key_hint, enabled, payment_confirmed_at, webhook_confirmed_at, last_test_reference, last_error, last_event_at, updated_at").eq("business_id", ctx.business.id),
+    createSupabaseService().from("platform_settings").select("support_email").eq("id", true).maybeSingle(),
+  ]);
   const connections = Object.fromEntries((rows || []).map((r) => [r.provider, r]));
-  const { data: platform } = await createSupabaseService().from("platform_settings").select("support_email").eq("id", true).maybeSingle();
   const support = platform?.support_email || "";
   const supportLink = support ? `mailto:${support}?subject=${encodeURIComponent(`Payment setup help: ${ctx.business.name}`)}&body=${encodeURIComponent(`Hi Usetally support,\n\nI need help connecting payments for ${ctx.business.name}.\n\nProvider (Stripe / Paystack / Flutterwave / Bachs):\nWhat I'm stuck on:\n`)}` : null;
   const webhook = (provider) => `${siteUrl()}/api/webhooks/${provider}/${ctx.business.id}`;

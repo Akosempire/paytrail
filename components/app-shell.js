@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
@@ -9,6 +9,7 @@ import {
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
+import { PageSkeleton } from "@/components/page-skeleton";
 import { signOut } from "@/app/(auth)/actions";
 import { InstallPrompt, clearOfflinePages } from "@/components/pwa";
 import { switchBusiness } from "@/app/app/actions";
@@ -40,9 +41,12 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [switcher, setSwitcher] = useState(false);
-  useEffect(() => { setOpen(false); setSwitcher(false); }, [pathname]);
+  // the link you click lights up at once, before the server answers
+  const [goingTo, setGoingTo] = useState(null);
+  useEffect(() => { setOpen(false); setSwitcher(false); setGoingTo(null); }, [pathname]);
   const nav = navFor({ kind: business.kind, ...perms });
-  const active = (item) => item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(item.href + "/");
+  const here = goingTo || pathname;
+  const active = (item) => item.exact ? here === item.href : here === item.href || here.startsWith(item.href + "/");
 
   const sidebar = (
     <div className="flex h-full flex-col">
@@ -86,10 +90,12 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
                 return (
                   <li key={item.href}>
                     <Link href={item.href} aria-current={on ? "page" : undefined}
-                      className={cx("flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors",
+                      onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { setGoingTo(item.href); setOpen(false); } }}
+                      className={cx("relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-75",
                         on ? "bg-brand-soft text-brand-ink ring-1 ring-inset ring-brand-line/60" : "text-ink-2 hover:bg-hover hover:text-ink")}>
                       <Icon className={cx("size-[18px]", on ? "text-brand" : "text-ink-3")} />
                       {item.label}
+                      <PendingDot />
                     </Link>
                   </li>
                 );
@@ -147,7 +153,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
           <Button href="/app/quotes/new" variant="primary" icon={Plus}><span className="max-sm:hidden">New </span>Quote</Button>
         </header>
-        <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</main>
+        <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
       </div>
     </div>
   );
@@ -180,4 +186,10 @@ function TrialMeter({ allowance, canBilling, status }) {
       {canBilling && <Link href="/app/settings/billing" className="mt-2.5 inline-block text-xs font-semibold text-brand-ink hover:underline">{trial ? "See plans" : "Manage plan"} →</Link>}
     </div>
   );
+}
+
+// a small pulse on the link while its page is on the way (fixed size, no layout shift)
+function PendingDot() {
+  const { pending } = useLinkStatus();
+  return <span aria-hidden="true" data-pending={pending ? "true" : undefined} className={cx("ml-auto size-1.5 rounded-full bg-brand transition-opacity duration-150", pending ? "animate-pulse opacity-100" : "opacity-0")} />;
 }

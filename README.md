@@ -197,3 +197,17 @@ lib/            Supabase clients, permissions, money, PDFs, email, payments (str
 supabase/       migration (schema + security) and database tests
 assets/fonts/   Lato (open licence) for PDFs, which includes the ₦ sign
 ```
+
+## End-to-end tests (dashboard, every user type)
+
+```bash
+npm i --no-save playwright && npx playwright install chromium   # once
+npm run test:e2e                     # owner, manager, finance, junior finance
+E2E_ROLES=junior_finance npm run test:e2e
+```
+
+Runs the app in preview mode with a simulated 100 ms delay on every Supabase
+call, then checks for each role: every allowed page opens without errors,
+refused pages redirect, the sidebar shows the right links, a click gets a
+visible response within 200 ms and the page is ready within 1.2 s, documents
+and the quote/invoice forms work, and the mobile menu works.

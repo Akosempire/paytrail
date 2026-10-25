@@ -64,3 +64,23 @@ test("auth email helpers are for the server only", async () => {
     await assert.rejects(c.query("select * from public.auth_email_status($1)", [email]), /permission denied/);
   } finally { await c.query("rollback").catch(() => {}); c.release(); }
 });
+
+test("app_context returns the signed-in user's dashboard context in one call", async () => {
+  const r = (await as(owner, "select public.app_context() c")).c;
+  assert.equal(r.business.id, biz);
+  assert.equal(r.memberships.length, 1);
+  assert.equal(r.memberships[0].role, "owner");
+  assert.equal(r.memberships[0].businesses.name, "Sec Co");
+  assert.equal(r.is_admin, false);
+  assert.ok(r.allowance && typeof r.allowance.allowed === "boolean");
+  // another user sees none of it
+  const other = (await one("insert into auth.users(email) values ($1) returning id", [`ctx${Date.now()}@a.test`])).id;
+  const o = (await as(other, "select public.app_context() c")).c;
+  assert.deepEqual(o.memberships, []);
+  assert.equal(o.business, null);
+  // signed out: nothing
+  const c = await pool.connect();
+  try { await c.query("begin"); await c.query("set local role anon");
+    await assert.rejects(c.query("select public.app_context()"), /permission denied/);
+  } finally { await c.query("rollback").catch(() => {}); c.release(); }
+});
