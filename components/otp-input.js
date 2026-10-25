@@ -26,7 +26,7 @@ export function OtpInput({ name = "code", length = 6, onComplete, onChange, erro
   // submit once every box is filled, after the hidden field holds the code
   const submitted = useRef("");
   useEffect(() => {
-    const full = digits.every((d) => d !== "") && value.length >= 6;
+    const full = digits.every((d) => d !== "") && value.length >= Math.min(length, 6);
     if (!full) { submitted.current = ""; return; }
     if (submitted.current === value) return;
     submitted.current = value;

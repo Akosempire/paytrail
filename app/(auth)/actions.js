@@ -2,7 +2,22 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site";
-import { authEmailReady, resendSignup, startReset, startSignup } from "@/lib/auth-email";
+import { cookies } from "next/headers";
+import { authEmailReady, knownCodeLength, resendSignup, startReset, startSignup } from "@/lib/auth-email";
+
+// How many digits the emailed codes have. Usetally reads it from each code it
+// sends; when Supabase sends its own email we can't see the code, so this
+// falls back to AUTH_OTP_LENGTH (match Supabase → Auth → Email → OTP length), else 6.
+const okLength = (n) => (Number(n) >= 6 && Number(n) <= 10 ? Number(n) : null);
+let cookieLength = null; // read per request in remember()/fallbackLength()
+const fallbackLength = () => okLength(process.env.AUTH_OTP_LENGTH) || cookieLength || knownCodeLength() || 6;
+// keep the length in a cookie too, so a later screen (or another server) knows it
+async function remember(n) {
+  const store = await cookies();
+  if (okLength(n)) { store.set("ut_code_len", String(n), { maxAge: 60 * 60 * 24 * 365, sameSite: "lax", path: "/", httpOnly: true }); cookieLength = Number(n); }
+  else cookieLength = okLength(store.get("ut_code_len")?.value);
+}
+const lengthFrom = (form) => okLength(form?.get?.("code_length")) || fallbackLength();
 
 // only same-site paths may be used as a post-login destination
 function safeNext(value, fallback = "/app") {
@@ -11,6 +26,7 @@ function safeNext(value, fallback = "/app") {
 }
 
 export async function signIn(_prev, form) {
+  await remember();
   const email = String(form.get("email") || "").trim().toLowerCase();
   const password = String(form.get("password") || "");
   if (!email || !password) return { error: "Enter your email and password.", email };
@@ -20,9 +36,10 @@ export async function signIn(_prev, form) {
     if (/confirm/i.test(error.message)) {
       // send a fresh code and let them finish verifying right here
       const next = safeNext(form.get("next"), "/onboarding");
-      if (await authEmailReady()) await resendSignup({ email, next }).catch(() => {});
+      let codeLength = fallbackLength();
+      if (await authEmailReady()) codeLength = (await resendSignup({ email, next }).catch(() => null))?.codeLength || codeLength;
       else await supabase.auth.resend({ type: "signup", email }).catch(() => {});
-      return { verify: email, next };
+      return { verify: email, next, codeLength };
     }
     return { error: "That email and password don't match.", email };
   }
@@ -30,6 +47,7 @@ export async function signIn(_prev, form) {
 }
 
 export async function signUp(_prev, form) {
+  await remember();
   const name = String(form.get("name") || "").trim();
   const email = String(form.get("email") || "").trim().toLowerCase();
   const password = String(form.get("password") || "");
@@ -41,7 +59,9 @@ export async function signUp(_prev, form) {
   if (password.length < 8) return { error: "Use at least 8 characters for your password.", ...keep };
   if (await authEmailReady()) {
     const r = await startSignup({ email, password, name, next });
-    return r.error ? { error: r.error, ...keep } : { verify: email, next };
+    if (r.error) return { error: r.error, ...keep };
+    await remember(r.codeLength);
+    return { verify: email, next, codeLength: r.codeLength || fallbackLength() };
   }
   // no email service set up: Supabase sends its own email
   const supabase = await createSupabaseServer();
@@ -51,28 +71,31 @@ export async function signUp(_prev, form) {
   });
   if (error) return { error: /registered/i.test(error.message) ? "An account with this email already exists. Sign in instead." : error.message, ...keep };
   if (data.session) redirect(next);
-  return { verify: email, next };
+  return { verify: email, next, codeLength: fallbackLength() };
 }
 
 // the code from the sign-up email (we send it through Brevo; see lib/auth-email.js)
 export async function verifySignup(_prev, form) {
+  await remember();
   const email = String(form.get("email") || "").trim().toLowerCase();
   const token = String(form.get("code") || "").replace(/\D/g, "");
   const next = safeNext(form.get("next"), "/onboarding");
-  if (!/^\d{6,10}$/.test(token)) return { verify: email, next, error: "Enter the code from the email." };
+  const codeLength = lengthFrom(form);
+  if (!/^\d{6,10}$/.test(token)) return { verify: email, next, codeLength, error: "Enter the code from the email." };
   const supabase = await createSupabaseServer();
   let { error } = await supabase.auth.verifyOtp({ email, token, type: "signup" });
   if (error) ({ error } = await supabase.auth.verifyOtp({ email, token, type: "email" }));
-  if (error) return { verify: email, next, ...{ errorTitle: "Code not accepted", error: /rate|too many/i.test(error.message) ? "Too many tries. Wait a minute, then try again." : "That code is wrong or has expired. Check the latest email, or send a new code." } };
+  if (error) return { verify: email, next, codeLength, ...{ errorTitle: "Code not accepted", error: /rate|too many/i.test(error.message) ? "Too many tries. Wait a minute, then try again." : "That code is wrong or has expired. Check the latest email, or send a new code." } };
   redirect(next);
 }
 
 export async function resendSignupCode(email, next) {
+  await remember();
   const address = String(email || "").trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(address)) return { error: "Enter a valid email address." };
   if (await authEmailReady()) {
     const r = await resendSignup({ email: address, next: safeNext(next, "/onboarding") });
-    return r.error ? r : { message: `A new code is on its way to ${address}.` };
+    return r.error ? r : { message: `A new code is on its way to ${address}.`, codeLength: r.codeLength || null };
   }
   const supabase = await createSupabaseServer();
   const { error } = await supabase.auth.resend({ type: "signup", email: address });
@@ -81,27 +104,33 @@ export async function resendSignupCode(email, next) {
 }
 
 export async function requestReset(_prev, form) {
+  await remember();
   const email = String(form.get("email") || "").trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address.", email };
+  let codeLength = fallbackLength();
   if (await authEmailReady()) {
     const r = await startReset({ email });
     if (r.error) return { error: r.error, email };
+    await remember(r.codeLength);
+    codeLength = r.codeLength || fallbackLength();
   } else {
     const supabase = await createSupabaseServer();
     await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${siteUrl()}/auth/callback?next=/reset` });
   }
   // same answer whether or not the account exists
-  return { sent: email };
+  return { sent: email, codeLength };
 }
 
 // the code from the reset email signs them in, then they choose a password
 export async function verifyResetCode(_prev, form) {
+  await remember();
   const email = String(form.get("email") || "").trim().toLowerCase();
   const token = String(form.get("code") || "").replace(/\D/g, "");
-  if (!/^\d{6,10}$/.test(token)) return { sent: email, error: "Enter the code from the email." };
+  const codeLength = lengthFrom(form);
+  if (!/^\d{6,10}$/.test(token)) return { sent: email, codeLength, error: "Enter the code from the email." };
   const supabase = await createSupabaseServer();
   const { error } = await supabase.auth.verifyOtp({ email, token, type: "recovery" });
-  if (error) return { sent: email, ...{ errorTitle: "Code not accepted", error: /rate|too many/i.test(error.message) ? "Too many tries. Wait a minute, then try again." : "That code is wrong or has expired. Check the latest email, or send a new code." } };
+  if (error) return { sent: email, codeLength, ...{ errorTitle: "Code not accepted", error: /rate|too many/i.test(error.message) ? "Too many tries. Wait a minute, then try again." : "That code is wrong or has expired. Check the latest email, or send a new code." } };
   redirect("/reset");
 }
 
@@ -109,7 +138,7 @@ export async function resendResetCode(email) {
   const address = String(email || "").trim().toLowerCase();
   const fd = new FormData(); fd.set("email", address);
   const r = await requestReset(null, fd);
-  return r.error ? r : { message: `If an account exists for ${address}, a new code is on its way.` };
+  return r.error ? r : { message: `If an account exists for ${address}, a new code is on its way.`, codeLength: r.codeLength || null };
 }
 
 export async function updatePassword(_prev, form) {

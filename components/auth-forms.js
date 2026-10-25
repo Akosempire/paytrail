@@ -21,25 +21,27 @@ function PasswordInput({ name = "password", placeholder = "Enter your password",
   );
 }
 
-// 6-digit code from the sign-up email
-export function VerifyEmailForm({ email, next, intro }) {
+// the code from the sign-up email (6–10 digits, whatever Supabase is set to)
+export function VerifyEmailForm({ email, next, intro, codeLength = 6 }) {
   const [state, action] = useActionState(verifySignup, null);
   const [resend, setResend] = useState(null);
   useActionToast(resend);
   const form = useRef(null);
   const [code, setCode] = useState("");
+  const length = state?.codeLength || resend?.codeLength || codeLength;
   return (
     <form ref={form} action={action} className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="inline-flex size-14 items-center justify-center rounded-full border border-notice-line bg-notice text-intent-success"><MailCheck className="size-6" aria-hidden="true" /></span>
         <h1 className="text-title-1 text-ink">Check your email</h1>
-        <p className="text-sm text-ink-2">{intro || "We sent a 6-digit code to"} <strong className="text-ink break-all">{email}</strong>. Enter it to confirm your email.</p>
+        <p className="text-sm text-ink-2">{intro || `We sent a ${length}-digit code to`} <strong className="text-ink break-all">{email}</strong>. Enter it to confirm your email.</p>
       </div>
       <FormMessage state={state} />
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="next" value={next || ""} />
-      <OtpInput label="Confirmation code" errorKey={state?.error ? state : null} onChange={setCode} onComplete={() => form.current?.requestSubmit()} />
-      <SubmitButton size="lg" block pendingText="Checking…" disabled={code.length < 6}>Confirm email</SubmitButton>
+      <input type="hidden" name="code_length" value={length} />
+      <OtpInput key={length} length={length} label="Confirmation code" errorKey={state?.error ? state : null} onChange={setCode} onComplete={() => form.current?.requestSubmit()} />
+      <SubmitButton size="lg" block pendingText="Checking…" disabled={code.length < length}>Confirm email</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
         <ResendCode onResend={async () => { const r = { messageTitle: "New code sent", ...(await resendSignupCode(email, next)) }; setResend(r); return r; }} label="send a new code" />
@@ -74,7 +76,7 @@ function GoogleSignIn({ next, label = "Continue with Google" }) {
 
 export function LoginForm({ next, google = false }) {
   const [state, action] = useActionState(signIn, null);
-  if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} intro="Your email isn't confirmed yet. We sent a new 6-digit code to" />;
+  if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} codeLength={state.codeLength} intro={`Your email isn't confirmed yet. We sent a new ${state.codeLength || 6}-digit code to`} />;
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -99,7 +101,7 @@ export function LoginForm({ next, google = false }) {
 
 export function SignupForm({ next, email, trialText, google = false }) {
   const [state, action] = useActionState(signUp, null);
-  if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} />;
+  if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} codeLength={state.codeLength} />;
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -123,7 +125,7 @@ export function SignupForm({ next, email, trialText, google = false }) {
 
 export function ForgotForm() {
   const [state, action] = useActionState(requestReset, null);
-  if (state?.sent) return <ResetCodeForm email={state.sent} />;
+  if (state?.sent) return <ResetCodeForm email={state.sent} codeLength={state.codeLength} />;
   return (
     <form action={action} className="flex flex-col gap-5">
       <div>
@@ -139,23 +141,25 @@ export function ForgotForm() {
 }
 
 // step 2 of a reset: the code from the email
-function ResetCodeForm({ email }) {
+function ResetCodeForm({ email, codeLength = 6 }) {
   const [state, action] = useActionState(verifyResetCode, null);
   const [resend, setResend] = useState(null);
   useActionToast(resend);
   const form = useRef(null);
   const [code, setCode] = useState("");
+  const length = state?.codeLength || resend?.codeLength || codeLength;
   return (
     <form ref={form} action={action} className="flex flex-col gap-5">
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="inline-flex size-14 items-center justify-center rounded-full border border-notice-line bg-notice text-intent-info"><KeyRound className="size-6" aria-hidden="true" /></span>
         <h1 className="text-title-1 text-ink">Check your email</h1>
-        <p className="text-sm text-ink-2">If an account exists for <strong className="text-ink">{email}</strong>, we sent a code to reset your password.</p>
+        <p className="text-sm text-ink-2">If an account exists for <strong className="text-ink">{email}</strong>, we sent a {length}-digit code to reset your password.</p>
       </div>
       <FormMessage state={state} />
       <input type="hidden" name="email" value={email} />
-      <OtpInput label="Reset code" errorKey={state?.error ? state : null} onChange={setCode} onComplete={() => form.current?.requestSubmit()} />
-      <SubmitButton size="lg" block pendingText="Checking…" disabled={code.length < 6}>Continue</SubmitButton>
+      <input type="hidden" name="code_length" value={length} />
+      <OtpInput key={length} length={length} label="Reset code" errorKey={state?.error ? state : null} onChange={setCode} onComplete={() => form.current?.requestSubmit()} />
+      <SubmitButton size="lg" block pendingText="Checking…" disabled={code.length < length}>Continue</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
         <ResendCode onResend={async () => { const r = { messageTitle: "New code sent", ...(await resendResetCode(email)) }; setResend(r); return r; }} label="send a new code" />
