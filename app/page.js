@@ -33,10 +33,10 @@ const H2 = "text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-
 
 // everything here is true of the product today
 const TRUST = [
-  [Wallet, "Paid straight into your own Paystack or Stripe account"],
-  [ShieldCheck, "Every payment verified with the provider"],
-  [Lock, "Keys encrypted · NDPA-ready"],
-  [BadgeCheck, "14-day free trial · no card"],
+  [Wallet, "Paid directly to you", "Into your own Paystack or Stripe"],
+  [ShieldCheck, "Verified payments", "Confirmed with the provider"],
+  [Lock, "Keys encrypted", "NDPA-ready data handling"],
+  [BadgeCheck, "14-day free trial", "No card needed to start"],
 ];
 
 const ROLES = [
@@ -111,8 +111,16 @@ export default async function Home({ searchParams }) {
 
         {/* trust strip */}
         <div className={`pb-16 ${WRAP}`}>
-          <ul className="grid gap-x-8 gap-y-3 border-y border-hero-line py-5 text-[14px] text-hero-ink-2 sm:grid-cols-2 lg:grid-cols-4">
-            {TRUST.map(([Icon, text]) => <li key={text} className="flex items-center gap-2.5"><Icon className="size-4 shrink-0 text-hero-accent" aria-hidden="true" />{text}</li>)}
+          <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4" aria-label="Why businesses trust Usetally">
+            {TRUST.map(([Icon, title, sub]) => (
+              <li key={title} className="flex items-center gap-3.5 rounded-2xl bg-hero-paper/90 p-4 shadow-[0_1px_2px_rgba(20,16,8,.04),0_10px_30px_-18px_rgba(20,16,8,.25)] ring-1 ring-black/[.05] backdrop-blur-sm dark:ring-white/[.06]">
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-xl bg-hero-accent/10 text-hero-accent"><Icon className="size-[18px]" aria-hidden="true" /></span>
+                <span className="min-w-0 leading-tight">
+                  <span className="block text-[14.5px] font-semibold tracking-[-0.01em] text-hero-ink">{title}</span>
+                  <span className="mt-1 block text-[13px] text-hero-ink-2">{sub}</span>
+                </span>
+              </li>
+            ))}
           </ul>
         </div>
       </div>
