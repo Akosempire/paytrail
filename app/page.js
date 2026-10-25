@@ -99,7 +99,7 @@ export default async function Home({ searchParams }) {
             <h1 className="font-display text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em]">
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
-            <p className="mt-6 text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">From quote to payment. Everything flows.</p>
+            <p className="mt-6 max-w-[560px] text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">Send branded quotes, turn them into invoices, and get paid straight into your own Paystack or Stripe. See your real profit on every job, with receipts sent automatically.</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
               <Link href="/signup" className={BTN}>Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
               <a href="#how-it-works" className="group inline-flex items-center justify-center gap-2 text-[15px] font-medium sm:justify-start">
