@@ -12,7 +12,7 @@ import { saveDocumentDefaults } from "./actions";
 
 const KINDS = [["quote", "Quotations", ScrollText], ["invoice", "Invoices", FileText], ["receipt", "Receipts", Receipt]];
 
-export function DocumentDefaults({ business, samples }) {
+export function DocumentDefaults({ business, samples, extraTemplates = false }) {
   const toast = useToast();
   const [kind, setKind] = useState("invoice");
   const [values, setValues] = useState(() => Object.fromEntries(KINDS.map(([k]) => {
@@ -47,7 +47,7 @@ export function DocumentDefaults({ business, samples }) {
       </div>
       <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
         <Card className="p-5">
-          <LayoutPanel kind={kind} value={value} onChange={(v) => setValues({ ...values, [kind]: v })} brandColor={business.brand_color} showInstructions={false} idPrefix={`def-${kind}`} />
+          <LayoutPanel kind={kind} extraTemplates={extraTemplates} value={value} onChange={(v) => setValues({ ...values, [kind]: v })} brandColor={business.brand_color} showInstructions={false} idPrefix={`def-${kind}`} />
           <div className="mt-5 border-t border-line pt-4">
             <Button variant="primary" icon={pending ? Loader2 : undefined} loading={pending} onClick={save}>Save default</Button>
           </div>

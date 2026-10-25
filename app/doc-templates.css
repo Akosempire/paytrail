@@ -190,3 +190,83 @@
   .pt-print-root .pt-sheet.pt-screen { min-height: 0; }
   .pt-print-root .pt-sheet { width: auto; }
 }
+
+/* ==========================================================================
+   Receipt: Ledger. Colour band, big title, boxed summary, ruled table.
+   ========================================================================== */
+.pt-t-ledger { --lg-rule: #2b2b2b; }
+.lg-band { height: 5mm; background: var(--pt-accent); }
+.pt-t-ledger .pt-page { padding-top: calc(var(--pt-m) - 2mm); }
+.lg-head { display: flex; justify-content: space-between; align-items: center; gap: 6mm; }
+.lg-title { font-size: 2.6em; font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+.lg-brand { flex-shrink: 0; max-width: 48%; }
+.lg-logo { display: block; max-height: 13mm; max-width: 48mm; object-fit: contain; object-position: right; }
+.pt-p-a5 .lg-logo, .pt-p-half .lg-logo { max-height: 10mm; max-width: 36mm; }
+.lg-bname { font-size: 1.35em; font-weight: 700; text-align: right; }
+.lg-label { color: var(--pt-accent); font-size: 1.12em; margin-bottom: 1.2mm; }
+.lg-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 8mm; color: var(--pt-ink-2); }
+.lg-meta { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 3mm; margin-top: 8mm; padding: 4mm 5mm; border: 0.3mm solid var(--lg-rule); }
+.lg-meta-k { color: var(--pt-accent); font-size: 0.82em; letter-spacing: 0.04em; text-transform: uppercase; }
+.lg-meta-v { margin-top: 1.4mm; font-size: 1.22em; font-weight: 700; }
+.lg-table { width: 100%; margin-top: 7mm; border-collapse: collapse; border: 0.3mm solid var(--lg-rule); }
+.lg-table th { background: var(--pt-accent); color: var(--pt-on-accent, #fff); font-weight: 400; font-size: 0.95em; letter-spacing: 0.04em; text-transform: uppercase; text-align: left; padding: 2.2mm 3mm; }
+.lg-table td { padding: 2.4mm 3mm; border-top: 0.3mm solid var(--lg-rule); }
+.lg-table td + td, .lg-table th + th { border-left: 0.3mm solid var(--lg-rule); }
+.lg-table .pt-num { text-align: right; font-weight: 700; }
+.lg-bottom { display: grid; grid-template-columns: 1.15fr 1fr; gap: 8mm; margin-top: 7mm; align-items: start; break-inside: avoid; }
+.lg-note { border: 0.3mm solid var(--lg-rule); padding: 4mm 5mm; min-height: 20mm; }
+.lg-totals div { display: flex; justify-content: space-between; gap: 4mm; padding: 1mm 0; color: var(--pt-ink-2); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.92em; }
+.lg-totals dd { color: var(--pt-ink); font-weight: 700; }
+.lg-grand { margin-top: 2mm; padding-top: 3mm !important; border-top: 0.3mm solid var(--lg-rule); align-items: baseline; }
+.lg-grand dt { color: var(--pt-accent); font-size: 1.45em; font-weight: 700; letter-spacing: 0.02em; }
+.lg-grand dd { font-size: 1.35em; }
+.lg-foot { display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; margin-top: 10mm; color: var(--pt-accent); }
+.lg-foot-name { font-size: 1.3em; font-weight: 700; letter-spacing: 0.02em; text-align: right; }
+.lg-note-foot { margin-top: 4mm; text-align: center; color: var(--pt-ink-3); font-size: 0.82em; white-space: pre-line; }
+.pt-t-ledger .pt-sign { margin-top: 8mm; }
+
+/* ==========================================================================
+   Receipt: Bold. Dark header, colour stripe, dark table head and total bar.
+   ========================================================================== */
+.pt-t-bold { --bd-dark: #16213e; }
+.bd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 6mm; background: var(--bd-dark); color: #fff; padding: var(--pt-m) var(--pt-m) 6mm; }
+.bd-brand { min-width: 0; max-width: 50%; }
+.bd-logo-chip { display: inline-flex; align-items: center; background: #fff; border-radius: 2mm; padding: 1.5mm 2.5mm; }
+.bd-logo { display: block; max-height: 11mm; max-width: 40mm; object-fit: contain; }
+.bd-bname { color: var(--bd-dark); font-size: 1.3em; font-weight: 700; }
+.bd-name { margin-top: 2mm; font-weight: 700; font-size: 1.05em; }
+.bd-titleblock { text-align: right; flex-shrink: 0; }
+.bd-title { color: var(--pt-accent-on-dark, var(--pt-accent)); font-size: 3em; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1; }
+.bd-meta { margin-top: 3mm; color: #c7cede; }
+.bd-meta div { display: flex; justify-content: flex-end; gap: 4mm; }
+.bd-meta dd { color: #fff; min-width: 26mm; text-align: right; }
+.bd-stripe { display: flex; align-items: stretch; height: 9mm; }
+.bd-stripe-fill { flex: 0 0 68%; display: flex; align-items: center; padding: 0 var(--pt-m); background: var(--pt-accent); color: var(--pt-on-accent, #16213e); font-weight: 700; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.bd-slash { flex: 0 0 4%; transform: skewX(-24deg); margin-left: 1.5mm; }
+.bd-slash-1 { background: var(--bd-dark); }
+.bd-slash-2 { background: var(--pt-accent); }
+.bd-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 2mm; color: var(--pt-ink-2); }
+.bd-label { color: var(--pt-ink); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 1.4mm; }
+.bd-pay dl div { display: flex; justify-content: space-between; gap: 4mm; }
+.bd-pay dd { color: var(--pt-ink); font-weight: 700; text-align: right; }
+.bd-table { width: 100%; margin-top: 7mm; border-collapse: collapse; }
+.bd-table th { background: var(--bd-dark); color: #fff; font-weight: 700; text-align: left; padding: 3mm; }
+.bd-table td { padding: 2.6mm 3mm; border-bottom: 0.3mm solid #6b6b6b; }
+.bd-table .pt-num { text-align: right; }
+.bd-bottom { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 7mm; align-items: start; break-inside: avoid; }
+.bd-thanks ul { list-style: none; margin-top: 2mm; color: var(--pt-ink-2); }
+.bd-thanks li { display: flex; align-items: center; gap: 2.2mm; padding: 0.6mm 0; }
+.bd-thanks li span { width: 3mm; height: 3mm; border-radius: 0.6mm; background: var(--pt-accent); flex-shrink: 0; }
+.bd-total { display: flex; justify-content: space-between; align-items: center; gap: 4mm; background: var(--bd-dark); color: #fff; padding: 3mm 4mm; font-weight: 700; }
+.bd-total strong { font-size: 1.25em; }
+.bd-foot-note { margin-top: 4mm; text-align: center; color: var(--pt-ink-3); font-size: 0.82em; white-space: pre-line; }
+.bd-foot-stripe { display: flex; height: 5mm; margin-top: 8mm; gap: 1.5mm; }
+.bd-foot-stripe span:nth-child(1) { flex: 0 0 52%; background: var(--pt-accent); }
+.bd-foot-stripe span:nth-child(2) { flex: 0 0 3%; background: var(--bd-dark); transform: skewX(-24deg); }
+.bd-foot-stripe span:nth-child(3) { flex: 0 0 3%; background: var(--bd-dark); transform: skewX(-24deg); }
+.pt-sheet.pt-screen.pt-t-bold { display: flex; flex-direction: column; }
+.pt-sheet.pt-screen.pt-t-bold .bd-foot-stripe { margin-top: auto; }
+.pt-sheet.pt-screen.pt-t-bold > .pt-page { padding-bottom: 6mm; }
+.pt-p-a5 .lg-meta, .pt-p-half .lg-meta { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+
+.pt-p-a5 .lg-foot, .pt-p-half .lg-foot { display: none; }

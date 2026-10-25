@@ -18,6 +18,36 @@ export function TemplateThumb({ id, accent = SIGNATURE_BLUE }) {
       </span>
     );
   }
+  if (id === "ledger") {
+    return (
+      <span className="flex h-full w-full flex-col gap-[4px] bg-white shadow-sm ring-1 ring-black/5">
+        <span className="block h-[5px]" style={{ background: accent }} />
+        <span className="flex flex-col gap-[4px] px-2 pb-2">
+          <span className="flex justify-between">{bar("44%", "#222", 6)}{bar(14, "#bbb", 6)}</span>
+          <span className="grid grid-cols-2 gap-1.5">{[0, 1].map((i) => <span key={i} className="flex flex-col gap-[2px]">{bar("60%", accent)}{bar("80%")}{bar("70%")}</span>)}</span>
+          <span className="grid grid-cols-4 gap-[2px] border border-[#333] p-[3px]">{[0, 1, 2, 3].map((i) => <span key={i} className="flex flex-col gap-[2px]">{bar("80%", accent, 2)}{bar("70%", "#333")}</span>)}</span>
+          <span className="block h-[5px]" style={{ background: accent }} />
+          {[1, 2].map((i) => <span key={i} className="flex justify-between border-b border-[#ccc] pb-[2px]">{bar("40%")}{bar("22%", "#666")}</span>)}
+          <span className="mt-auto flex justify-between gap-1"><span className="block h-4 w-[48%] border border-[#333]" /><span className="flex w-[40%] flex-col items-end gap-[2px]">{bar("80%")}{bar("70%", "#222", 4)}</span></span>
+        </span>
+      </span>
+    );
+  }
+  if (id === "bold") {
+    return (
+      <span className="flex h-full w-full flex-col bg-white shadow-sm ring-1 ring-black/5">
+        <span className="flex justify-between bg-[#16213e] px-2 py-2">{bar("26%", "#fff", 4)}<span className="flex flex-col items-end gap-[2px]">{bar(28, accent, 5)}{bar(18, "#9aa3b8")}</span></span>
+        <span className="flex items-center gap-[2px]"><span className="block h-[5px] w-[64%]" style={{ background: accent }} /><span className="block h-[5px] w-[6%] -skew-x-12 bg-[#16213e]" /><span className="block h-[5px] w-[6%] -skew-x-12" style={{ background: accent }} /></span>
+        <span className="flex flex-col gap-[4px] px-2 py-2">
+          <span className="grid grid-cols-2 gap-1.5">{[0, 1].map((i) => <span key={i} className="flex flex-col gap-[2px]">{bar("60%", "#222")}{bar("80%")}</span>)}</span>
+          <span className="block h-[5px] bg-[#16213e]" />
+          {[1, 2].map((i) => <span key={i} className="flex justify-between border-b border-[#ccc] pb-[2px]">{bar("40%")}{bar("22%", "#666")}</span>)}
+          <span className="mt-auto flex justify-end"><span className="flex w-[48%] justify-between bg-[#16213e] px-1 py-[2px]">{bar("40%", "#fff", 3)}{bar("30%", "#fff", 3)}</span></span>
+        </span>
+        <span className="mt-auto block h-[4px]" style={{ background: accent }} />
+      </span>
+    );
+  }
   const exec = id === "executive";
   const ink = id === "essential" ? "#222" : accent;
   return (
@@ -39,7 +69,7 @@ export function TemplateThumb({ id, accent = SIGNATURE_BLUE }) {
 }
 
 // template, paper, accent, sections and payment instructions
-export function LayoutPanel({ kind, value, onChange, brandColor, showInstructions = true, idPrefix = "lp" }) {
+export function LayoutPanel({ kind, value, onChange, brandColor, showInstructions = true, idPrefix = "lp", extraTemplates = false }) {
   const set = (patch) => onChange({ ...value, ...patch });
   const setLayout = (patch) => set({ layout: { ...value.layout, ...patch } });
   const setSection = (k, v) => setLayout({ sections: { ...(value.layout?.sections || {}), [k]: v } });
@@ -57,7 +87,7 @@ export function LayoutPanel({ kind, value, onChange, brandColor, showInstruction
       <fieldset>
         <legend className="mb-2 text-[13px] font-medium text-ink">Template</legend>
         <div className="grid grid-cols-2 gap-2" role="radiogroup">
-          {templatesFor(kind).map((t) => {
+          {templatesFor(kind, { extra: extraTemplates || Boolean(TEMPLATES[value.template]?.needsUpdate) }).map((t) => {
             const on = value.template === t.id;
             return (
               <button key={t.id} type="button" role="radio" aria-checked={on} onClick={() => pickTemplate(t.id)}

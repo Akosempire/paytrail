@@ -1,6 +1,7 @@
 import { requirePermission } from "@/lib/context";
 import { PageHeader } from "@/components/ui";
 import { DocumentDefaults } from "./defaults";
+import { newTemplatesReady } from "@/lib/templates-ready";
 
 export const metadata = { title: "Documents & printing" };
 
@@ -15,9 +16,10 @@ async function latest(ctx, kind) {
 
 export default async function DocumentsSettings() {
   const ctx = await requirePermission("settings.business");
-  const [quote, invoice, receiptRow] = await Promise.all([
+  const [quote, invoice, receiptRow, extra] = await Promise.all([
     latest(ctx, "quote"), latest(ctx, "invoice"),
     ctx.supabase.from("receipts").select("*").eq("business_id", ctx.business.id).order("issued_at", { ascending: false }).limit(1).maybeSingle().then((r) => r.data),
+    newTemplatesReady(ctx.supabase),
   ]);
   let receipt = null;
   if (receiptRow) {
@@ -31,7 +33,7 @@ export default async function DocumentsSettings() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Documents & printing" description="Default template and paper size for each document type. You can still change them on any document. Documents already sent keep the look and branding they were sent with." />
-      <DocumentDefaults business={ctx.business} samples={{ quote, invoice, receipt }} />
+      <DocumentDefaults business={ctx.business} samples={{ quote, invoice, receipt }} extraTemplates={extra} />
     </div>
   );
 }

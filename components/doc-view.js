@@ -1,3 +1,4 @@
+import { BoldReceipt, LedgerReceipt, accentInks } from "@/components/doc-receipts";
 // Renders a document model (lib/doc-model.js) as HTML sized in real paper
 // units. Used by the live preview and the print pages; the PDF renderer
 // (lib/pdf.js) follows the same template rules. Works on server and client.
@@ -5,6 +6,17 @@
 export function DocView({ model: m, screen = true }) {
   const thermal = m.paperSpec.thermal;
   const cls = ["pt-doc", `pt-t-${m.template}`, `pt-p-${m.paper}`, thermal ? "pt-thermal" : "pt-sheet", screen ? "pt-screen" : ""].join(" ");
+  // receipts with their own layout
+  if (m.receipt && (m.template === "ledger" || m.template === "bold")) {
+    const Layout = m.template === "ledger" ? LedgerReceipt : BoldReceipt;
+    const inks = accentInks(m.accent);
+    return (
+      <article className={cls} style={{ "--pt-accent": m.accent, "--pt-on-accent": inks.onAccent, "--pt-accent-on-dark": inks.accentOnDark, "--pt-w": `${m.paperSpec.w}mm`, "--pt-h": m.paperSpec.h ? `${m.paperSpec.h}mm` : "auto", "--pt-m": `${m.paperSpec.margin}mm` }}
+        aria-label={`${m.title} ${m.number}`}>
+        <Layout m={m} />
+      </article>
+    );
+  }
   return (
     <article className={cls} style={{ "--pt-accent": m.accent, "--pt-w": `${m.paperSpec.w}mm`, "--pt-h": m.paperSpec.h ? `${m.paperSpec.h}mm` : "auto", "--pt-m": `${m.paperSpec.margin}mm` }}
       aria-label={`${m.title} ${m.number}`}>
