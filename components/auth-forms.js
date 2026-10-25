@@ -61,7 +61,7 @@ export function LoginForm({ next, notice }) {
       {notice && <Callout tone="info">{notice}</Callout>}
       <FormMessage state={state} />
       <input type="hidden" name="next" value={next || ""} />
-      <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" placeholder="you@company.com" autoComplete="email" required /></Field>
+      <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
       <Field label="Password" htmlFor="password">
         <PasswordInput id="password" />
         <Link href="/forgot" className="self-end text-xs font-medium text-brand-ink hover:underline">Forgot password?</Link>
@@ -83,8 +83,8 @@ export function SignupForm({ next, email, trialText }) {
       </div>
       <FormMessage state={state} />
       <input type="hidden" name="next" value={next || ""} />
-      <Field label="Your full name" htmlFor="name"><Input id="name" icon={User} name="name" placeholder="Tolu Adeyemi" autoComplete="name" required /></Field>
-      <Field label="Work email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={email || ""} placeholder="you@company.com" autoComplete="email" required /></Field>
+      <Field label="Your full name" htmlFor="name"><Input id="name" icon={User} name="name" defaultValue={state?.name ?? ""} placeholder="Tolu Adeyemi" autoComplete="name" required /></Field>
+      <Field label="Work email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
       <Field label="Password" htmlFor="password" hint="At least 8 characters."><PasswordInput id="password" placeholder="Create a password" autoComplete="new-password" /></Field>
       <SubmitButton size="lg" block pendingText="Creating account…">Create account</SubmitButton>
       <p className="text-center text-xs text-ink-3">By creating an account you agree to the <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-ink">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-ink">Privacy Policy</Link>.</p>
@@ -103,7 +103,7 @@ export function ForgotForm() {
         <p className="mt-1 text-sm text-ink-2">We'll email you a code to choose a new one.</p>
       </div>
       <FormMessage state={state} />
-      <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" placeholder="you@company.com" autoComplete="email" required /></Field>
+      <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
       <SubmitButton size="lg" block pendingText="Sending…">Send reset code</SubmitButton>
       <Link href="/login" className="text-center text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
     </form>
@@ -139,13 +139,21 @@ function ResetCodeForm({ email }) {
 
 export function ResetForm() {
   const [state, action] = useActionState(updatePassword, null);
+  const [local, setLocal] = useState(null);
+  // check the two passwords here, before sending: a server round trip would clear both boxes
+  function check(e) {
+    const f = new FormData(e.currentTarget);
+    const pw = String(f.get("password") || "");
+    const problem = pw.length < 8 ? "Use at least 8 characters." : pw !== String(f.get("confirm") || "") ? "The two passwords don't match." : null;
+    if (problem) { e.preventDefault(); setLocal({ error: problem }); } else setLocal(null);
+  }
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <form action={action} onSubmit={check} className="flex flex-col gap-5">
       <div>
         <h1 className="text-title-1 text-ink">Choose a new password</h1>
         <p className="mt-1 text-sm text-ink-2">You'll stay signed in after this.</p>
       </div>
-      <FormMessage state={state} />
+      <FormMessage state={local || state} />
       <Field label="New password" htmlFor="password"><PasswordInput id="password" placeholder="At least 8 characters" autoComplete="new-password" /></Field>
       <Field label="Confirm password" htmlFor="confirm"><PasswordInput id="confirm" name="confirm" placeholder="Type it again" autoComplete="new-password" /></Field>
       <SubmitButton size="lg" block pendingText="Saving…">Save password</SubmitButton>

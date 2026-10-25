@@ -13,7 +13,7 @@ function safeNext(value, fallback = "/app") {
 export async function signIn(_prev, form) {
   const email = String(form.get("email") || "").trim().toLowerCase();
   const password = String(form.get("password") || "");
-  if (!email || !password) return { error: "Enter your email and password." };
+  if (!email || !password) return { error: "Enter your email and password.", email };
   const supabase = await createSupabaseServer();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
   if (error) {
@@ -24,7 +24,7 @@ export async function signIn(_prev, form) {
       else await supabase.auth.resend({ type: "signup", email }).catch(() => {});
       return { verify: email, next };
     }
-    return { error: "That email and password don't match." };
+    return { error: "That email and password don't match.", email };
   }
   redirect(safeNext(form.get("next")));
 }
@@ -34,12 +34,14 @@ export async function signUp(_prev, form) {
   const email = String(form.get("email") || "").trim().toLowerCase();
   const password = String(form.get("password") || "");
   const next = safeNext(form.get("next"), "/onboarding");
-  if (!name) return { error: "Tell us your name." };
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address." };
-  if (password.length < 8) return { error: "Use at least 8 characters for your password." };
+  // React clears a form after each submit; sending name and email back keeps them filled in
+  const keep = { name, email };
+  if (!name) return { error: "Tell us your name.", ...keep };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address.", ...keep };
+  if (password.length < 8) return { error: "Use at least 8 characters for your password.", ...keep };
   if (authEmailReady()) {
     const r = await startSignup({ email, password, name, next });
-    return r.error ? { error: r.error } : { verify: email, next };
+    return r.error ? { error: r.error, ...keep } : { verify: email, next };
   }
   // no email service set up: Supabase sends its own email
   const supabase = await createSupabaseServer();
@@ -47,7 +49,7 @@ export async function signUp(_prev, form) {
     email, password,
     options: { data: { full_name: name }, emailRedirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(next)}` },
   });
-  if (error) return { error: /registered/i.test(error.message) ? "An account with this email already exists. Sign in instead." : error.message };
+  if (error) return { error: /registered/i.test(error.message) ? "An account with this email already exists. Sign in instead." : error.message, ...keep };
   if (data.session) redirect(next);
   return { verify: email, next };
 }
@@ -80,10 +82,10 @@ export async function resendSignupCode(email, next) {
 
 export async function requestReset(_prev, form) {
   const email = String(form.get("email") || "").trim().toLowerCase();
-  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address." };
+  if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address.", email };
   if (authEmailReady()) {
     const r = await startReset({ email });
-    if (r.error) return { error: r.error };
+    if (r.error) return { error: r.error, email };
   } else {
     const supabase = await createSupabaseServer();
     await supabase.auth.resetPasswordForEmail(email, { redirectTo: `${siteUrl()}/auth/callback?next=/reset` });
