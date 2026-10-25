@@ -14,6 +14,15 @@ import { DocumentLayoutEditor } from "@/components/document-layout-editor";
 import { payLinkFor } from "@/lib/pdf-response";
 import { DocumentActions } from "@/components/document-actions";
 import { StatusBadge, activityText } from "@/components/doc-bits";
+import { DocumentFiles } from "@/components/document-files";
+import { r2Ready } from "@/lib/storage";
+
+// files attached to this document (null when the table isn't installed yet)
+async function filesFor(ctx, documentId) {
+  const { data, error } = await ctx.supabase.from("document_files").select("id, name, content_type, size_bytes, shared, uploaded_by, uploaded_by_name, created_at")
+    .eq("document_id", documentId).order("created_at");
+  return error ? null : data.map((f) => ({ ...f, when: timeAgo(f.created_at) }));
+}
 
 export async function generateMetadata({ params }) {
   return { title: "Document" };
@@ -38,6 +47,8 @@ export default async function DocumentPage({ params, searchParams }) {
   const lastReturn = activity.find((a) => a.action === "document.returned");
   const payLink = await payLinkFor(ctx.supabase, doc, full.connections);
   const canEditLayout = draft || can(ctx.member, "documents.send");
+  const files = await filesFor(ctx, doc.id);
+  const storageOn = r2Ready();
 
   return (
     <div className="flex flex-col gap-6">
@@ -142,6 +153,11 @@ export default async function DocumentPage({ params, searchParams }) {
             </Card>
           )}
 
+          <DocumentFiles documentId={doc.id} files={files || []} userId={ctx.user.id}
+            canAdd={can(ctx.member, "documents.create")} canShare={can(ctx.member, "documents.send")}
+            ready={storageOn && files !== null}
+            problem={!storageOn ? "File storage isn't connected yet. Once Cloudflare R2 is set up, you can attach files here." : "Attachments need a quick database update. Ask the Usetally team to run the latest SQL."} />
+
           <Card>
             <CardHeader title="Activity" icon={History} />
             <ol className="space-y-3.5 px-5 py-4">
@@ -149,7 +165,7 @@ export default async function DocumentPage({ params, searchParams }) {
                 <li key={a.id} className="flex gap-3 text-[13px]">
                   <span className="mt-1.5 size-2 shrink-0 rounded-full bg-line-strong" />
                   <span className="min-w-0">
-                    <span className="text-ink"><strong className="font-medium">{a.actor_label || "Customer"}</strong> {activityText(a)}{a.detail?.amount_minor ? ` — ${money(a.detail.amount_minor)}` : ""}</span>
+                    <span className="text-ink"><strong className="font-medium">{a.actor_label || "Customer"}</strong> {activityText(a)}{a.detail?.amount_minor ? ` — ${money(a.detail.amount_minor)}` : ""}{a.detail?.name ? `: ${a.detail.name}` : ""}</span>
                     <span className="block text-xs text-ink-3">{timeAgo(a.created_at)}</span>
                   </span>
                 </li>

@@ -2,7 +2,8 @@ import { ShowToast } from "@/components/show-toast";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { reconcileSoon } from "@/lib/payments";
-import { CheckCircle2, Clock, Download, XCircle, Receipt, Ban, Printer } from "lucide-react";
+import { CheckCircle2, Clock, Download, XCircle, Receipt, Ban, Printer, Paperclip } from "lucide-react";
+import { formatSize } from "@/lib/file-types";
 import { getPublicDocument } from "@/lib/documents";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { logoUrl } from "@/lib/site";
@@ -41,6 +42,10 @@ export default async function PublicDocument({ params, searchParams }) {
       doc.status = "viewed";
     }
   }
+
+  // files the business chose to show the customer (quote and its invoice)
+  const { data: sharedFiles } = await createSupabaseService().from("document_files").select("id, name, size_bytes")
+    .eq("shared", true).in("document_id", [doc.id, doc.converted_invoice_id].filter(Boolean)).order("created_at");
 
   const quote = doc.kind === "quote";
   const target = invoice || doc;
@@ -104,6 +109,21 @@ export default async function PublicDocument({ params, searchParams }) {
                     <a href={`/r/${r.access_token}`} className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f8f9fb]">
                       <span className="flex items-center gap-2"><Receipt className="size-4 doc-brand-text" />{r.number}</span>
                       <span className="text-[#475467] tabular">{formatMoney(r.amount_minor, r.currency)} · {formatDate(r.issued_at, { day: "numeric", month: "short" })}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+          {sharedFiles?.length > 0 && (
+            <div className="rounded-xl bg-white p-4 ring-1 ring-[#eaecf0]">
+              <p className="mb-2 text-[11px] font-semibold tracking-[0.08em] text-[#98a2b3]">ATTACHED FILES</p>
+              <ul className="space-y-1.5">
+                {sharedFiles.map((f) => (
+                  <li key={f.id}>
+                    <a href={`/d/${token}/files/${f.id}`} target="_blank" rel="noopener" className="flex items-center justify-between gap-3 rounded-lg px-2.5 py-2 text-sm hover:bg-[#f8f9fb]">
+                      <span className="flex min-w-0 items-center gap-2"><Paperclip className="size-4 shrink-0 doc-brand-text" /><span className="truncate">{f.name}</span></span>
+                      <span className="shrink-0 text-[#475467] tabular">{formatSize(f.size_bytes)}</span>
                     </a>
                   </li>
                 ))}
