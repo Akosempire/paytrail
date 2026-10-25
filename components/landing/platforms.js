@@ -19,7 +19,6 @@ export function Platforms({ wrap, kicker }) {
           <p className={kicker}>Platforms</p>
           <h2 id="platforms-title" className="font-display mt-3 text-[clamp(26px,3vw,38px)] leading-[1.05]">Built on tools you already trust.</h2>
         </div>
-        <p className="max-w-[380px] text-[14.5px] leading-relaxed text-hero-ink-2">Usetally runs on Vercel and Supabase, and pays you through the provider you choose.</p>
       </div>
       <ul className="mt-9 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {PLATFORMS.map(([name, file, role]) => (
@@ -32,7 +31,6 @@ export function Platforms({ wrap, kicker }) {
           </li>
         ))}
       </ul>
-      <p className="mt-4 text-[12px] text-hero-ink-2/70">Logos belong to their owners. Usetally isn't affiliated with or endorsed by these companies.</p>
     </section>
   );
 }
