@@ -78,8 +78,8 @@ export function StorageStatus({ status, saved, waiting }) {
           <Button variant="primary" icon={Save} loading={saving} onClick={save}>{saved ? "Save and check" : "Connect Cloudflare"}</Button>
           {connected && (
             <>
-              <Button icon={CloudUpload} loading={moving} disabled={!waiting} onClick={move}>Move existing images to Cloudflare</Button>
-              <span className="text-[13px] text-ink-3">{waiting ? `${waiting} still in Supabase` : "All images are on Cloudflare"}</span>
+              <Button icon={CloudUpload} loading={moving} onClick={move}>Move existing images to Cloudflare</Button>
+              <span className="text-[13px] text-ink-3">{waiting == null ? "" : waiting ? `${waiting} still in Supabase` : "None left in Supabase"}</span>
             </>
           )}
         </div>

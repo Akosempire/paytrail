@@ -8,11 +8,15 @@ import { StorageStatus } from "./storage-status";
 import { r2Check, storageSaved } from "@/lib/storage";
 import { createSupabaseService } from "@/lib/supabase/server";
 
-// images not yet on R2 (old uploads in Supabase Storage)
+// images not yet on R2 (older uploads in Supabase Storage); null if unknown
 async function imagesWaiting() {
-  const service = createSupabaseService();
-  const count = async (f) => (await service.from("businesses").select("id", { count: "exact", head: true }).not(f, "is", null).not(f, "like", "r2:%")).count || 0;
-  try { return (await count("logo_path")) + (await count("signature_path")); } catch { return 0; }
+  try {
+    const service = createSupabaseService();
+    let { data, error } = await service.from("businesses").select("logo_path, signature_path").or("logo_path.not.is.null,signature_path.not.is.null").limit(5000);
+    if (error) ({ data, error } = await service.from("businesses").select("logo_path").not("logo_path", "is", null).limit(5000)); // before the signature update
+    if (error) return null;
+    return data.reduce((n, b) => n + [b.logo_path, b.signature_path].filter((p) => p && !p.startsWith("r2:") && !p.startsWith("http")).length, 0);
+  } catch { return null; }
 }
 
 export const metadata = { title: "Trial & billing" };

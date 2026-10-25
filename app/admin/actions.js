@@ -203,8 +203,10 @@ export async function moveImagesToR2() {
   const { r2Ready, r2Put } = await import("@/lib/storage");
   if (!(await r2Ready())) return { error: "Cloudflare R2 isn't connected yet. Save your R2 details above first." };
   const service = createSupabaseService();
-  const { data: rows, error } = await service.from("businesses").select("id, logo_path, signature_path")
+  let { data: rows, error } = await service.from("businesses").select("id, logo_path, signature_path")
     .or("logo_path.not.is.null,signature_path.not.is.null").limit(2000);
+  // before the signature update there is no signature_path column
+  if (error) ({ data: rows, error } = await service.from("businesses").select("id, logo_path").not("logo_path", "is", null).limit(2000));
   if (error) return { error: error.message };
   let moved = 0, failed = 0;
   for (const b of rows || []) {
