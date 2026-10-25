@@ -10,33 +10,64 @@ import { LogoInput } from "@/components/logo-input";
 
 const SWATCHES = ["#1570EF", "#079455", "#7A5AF8", "#DC6803", "#D92D20", "#0E9384", "#101828", "#C11574"];
 
+// One onboarding step. The actions (Continue, Skip, Back) sit in a bar
+// fixed to the bottom of the screen, so they're always in reach without
+// scrolling, on phones and desktops alike.
 function StepCard({ title, description, children, footer }) {
   return (
-    <Card className="animate-rise">
-      <div className="border-b border-line px-6 py-5">
-        <h1 className="text-title-1 text-ink">{title}</h1>
-        {description && <p className="mt-1 text-sm text-ink-2">{description}</p>}
-      </div>
-      <div className="flex flex-col gap-6 px-6 py-6">{children}</div>
-      {footer && <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line bg-subtle px-6 py-4">{footer}</div>}
-    </Card>
+    <>
+      <Card className="animate-rise">
+        <div className="border-b border-line px-5 py-4 sm:px-6 sm:py-5">
+          <h1 className="text-title-2 text-ink sm:text-title-1">{title}</h1>
+          {description && <p className="mt-1 text-sm text-ink-2">{description}</p>}
+        </div>
+        <div className="flex flex-col gap-5 px-5 py-5 sm:gap-6 sm:px-6 sm:py-6">{children}</div>
+      </Card>
+      {footer && (
+        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] shadow-[0_-8px_24px_-16px_rgb(16_24_40/.25)] backdrop-blur">
+          <div className="mx-auto flex w-full max-w-[880px] items-center gap-3 px-4 py-3 sm:px-6">{footer}</div>
+        </div>
+      )}
+    </>
   );
 }
+
+// optional fields, folded away until wanted
+function More({ label, children }) {
+  return (
+    <details className="group rounded-xl ring-1 ring-line [&_summary::-webkit-details-marker]:hidden">
+      <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-sm font-medium text-ink-2 hover:text-ink">
+        {label}
+        <ArrowRight className="size-4 shrink-0 text-ink-3 transition-transform group-open:rotate-90" aria-hidden="true" />
+      </summary>
+      <div className="border-t border-line px-4 py-4">{children}</div>
+    </details>
+  );
+}
+
+const backLink = (href) => (
+  <Link href={href} aria-label="Back" className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 text-sm font-medium text-ink-2 hover:text-ink">
+    <ArrowLeft className="size-4" /><span className="max-sm:sr-only">Back</span>
+  </Link>
+);
+const skipLink = (href, label = "Skip for now") => (
+  <Link href={href} className="inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-medium text-ink-2 hover:text-ink">{label}</Link>
+);
 
 function ChoiceCard({ checked, onSelect, icon: Icon, title, description, points }) {
   return (
     <button type="button" onClick={onSelect} aria-pressed={checked}
-      className={cx("flex flex-col gap-3 rounded-xl p-5 text-left ring-1 transition-shadow",
+      className={cx("flex flex-col gap-3 rounded-xl p-3.5 text-left ring-1 transition-shadow sm:p-5",
         checked ? "bg-brand-soft ring-2 ring-brand" : "bg-surface ring-line-strong hover:ring-ink-3")}>
-      <div className="flex items-center justify-between">
-        <span className={cx("inline-flex size-10 items-center justify-center rounded-full ring-1", checked ? "bg-brand text-white ring-brand" : "bg-surface text-ink-2 ring-line")}><Icon className="size-[18px]" /></span>
-        <span className={cx("inline-flex size-5 items-center justify-center rounded-full ring-1", checked ? "bg-brand text-white ring-brand" : "ring-line-strong")}>{checked && <Check className="size-3" />}</span>
+      <div className="flex items-center gap-3">
+        <span className={cx("inline-flex size-10 shrink-0 items-center justify-center rounded-full ring-1", checked ? "bg-brand text-white ring-brand" : "bg-surface text-ink-2 ring-line")}><Icon className="size-[18px]" /></span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[15px] font-semibold text-ink sm:text-title-3">{title}</p>
+          <p className="mt-0.5 text-[13px] text-ink-3">{description}</p>
+        </div>
+        <span className={cx("inline-flex size-5 shrink-0 items-center justify-center rounded-full ring-1", checked ? "bg-brand text-white ring-brand" : "ring-line-strong")}>{checked && <Check className="size-3" />}</span>
       </div>
-      <div>
-        <p className="text-title-3 text-ink">{title}</p>
-        <p className="mt-0.5 text-[13px] text-ink-3">{description}</p>
-      </div>
-      <ul className="space-y-1.5 border-t border-line pt-3">
+      <ul className="hidden space-y-1.5 border-t border-line pt-3 sm:block">
         {points.map((p) => <li key={p} className="flex gap-2 text-[13px] text-ink-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{p}</li>)}
       </ul>
     </button>
@@ -52,7 +83,7 @@ export function StepStart({ ownerName, firstBusiness }) {
       <StepCard
         title={firstBusiness ? "Welcome to Usetally" : "Add another business"}
         description="Tell us who you are. This appears on every quote, invoice and receipt you send."
-        footer={<><span className="text-[13px] text-ink-3">You can change all of this later in Settings.</span><SubmitButton iconRight={ArrowRight} pendingText="Creating…">Continue</SubmitButton></>}>
+        footer={<><span className="flex-1 text-[13px] text-ink-3 max-sm:hidden">You can change all of this later in Settings.</span><SubmitButton size="lg" iconRight={ArrowRight} pendingText="Creating…" className="max-sm:flex-1">Continue</SubmitButton></>}>
         <FormMessage state={state} />
         <div>
           <p className="mb-2.5 text-[13px] font-medium text-ink-2">How will you use Usetally?</p>
@@ -68,16 +99,20 @@ export function StepStart({ ownerName, firstBusiness }) {
             <Input id="name" name="name" placeholder={kind === "company" ? "Adeyemi Studio Ltd" : "Tolu Adeyemi Designs"} required />
           </Field>
           <Field label="Your name" htmlFor="owner_name"><Input id="owner_name" name="owner_name" defaultValue={ownerName} required /></Field>
-          {kind === "company" && <Field label="Registered name" htmlFor="legal_name" optional><Input id="legal_name" name="legal_name" placeholder="As on your CAC certificate" /></Field>}
-          <Field label="Business email" htmlFor="email" hint="Customers reply to this."><Input id="email" name="email" type="email" placeholder="hello@yourbusiness.com" /></Field>
-          <Field label="Phone / WhatsApp" htmlFor="phone"><Input id="phone" name="phone" placeholder="+234 801 234 5678" /></Field>
-          <Field label="Website" htmlFor="website" optional><Input id="website" name="website" placeholder="yourbusiness.com" /></Field>
-          <Field label="Address" htmlFor="address" className="sm:col-span-2"><Input id="address" name="address" placeholder="12 Admiralty Way, Lekki Phase 1" /></Field>
-          <Field label="City" htmlFor="city"><Input id="city" name="city" placeholder="Your city" /></Field>
-          <Field label="Country" htmlFor="country"><Input id="country" name="country" placeholder="Your country" /></Field>
           <Field label="Main currency" htmlFor="currency"><Select id="currency" name="currency" defaultValue="NGN">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-          <Field label="Tax ID (TIN)" htmlFor="tax_id" optional><Input id="tax_id" name="tax_id" /></Field>
         </div>
+        <More label="Add contact details (optional)">
+          <div className="grid items-start gap-4 sm:grid-cols-2">
+            {kind === "company" && <Field label="Registered name" htmlFor="legal_name" optional><Input id="legal_name" name="legal_name" placeholder="As on your CAC certificate" /></Field>}
+            <Field label="Business email" htmlFor="email" hint="Customers reply to this."><Input id="email" name="email" type="email" placeholder="hello@yourbusiness.com" /></Field>
+            <Field label="Phone / WhatsApp" htmlFor="phone"><Input id="phone" name="phone" placeholder="+234 801 234 5678" /></Field>
+            <Field label="Website" htmlFor="website" optional><Input id="website" name="website" placeholder="yourbusiness.com" /></Field>
+            <Field label="Address" htmlFor="address" className="sm:col-span-2"><Input id="address" name="address" placeholder="12 Admiralty Way, Lekki Phase 1" /></Field>
+            <Field label="City" htmlFor="city"><Input id="city" name="city" placeholder="Your city" /></Field>
+            <Field label="Country" htmlFor="country"><Input id="country" name="country" placeholder="Your country" /></Field>
+            <Field label="Tax ID (TIN)" htmlFor="tax_id" optional><Input id="tax_id" name="tax_id" /></Field>
+          </div>
+        </More>
       </StepCard>
     </form>
   );
@@ -119,7 +154,7 @@ export function StepBrand({ business, logo: initialLogo }) {
     <form action={action}>
       <input type="hidden" name="business_id" value={business.id} />
       <StepCard title="Make it yours" description="Your logo and colour go on every document, email and payment page your customers see."
-        footer={<><Link href="/onboarding?step=money" className="text-sm font-medium text-ink-2 hover:text-ink">Skip for now</Link><SubmitButton iconRight={ArrowRight} pendingText="Saving…">Continue</SubmitButton></>}>
+        footer={<>{skipLink("/onboarding?step=money")}<span className="flex-1 max-sm:hidden" /><SubmitButton size="lg" iconRight={ArrowRight} pendingText="Saving…" className="max-sm:flex-1">Continue</SubmitButton></>}>
         <FormMessage state={state} />
         <div className="grid gap-8 md:grid-cols-[1fr_300px]">
           <div className="flex flex-col gap-6">
@@ -166,22 +201,12 @@ export function StepMoney({ business }) {
     <form action={action}>
       <input type="hidden" name="business_id" value={business.id} />
       <StepCard title="Money & numbering" description="Defaults for new documents. You can override them on any quote or invoice."
-        footer={<><Link href="/onboarding?step=brand" className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-2 hover:text-ink"><ArrowLeft className="size-4" />Back</Link><SubmitButton iconRight={ArrowRight} pendingText="Saving…">Continue</SubmitButton></>}>
+        footer={<>{backLink("/onboarding?step=brand")}{skipLink("/onboarding?step=finish", "Skip")}<span className="flex-1 max-sm:hidden" /><SubmitButton size="lg" iconRight={ArrowRight} pendingText="Saving…" className="max-sm:flex-1">Continue</SubmitButton></>}>
         <FormMessage state={state} />
-        <section className="grid gap-4 sm:grid-cols-3">
+        <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Field label="Currency" htmlFor="currency"><Select id="currency" name="currency" defaultValue={business.currency}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-          <Field label="Tax name" htmlFor="tax_label"><Input id="tax_label" name="tax_label" defaultValue={business.tax_label} /></Field>
-          <Field label="Tax rate (%)" htmlFor="tax_rate" hint="Your local VAT or sales tax rate. Use 0 if you don't charge it."><Input id="tax_rate" name="tax_rate" type="number" step="0.01" min="0" max="100" defaultValue={business.tax_rate} /></Field>
-          <Field label="Quotes are valid for (days)" htmlFor="qv"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={business.quote_validity_days} /></Field>
-          <Field label="Invoices are due after (days)" htmlFor="idd"><Input id="idd" name="invoice_due_days" type="number" min="0" max="365" defaultValue={business.invoice_due_days} /></Field>
-        </section>
-        <section>
-          <p className="mb-2.5 text-[13px] font-medium text-ink-2">Numbering</p>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Quote prefix" htmlFor="qp" hint="e.g. QT-0001"><Input id="qp" name="quote_prefix" defaultValue={business.quote_prefix} maxLength={8} /></Field>
-            <Field label="Invoice prefix" htmlFor="ip" hint="e.g. INV-0001"><Input id="ip" name="invoice_prefix" defaultValue={business.invoice_prefix} maxLength={8} /></Field>
-            <Field label="Receipt prefix" htmlFor="rp" hint="e.g. RCT-0001"><Input id="rp" name="receipt_prefix" defaultValue={business.receipt_prefix} maxLength={8} /></Field>
-          </div>
+          <Field label="Tax rate (%)" htmlFor="tax_rate"><Input id="tax_rate" name="tax_rate" type="number" step="0.01" min="0" max="100" defaultValue={business.tax_rate} /></Field>
+          <p className="col-span-2 -mt-2 text-xs text-ink-3 sm:col-span-1 sm:mt-7">Your VAT or sales tax. Use 0 if you don't charge it.</p>
         </section>
         <section>
           <p className="text-[13px] font-medium text-ink-2">Bank details for transfers</p>
@@ -192,9 +217,23 @@ export function StepMoney({ business }) {
             <Field label="Account number" htmlFor="bno"><Input id="bno" name="bank_account_number" defaultValue={business.bank_account_number} inputMode="numeric" /></Field>
           </div>
         </section>
-        <Field label="Default terms" htmlFor="terms" optional hint="Added to new documents. Edit per document if needed.">
-          <Textarea id="terms" name="default_terms" rows={3} defaultValue={business.default_terms} placeholder="70% deposit before work starts, balance on delivery. Prices valid for the period stated." />
-        </Field>
+        <More label="Tax name, due dates, numbering and terms (optional)">
+          <div className="flex flex-col gap-5">
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Field label="Tax name" htmlFor="tax_label"><Input id="tax_label" name="tax_label" defaultValue={business.tax_label} /></Field>
+              <Field label="Quotes valid for (days)" htmlFor="qv"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={business.quote_validity_days} /></Field>
+              <Field label="Invoices due after (days)" htmlFor="idd"><Input id="idd" name="invoice_due_days" type="number" min="0" max="365" defaultValue={business.invoice_due_days} /></Field>
+            </div>
+            <div className="grid grid-cols-3 gap-3 sm:gap-4">
+              <Field label="Quote prefix" htmlFor="qp" hint="QT-0001"><Input id="qp" name="quote_prefix" defaultValue={business.quote_prefix} maxLength={8} /></Field>
+              <Field label="Invoice prefix" htmlFor="ip" hint="INV-0001"><Input id="ip" name="invoice_prefix" defaultValue={business.invoice_prefix} maxLength={8} /></Field>
+              <Field label="Receipt prefix" htmlFor="rp" hint="RCT-0001"><Input id="rp" name="receipt_prefix" defaultValue={business.receipt_prefix} maxLength={8} /></Field>
+            </div>
+            <Field label="Default terms" htmlFor="terms" optional hint="Added to new documents. Edit per document if needed.">
+              <Textarea id="terms" name="default_terms" rows={3} defaultValue={business.default_terms} placeholder="70% deposit before work starts, balance on delivery. Prices valid for the period stated." />
+            </Field>
+          </div>
+        </More>
       </StepCard>
     </form>
   );
@@ -207,8 +246,9 @@ export function StepFinish({ business }) {
     <form action={action}>
       <input type="hidden" name="business_id" value={business.id} />
       <StepCard title="Almost done" description={company ? "Invite your team now, or later from Settings → Team." : "Last step: how do you want to get paid?"}
-        footer={<><Link href="/onboarding?step=money" className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-2 hover:text-ink"><ArrowLeft className="size-4" />Back</Link>
-          <div className="flex flex-wrap gap-2"><SubmitButton variant="secondary" name="next" value="payments" icon={PlugZap}>Finish & connect payments</SubmitButton><SubmitButton iconRight={ArrowRight} name="next" value="app" pendingText="Finishing…">Go to dashboard</SubmitButton></div></>}>
+        footer={<>{backLink("/onboarding?step=money")}<span className="flex-1 max-sm:hidden" />
+          <SubmitButton size="lg" variant="secondary" name="next" value="payments" icon={PlugZap} className="max-sm:flex-1 max-sm:px-3"><span className="max-sm:hidden">Finish & connect payments</span><span className="sm:hidden">Payments</span></SubmitButton>
+          <SubmitButton size="lg" iconRight={ArrowRight} name="next" value="app" pendingText="Finishing…" className="max-sm:flex-1 max-sm:px-3"><span className="max-sm:hidden">Go to dashboard</span><span className="sm:hidden">Dashboard</span></SubmitButton></>}>
         <FormMessage state={state} />
         {company && (
           <section className="grid gap-4 sm:grid-cols-[1fr_220px]">
