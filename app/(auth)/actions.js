@@ -20,7 +20,7 @@ export async function signIn(_prev, form) {
     if (/confirm/i.test(error.message)) {
       // send a fresh code and let them finish verifying right here
       const next = safeNext(form.get("next"), "/onboarding");
-      if (authEmailReady()) await resendSignup({ email, next }).catch(() => {});
+      if (await authEmailReady()) await resendSignup({ email, next }).catch(() => {});
       else await supabase.auth.resend({ type: "signup", email }).catch(() => {});
       return { verify: email, next };
     }
@@ -39,7 +39,7 @@ export async function signUp(_prev, form) {
   if (!name) return { error: "Tell us your name.", ...keep };
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address.", ...keep };
   if (password.length < 8) return { error: "Use at least 8 characters for your password.", ...keep };
-  if (authEmailReady()) {
+  if (await authEmailReady()) {
     const r = await startSignup({ email, password, name, next });
     return r.error ? { error: r.error, ...keep } : { verify: email, next };
   }
@@ -70,7 +70,7 @@ export async function verifySignup(_prev, form) {
 export async function resendSignupCode(email, next) {
   const address = String(email || "").trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(address)) return { error: "Enter a valid email address." };
-  if (authEmailReady()) {
+  if (await authEmailReady()) {
     const r = await resendSignup({ email: address, next: safeNext(next, "/onboarding") });
     return r.error ? r : { message: `A new code is on its way to ${address}.` };
   }
@@ -83,7 +83,7 @@ export async function resendSignupCode(email, next) {
 export async function requestReset(_prev, form) {
   const email = String(form.get("email") || "").trim().toLowerCase();
   if (!/^\S+@\S+\.\S+$/.test(email)) return { error: "Enter a valid email address.", email };
-  if (authEmailReady()) {
+  if (await authEmailReady()) {
     const r = await startReset({ email });
     if (r.error) return { error: r.error, email };
   } else {

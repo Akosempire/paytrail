@@ -13,7 +13,7 @@ export default async function Page() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Trial & billing" description="How new businesses try Usetally, and how Usetally collects subscription payments." />
-      <EmailStatus status={emailStatus()} />
+      <EmailStatus status={await emailStatus()} />
       <PlatformSettings settings={s} webhooks={Object.fromEntries(["stripe", "paystack", "flutterwave", "bachs"].map((p) => [p, `${siteUrl()}/api/webhooks/${p}/platform`]))} />
     </div>
   );

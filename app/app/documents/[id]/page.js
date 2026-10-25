@@ -51,7 +51,7 @@ export default async function DocumentPage({ params, searchParams }) {
           </div>
           <p className="mt-1 text-sm text-ink-2">{doc.title || (quote ? "Quotation" : "Invoice")} · {doc.customer_name}{doc.customer_company ? `, ${doc.customer_company}` : ""}</p>
         </div>
-        <DocumentActions doc={doc} balance={balance} emailReady={emailConfigured()}
+        <DocumentActions doc={doc} balance={balance} emailReady={await emailConfigured()}
           perms={{ canSend: can(ctx.member, "documents.send"), needsApproval: ctx.member.role === "junior_finance" && ctx.business.require_approval, canApprove: can(ctx.member, "documents.approve"),
             canRecord: can(ctx.member, "payments.record"), canConvert: can(ctx.member, "documents.convert"), canVoid: can(ctx.member, "documents.void") }} />
       </div>

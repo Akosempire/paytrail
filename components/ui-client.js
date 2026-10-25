@@ -17,14 +17,19 @@ export function SubmitButton({ children, pendingText, icon, variant = "primary",
 
 export function Modal({ open, onClose, title, description, children, footer, size = "md" }) {
   const ref = useRef(null);
+  // onClose is often a new function each render; keep the latest in a ref so
+  // focus is only moved when the dialog opens, not on every keystroke inside it
+  const closeRef = useRef(onClose);
+  useEffect(() => { closeRef.current = onClose; });
   useEffect(() => {
     if (!open) return;
-    const onKey = (e) => e.key === "Escape" && onClose?.();
+    const onKey = (e) => e.key === "Escape" && closeRef.current?.();
     document.addEventListener("keydown", onKey);
     const previous = document.activeElement;
-    ref.current?.querySelector("input,select,textarea,button")?.focus();
+    const box = ref.current;
+    (box?.querySelector("[autofocus],input:not([type=hidden]),select,textarea") || box?.querySelector("button"))?.focus();
     return () => { document.removeEventListener("keydown", onKey); previous?.focus?.(); };
-  }, [open, onClose]);
+  }, [open]);
   if (!open) return null;
   const widths = { sm: "max-w-md", md: "max-w-lg", lg: "max-w-2xl" };
   return (

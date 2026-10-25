@@ -59,7 +59,7 @@ export async function sendDocument(id, { email = true, expected } = {}) {
   const result = await sendDocumentInternal(ctx, id, { email, expected });
   refresh(id);
   if (result.error) return result;
-  if (email && !emailConfigured()) return { message: "Marked as sent. Email isn't set up on this Usetally, so copy the link or share it on WhatsApp." };
+  if (email && !(await emailConfigured())) return { message: "Marked as sent. Email isn't set up on this Usetally, so copy the link or share it on WhatsApp." };
   return { message: result.message || (result.emailed ? "Sent to your customer by email." : "Marked as sent. Share the link with your customer.") };
 }
 
@@ -70,7 +70,7 @@ export async function resendEmail(id) {
   if (!full.doc.sent_at || ["draft", "pending_approval", "void"].includes(full.doc.status)) return { error: "Only sent documents can be emailed." };
   if (!can(ctx.member, "documents.send") && !(ctx.member.role === "junior_finance" && !ctx.business.require_approval)) return { error: "A manager or finance officer needs to send this." };
   if (!full.doc.customer_email) return { error: "Add an email for this customer first." };
-  if (!emailConfigured()) return { error: "Email isn't set up on this Usetally. Share the link instead." };
+  if (!(await emailConfigured())) return { error: "Email isn't set up on this Usetally. Share the link instead." };
   const r = await emailDocument(ctx, full);
   return r.sent ? { message: `Emailed to ${full.doc.customer_email}.` } : { error: "The email could not be sent. Try again." };
 }
@@ -147,7 +147,7 @@ export async function emailReceipt(receiptId) {
   const { data: receipt } = await ctx.supabase.from("receipts").select("*, documents(number, customer_email, customer_name)").eq("id", receiptId).eq("business_id", ctx.business.id).maybeSingle();
   if (!receipt) return { error: "Receipt not found." };
   if (!receipt.documents?.customer_email) return { error: "This customer has no email address." };
-  if (!emailConfigured()) return { error: "Email isn't set up on this Usetally. Copy the receipt link instead." };
+  if (!(await emailConfigured())) return { error: "Email isn't set up on this Usetally. Copy the receipt link instead." };
   const b = ctx.business;
   const link = `${siteUrl()}/r/${receipt.access_token}`;
   const r = await sendEmail({

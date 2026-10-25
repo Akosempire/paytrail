@@ -2,7 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
-import { encryptSecret, hint } from "@/lib/crypto";
+import { decryptSecret, encryptSecret, hint } from "@/lib/crypto";
 import { toMinor, CURRENCIES } from "@/lib/money";
 import { KEY_RULES, webhookSecretProblem } from "@/lib/payments/keys";
 import { requireStepUp } from "@/lib/step-up";
@@ -115,16 +115,52 @@ export async function updateBusinessAccount(businessId, form) {
   return { message: "Account updated." };
 }
 
+// Brevo for all of Usetally's email, set up here instead of in Vercel.
+// The first setup needs no security code (email can't deliver one yet);
+// changing a working setup does, because whoever controls this key can read
+// every sign-up and reset code.
+export async function saveEmailSettings(form) {
+  const ctx = await requirePlatformAdmin();
+  const { checkBrevo, forgetEmailConfig } = await import("@/lib/email");
+  const key = String(form.apiKey || "").trim().replace(/^["']|["']$/g, "");
+  const fromName = String(form.fromName || "").trim().slice(0, 80) || "Usetally";
+  const fromAddress = String(form.fromAddress || "").trim().toLowerCase();
+  if (!/^[^\s@<>]+@[^\s@<>]+\.[a-z]{2,}$/i.test(fromAddress)) return { error: "Enter the address emails should come from, like hello@usetally.cc." };
+  const service = createSupabaseService();
+  const { data: current, error: readError } = await service.from("platform_settings").select("email_api_key_enc, email_from_address").eq("id", true).single();
+  if (readError) return { error: /email_api_key_enc/.test(readError.message) ? "Run the new SQL first (supabase/RUN_NEW_2026-10-25b.sql), then try again." : readError.message };
+  if (!key && !current?.email_api_key_enc) return { error: "Paste your Brevo API key." };
+  // the saved key still works: changing it needs a code. If it no longer
+  // works, a code couldn't be delivered anyway, so let the admin replace it.
+  const savedWorks = current?.email_api_key_enc ? (await checkBrevo(decryptSecret(current.email_api_key_enc), current.email_from_address || fromAddress)).ok : false;
+  if (savedWorks && (key || fromAddress !== current.email_from_address)) {
+    const gate = await requireStepUp(ctx, "email_settings", null);
+    if (gate) return gate;
+  }
+  const useKey = key || decryptSecret(current.email_api_key_enc);
+  const check = await checkBrevo(useKey, fromAddress);
+  if (!check.ok) return { error: check.error };
+  const update = { email_from_name: fromName, email_from_address: fromAddress, email_account: check.account || null, email_checked_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+  if (key) { update.email_api_key_enc = encryptSecret(key); update.email_key_hint = hint(key); }
+  const { error } = await service.from("platform_settings").update(update).eq("id", true);
+  if (error) return { error: error.message };
+  forgetEmailConfig();
+  if (key && current?.email_api_key_enc) await notifyAdmins({ subject: "Usetally email key changed", lines: [`${ctx.user.email} replaced the Brevo API key at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace it straight away."], link: "/admin/settings" });
+  revalidatePath("/admin/settings");
+  return check.senderNote
+    ? { warning: true, messageTitle: "Key saved, one step left", message: check.senderNote }
+    : { message: `Connected to Brevo${check.account ? ` (${check.account})` : ""}. Send a test email to be sure.` };
+}
+
 // sends a test email to the signed-in admin and reports the mail server's answer
 export async function sendTestEmail() {
   const ctx = await requirePlatformAdmin();
   const { emailStatus, sendEmail } = await import("@/lib/email");
   const { adminAlertEmail } = await import("@/lib/emails");
-  const status = emailStatus();
-  if (status.missing.length) return { error: `Missing in Vercel: ${status.missing.join(", ")}. Add them, then redeploy.` };
-  const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Brevo is connected", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email through Brevo."] }) });
+  const status = await emailStatus();
+  if (!status.ready) return { error: "Email isn't set up yet. Paste your Brevo API key above and save." };
+  const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Email is working", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email through Brevo."] }) });
   if (r.sent) return { message: `Sent to ${ctx.user.email}. Check your inbox (and spam).` };
   const login = /535|auth/i.test(r.detail || "");
-  return { error: `Brevo refused the email: ${r.detail || "no reason given"}`, hints: status.hints.length ? status.hints : login ? ( ["SMTP_USER and SMTP_PASS look the right shape, so one of them is out of date. In Brevo → SMTP & API → SMTP tab, copy the Login again and generate a new SMTP key, update both in Vercel, then redeploy. If it still fails, Brevo may not have activated SMTP on your account yet: contact Brevo support to enable it."]) : [] };
+  return { error: `Brevo refused the email: ${r.detail || "no reason given"}`, hints: status.env.hints.length ? status.env.hints : status.source === "vercel" && login ? ["Easiest fix: paste a Brevo API key in the form above instead. It replaces the SMTP settings in Vercel."] : [] };
 }
-
