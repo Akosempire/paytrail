@@ -1,14 +1,17 @@
 import Link from "next/link";
 import { preload } from "react-dom";
-import { ArrowDown, ArrowRight, BadgeCheck, Building2, Check, EyeOff, Landmark, Lock, Plus, ShieldCheck, UserRound, Wallet } from "lucide-react";
+import { ArrowDown, Building2, Check, EyeOff, Landmark, Plus, UserRound } from "lucide-react";
 import { Alert, Logo } from "@/components/ui";
-import { ThemeToggle } from "@/components/ui-client";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
 import { TemplateThumb } from "@/components/layout-panel";
 import { Chapters, PainStory } from "@/components/landing/story";
 import { DotField } from "@/components/landing/dot-field";
 import { ReceiptTape } from "@/components/landing/receipt-tape";
+import { PrimaryCta, SecondaryCta } from "@/components/landing/cta";
+import { ThemeSwitch } from "@/components/landing/theme-switch";
+import { Platforms } from "@/components/landing/platforms";
+import { Pricing } from "@/components/landing/pricing";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
@@ -26,9 +29,6 @@ async function publicData() {
   return { plans: plans || [], trial };
 }
 
-const BTN = "inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-hero-ink px-7 text-[15px] font-semibold text-hero transition-[transform,background] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent focus-visible:ring-offset-2 focus-visible:ring-offset-hero";
-const BTN_SM = "inline-flex h-9 items-center rounded-full bg-hero-ink px-4 text-[13px] font-semibold text-hero transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent";
-const BTN_GHOST = "inline-flex h-[52px] items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent";
 const PAPER = "rounded-[18px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.05),0_18px_40px_-24px_rgba(20,16,8,.3)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
 const WRAP = "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10";
 const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase";
@@ -66,36 +66,35 @@ export default async function Home({ searchParams }) {
   const signedIn = Boolean(ctx.user);
 
   return (
-    <div className="min-h-dvh bg-hero text-hero-ink">
+    <div className="relative min-h-dvh bg-hero text-hero-ink">
+      {/* interactive dot field behind the whole page */}
+      <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0"><DotField /></div>
+      <div className="relative z-[1]">
       {signedIn && <InstallPrompt delay={5000} />}
 
       {/* ------------------------------------------------ hero */}
-      <div className="relative isolate overflow-hidden">
-        {/* interactive dot field behind the hero; fades out at the bottom */}
-        <div aria-hidden="true" className="absolute inset-0 -z-10 [mask-image:linear-gradient(to_bottom,#000_72%,transparent)]">
-          <DotField />
-        </div>
+      <div className="relative overflow-hidden">
         <header className={`relative z-10 flex items-center justify-between py-4 ${WRAP}`}>
           <Logo withWord wordClass="text-hero-ink" />
           <nav className="flex items-center gap-1 sm:gap-2" aria-label="Main">
             <a href="#how-it-works" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink md:block">How it works</a>
             <a href="#pricing" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink sm:block">Pricing</a>
-            <ThemeToggle />
+            <ThemeSwitch />
             {signedIn
-              ? <Link href="/app" className={BTN_SM}>Open dashboard</Link>
-              : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><Link href="/signup" className={BTN_SM}>Get started</Link></>}
+              ? <PrimaryCta href="/app" size="sm">Dashboard</PrimaryCta>
+              : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><PrimaryCta href="/signup" size="sm">Get started</PrimaryCta></>}
           </nav>
         </header>
         {sp.account === "deleted" && <div className={WRAP}><Alert intent="success" title="Account deleted">Your data has been removed. Thanks for using {BRAND.name}.</Alert></div>}
 
-        <section className={`grid items-center gap-6 pt-8 pb-10 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:pt-6 lg:pb-12 ${WRAP}`}>
+        <section className={`grid items-center gap-6 pt-16 pb-10 sm:pt-24 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:pt-20 lg:pb-12 ${WRAP}`}>
           <div className="max-w-[560px] lg:pb-10">
             <h1 className="font-display text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em]">
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
             <p className="mt-6 max-w-[560px] text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">Send branded quotes, turn them into invoices, and get paid straight into your own Paystack or Stripe. See your real profit on every job, with receipts sent automatically.</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
-              <Link href="/signup" className={BTN}>Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
+              <PrimaryCta href="/signup">Get started free</PrimaryCta>
               <a href="#how-it-works" className="group inline-flex items-center justify-center gap-2 text-[15px] font-medium sm:justify-start">
                 <span className="border-b border-hero-line pb-0.5 transition-colors group-hover:border-hero-ink">See how it works</span>
                 <ArrowDown className="size-4 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
@@ -106,7 +105,8 @@ export default async function Home({ searchParams }) {
         </section>
 
         {/* trust facts on receipt tape */}
-        <div className="pb-14"><ReceiptTape /></div>
+        <div className="pb-4"><ReceiptTape /></div>
+        <Platforms wrap={WRAP} kicker={KICKER} />
       </div>
 
       {/* ------------------------------------------------ story */}
@@ -164,9 +164,6 @@ export default async function Home({ searchParams }) {
                 </figure>
               ))}
             </div>
-            <div className="mt-6 flex flex-wrap gap-2 text-[12.5px] font-medium">
-              {["A4", "US Letter", "A5", "Half letter", "80 mm roll", "58 mm roll"].map((p) => <span key={p} className="rounded-full bg-hero-paper px-3 py-1.5 ring-1 ring-hero-line">{p}</span>)}
-            </div>
           </div>
         </div>
       </section>
@@ -177,40 +174,7 @@ export default async function Home({ searchParams }) {
         const interval = sp.interval === "year" ? "year" : "month";
         const { currency, plans } = plansFor(allPlans, { currency: currencies.includes(sp.currency) ? sp.currency : currencies.includes("NGN") ? "NGN" : "USD", interval });
         const link = (c, i) => `/?currency=${c}&interval=${i}#pricing`;
-        const pill = (on) => `inline-flex h-9 items-center rounded-full px-4 text-[13px] font-semibold ${on ? "bg-hero-ink text-hero" : "text-hero-ink-2 hover:text-hero-ink"}`;
-        return (
-          <section id="pricing" className={`scroll-mt-4 py-24 ${WRAP}`} aria-labelledby="pricing-title">
-            <div className="text-center">
-              <p className={KICKER}>Pricing</p>
-              <h2 id="pricing-title" className={`mt-4 ${H2}`}>Simple plans. Start free.</h2>
-              <p className="mt-4 text-[17px] text-hero-ink-2">{trialText}, no card needed. Then pick a plan that fits.</p>
-            </div>
-            <div className="mt-8 flex flex-wrap justify-center gap-3">
-              {currencies.length > 1 && <nav className="inline-flex gap-1 rounded-full bg-hero-tint p-1" aria-label="Currency">{currencies.map((c) => <Link key={c} href={link(c, interval)} className={pill(c === currency)}>{c === "NGN" ? "₦ Naira" : c === "USD" ? "$ Dollar" : c}</Link>)}</nav>}
-              {hasYearly(allPlans, currency) && <nav className="inline-flex gap-1 rounded-full bg-hero-tint p-1" aria-label="Billing period"><Link href={link(currency, "month")} className={pill(interval === "month")}>Monthly</Link><Link href={link(currency, "year")} className={pill(interval === "year")}>Yearly · 2 months free</Link></nav>}
-            </div>
-            <div className={`mx-auto mt-10 grid max-w-5xl gap-4 md:grid-cols-2 ${plans.length >= 3 ? "lg:grid-cols-3" : ""}`}>
-              {plans.map((p) => {
-                const featured = p.name === "Team";
-                return (
-                  <div key={p.id} className={`relative flex flex-col p-7 ${featured ? "rounded-[18px] bg-hero-ink text-hero shadow-[0_30px_60px_-30px_rgba(20,16,8,.6)]" : PAPER}`}>
-                    {featured && <span className="absolute top-6 right-6 rounded-full bg-hero-accent px-2.5 py-1 text-[11px] font-semibold text-white">Most popular</span>}
-                    <p className="text-[18px] font-semibold">{p.name}</p>
-                    {p.tagline && <p className={`mt-1 text-[13.5px] ${featured ? "text-hero/70" : "text-hero-ink-2"}`}>{p.tagline}</p>}
-                    <p className="mt-6"><span className="text-[40px] font-semibold tracking-[-0.03em] tabular-nums">{formatMoney(p.price_minor, p.currency)}</span><span className={featured ? "text-hero/70" : "text-hero-ink-2"}> / {p.billing_interval}</span></p>
-                    <p className={`h-5 text-[13px] ${featured ? "text-hero/70" : "text-hero-ink-2"}`}>{monthlyEquivalent(p) ? `${formatMoney(monthlyEquivalent(p), p.currency)} a month` : ""}</p>
-                    <ul className="mt-6 flex-1 space-y-2.5 text-[14px]">
-                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</li>
-                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
-                      {(p.features || []).map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{f}</li>)}
-                    </ul>
-                    <Link href="/signup" className={`mt-8 inline-flex h-12 items-center justify-center rounded-full text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent ${featured ? "bg-hero text-hero-ink hover:bg-hero/90" : "bg-hero-ink text-hero hover:bg-hero-ink/90"}`}>Start free trial</Link>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        );
+        return <Pricing plans={plans} currency={currency} currencies={currencies} interval={interval} yearly={hasYearly(allPlans, currency)} trialText={trialText} link={link} wrap={WRAP} kicker={KICKER} h2={H2} />;
       })()}
 
       {/* ------------------------------------------------ FAQ */}
@@ -243,8 +207,8 @@ export default async function Home({ searchParams }) {
               <p className="mt-5 max-w-[560px] text-[17px] leading-relaxed text-[#a29e93]">{BRAND.name} is new, and built for freelancers and small businesses. Join early, tell us what you need, and help shape what we build next.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
-              <Link href="/signup" className="inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-[#f2efe7] px-7 text-[15px] font-semibold text-[#121210] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5a9dff]">Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
-              <a href="#pricing" className={`${BTN_GHOST} text-[#f2efe7] ring-white/20 hover:ring-white/50`}>See pricing</a>
+              <PrimaryCta href="/signup" block>Get started free</PrimaryCta>
+              <SecondaryCta href="#pricing" onDark block>See pricing</SecondaryCta>
             </div>
           </div>
           <EyeOff className="pointer-events-none absolute -right-10 -bottom-12 size-64 text-white/[.03]" aria-hidden="true" />
@@ -253,6 +217,7 @@ export default async function Home({ searchParams }) {
 
       {/* ------------------------------------------------ footer */}
       <SiteFooter />
+      </div>
     </div>
   );
 }

@@ -21,7 +21,7 @@ const PRICE = 500000;
 
 export function PainStory() {
   return (
-    <ScrollScene steps={COSTS.length + 2} heightVh={320} label="The real cost of a job" className="bg-hero text-hero-ink">
+    <ScrollScene steps={COSTS.length + 2} heightVh={320} label="The real cost of a job" className="text-hero-ink">
       {(step, still, compact) => {
         const shown = Math.min(COSTS.length, Math.max(0, step));
         const spent = COSTS.slice(0, shown).reduce((s, [, v]) => s + v, 0);
@@ -105,7 +105,7 @@ const CHAPTERS = [
 
 export function Chapters() {
   return (
-    <div id="how-it-works" className="scroll-mt-0 bg-hero text-hero-ink">
+    <div id="how-it-works" className="scroll-mt-0 text-hero-ink">
       {/* reduced motion: a simple stacked story; phones: a compact pinned story */}
       <ScrollScene steps={CHAPTERS.length} heightVh={CHAPTERS.length * 110} label="How Usetally works">
         {(step, still, compact) => compact && !still ? <ChaptersCompact step={step} /> : still ? (

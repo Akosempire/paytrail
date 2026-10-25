@@ -362,3 +362,11 @@
   transition: background-size 0.6s ease;
 }
 .footer-mark:hover { background-size: max(0.03em, 4.5px) max(0.03em, 4.5px); }
+
+/* Landing: pricing receipts (torn bottom edge + soft shadow) */
+.receipt-edge {
+  --z: 9px;
+  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--z)) 100%;
+}
+.receipt-shadow { filter: drop-shadow(0 1px 1px rgb(20 16 8 / 0.06)) drop-shadow(0 18px 30px rgb(20 16 8 / 0.14)); }
+:root[data-theme="dark"] .receipt-shadow { filter: drop-shadow(0 18px 32px rgb(0 0 0 / 0.55)); }
