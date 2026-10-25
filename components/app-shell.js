@@ -117,6 +117,8 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
       <TrialMeter allowance={allowance} canBilling={perms.canBilling} status={business.subscription_status} />
 
       <div className="border-t border-line p-3">
+        {/* phones: the theme switch lives here instead of the top bar */}
+        <ThemeToggle row className="mb-1 lg:hidden" />
         <div className="flex items-center gap-3 rounded-lg p-2">
           <Avatar name={member.full_name || member.email} size="sm" />
           <span className="min-w-0 flex-1">
@@ -154,7 +156,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           </button>
           <Link href="/app" className="lg:hidden"><Logo className="size-8" /></Link>
           <div className="flex-1" />
-          <ThemeToggle />
+          <ThemeToggle className="max-lg:hidden" />
           <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
           <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote"><span className="max-sm:hidden">New </span>Quote</Button>
         </header>

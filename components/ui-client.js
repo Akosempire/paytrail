@@ -106,18 +106,30 @@ export function CopyButton({ value, label = "Copy", copiedLabel = "Copied", vari
   );
 }
 
-export function ThemeToggle() {
+// light/dark switch: an icon button (top bar) or, with row, a labelled
+// switch for menus (the phone menu)
+export function ThemeToggle({ row = false, className } = {}) {
   const [theme, setTheme] = useState(null);
   useEffect(() => { setTheme(document.documentElement.dataset.theme || "light"); }, []);
   const next = theme === "dark" ? "light" : "dark";
+  const flip = () => {
+    document.documentElement.dataset.theme = next;
+    try { localStorage.setItem("pt-theme", next); } catch { /* storage blocked */ }
+    setTheme(next);
+  };
+  if (row) return (
+    <button type="button" role="switch" aria-checked={theme === "dark"} onClick={flip}
+      className={cx("flex h-10 w-full items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 hover:bg-hover hover:text-ink", className)}>
+      {theme === "dark" ? <Moon className="size-[18px] text-ink-3" /> : <Sun className="size-[18px] text-ink-3" />}
+      <span className="flex-1 text-left">Dark mode</span>
+      <span aria-hidden="true" className={cx("relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors", theme === "dark" ? "bg-brand" : "bg-line-strong")}>
+        <span className={cx("inline-block size-5 rounded-full bg-white shadow transition-transform", theme === "dark" ? "translate-x-[22px]" : "translate-x-0.5")} />
+      </span>
+    </button>
+  );
   return (
-    <button type="button" aria-label={`Switch to ${next} mode`}
-      onClick={() => {
-        document.documentElement.dataset.theme = next;
-        try { localStorage.setItem("pt-theme", next); } catch { /* storage blocked */ }
-        setTheme(next);
-      }}
-      className="inline-flex size-10 items-center justify-center rounded-md text-ink-2 ring-1 ring-inset ring-line-strong hover:bg-hover hover:text-ink">
+    <button type="button" aria-label={`Switch to ${next} mode`} onClick={flip}
+      className={cx("inline-flex size-10 items-center justify-center rounded-md text-ink-2 ring-1 ring-inset ring-line-strong hover:bg-hover hover:text-ink", className)}>
       {theme === "dark" ? <Sun className="size-[18px]" /> : <Moon className="size-[18px]" />}
     </button>
   );
