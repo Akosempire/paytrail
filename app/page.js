@@ -23,12 +23,12 @@ async function publicData() {
   return { plans: plans || [], trial };
 }
 
-const BTN = "inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-hero-ink px-7 text-[15px] font-semibold text-hero transition-[transform,background] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green focus-visible:ring-offset-2 focus-visible:ring-offset-hero";
-const BTN_SM = "inline-flex h-9 items-center rounded-full bg-hero-ink px-4 text-[13px] font-semibold text-hero transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green";
-const BTN_GHOST = "inline-flex h-[52px] items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green";
+const BTN = "inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-hero-ink px-7 text-[15px] font-semibold text-hero transition-[transform,background] hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent focus-visible:ring-offset-2 focus-visible:ring-offset-hero";
+const BTN_SM = "inline-flex h-9 items-center rounded-full bg-hero-ink px-4 text-[13px] font-semibold text-hero transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent";
+const BTN_GHOST = "inline-flex h-[52px] items-center justify-center gap-2 rounded-full px-6 text-[15px] font-semibold ring-1 ring-inset transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent";
 const PAPER = "rounded-[18px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.05),0_18px_40px_-24px_rgba(20,16,8,.3)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
 const WRAP = "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10";
-const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-green uppercase";
+const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase";
 const H2 = "text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]";
 
 // everything here is true of the product today
@@ -46,9 +46,9 @@ const ROLES = [
 ];
 
 const PROVIDERS = [
-  ["Paystack", "Nigeria, Ghana, Kenya, South Africa"],
+  ["Paystack", "Cards, bank transfer and USSD"],
   ["Stripe", "US, UK, Europe and 40+ countries"],
-  ["Flutterwave", "Across Africa"],
+  ["Flutterwave", "Cards and mobile money"],
   ["Bachs", "Where Bachs operates"],
   ["Bank transfer", "Your account details on every invoice"],
 ];
@@ -95,7 +95,7 @@ export default async function Home({ searchParams }) {
         <section className={`grid items-center gap-6 pt-8 pb-10 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:pt-6 lg:pb-12 ${WRAP}`}>
           <div className="max-w-[560px] lg:pb-10">
             <h1 className="text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em]">
-              Quotes.<br />Invoices.<br /><span className="text-hero-green">Payments.</span>
+              Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
             <p className="mt-6 text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">From quote to payment. Everything flows.</p>
             <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-6">
@@ -112,7 +112,7 @@ export default async function Home({ searchParams }) {
         {/* trust strip */}
         <div className={`pb-16 ${WRAP}`}>
           <ul className="grid gap-x-8 gap-y-3 border-y border-hero-line py-5 text-[14px] text-hero-ink-2 sm:grid-cols-2 lg:grid-cols-4">
-            {TRUST.map(([Icon, text]) => <li key={text} className="flex items-center gap-2.5"><Icon className="size-4 shrink-0 text-hero-green" aria-hidden="true" />{text}</li>)}
+            {TRUST.map(([Icon, text]) => <li key={text} className="flex items-center gap-2.5"><Icon className="size-4 shrink-0 text-hero-accent" aria-hidden="true" />{text}</li>)}
           </ul>
         </div>
       </div>
@@ -136,7 +136,7 @@ export default async function Home({ searchParams }) {
                 <p className="mt-4 text-[18px] font-semibold tracking-[-0.01em]">{r.role}</p>
                 <p className="text-[13px] text-hero-ink-2">{r.who}</p>
                 <ul className="mt-4 space-y-2 text-[13.5px]">
-                  {r.can.map((c) => <li key={c} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{c}</li>)}
+                  {r.can.map((c) => <li key={c} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{c}</li>)}
                 </ul>
               </div>
             ))}
@@ -154,7 +154,7 @@ export default async function Home({ searchParams }) {
             <ul className="mt-8 divide-y divide-hero-line border-y border-hero-line">
               {PROVIDERS.map(([name, where]) => (
                 <li key={name} className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="flex items-center gap-3 text-[16px] font-semibold">{name === "Bank transfer" ? <Landmark className="size-4 text-hero-ink-2" aria-hidden="true" /> : <span className="size-2 rounded-full bg-hero-green" aria-hidden="true" />}{name}</span>
+                  <span className="flex items-center gap-3 text-[16px] font-semibold">{name === "Bank transfer" ? <Landmark className="size-4 text-hero-ink-2" aria-hidden="true" /> : <span className="size-2 rounded-full bg-hero-accent" aria-hidden="true" />}{name}</span>
                   <span className="text-right text-[13.5px] text-hero-ink-2">{where}</span>
                 </li>
               ))}
@@ -202,17 +202,17 @@ export default async function Home({ searchParams }) {
                 const featured = p.name === "Team";
                 return (
                   <div key={p.id} className={`relative flex flex-col p-7 ${featured ? "rounded-[18px] bg-hero-ink text-hero shadow-[0_30px_60px_-30px_rgba(20,16,8,.6)]" : PAPER}`}>
-                    {featured && <span className="absolute top-6 right-6 rounded-full bg-hero-green px-2.5 py-1 text-[11px] font-semibold text-white">Most popular</span>}
+                    {featured && <span className="absolute top-6 right-6 rounded-full bg-hero-accent px-2.5 py-1 text-[11px] font-semibold text-white">Most popular</span>}
                     <p className="text-[18px] font-semibold">{p.name}</p>
                     {p.tagline && <p className={`mt-1 text-[13.5px] ${featured ? "text-hero/70" : "text-hero-ink-2"}`}>{p.tagline}</p>}
                     <p className="mt-6"><span className="text-[40px] font-semibold tracking-[-0.03em] tabular-nums">{formatMoney(p.price_minor, p.currency)}</span><span className={featured ? "text-hero/70" : "text-hero-ink-2"}> / {p.billing_interval}</span></p>
                     <p className={`h-5 text-[13px] ${featured ? "text-hero/70" : "text-hero-ink-2"}`}>{monthlyEquivalent(p) ? `${formatMoney(monthlyEquivalent(p), p.currency)} a month` : ""}</p>
                     <ul className="mt-6 flex-1 space-y-2.5 text-[14px]">
-                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</li>
-                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
-                      {(p.features || []).map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-green" aria-hidden="true" />{f}</li>)}
+                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</li>
+                      <li className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</li>
+                      {(p.features || []).map((f) => <li key={f} className="flex gap-2.5"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{f}</li>)}
                     </ul>
-                    <Link href="/signup" className={`mt-8 inline-flex h-12 items-center justify-center rounded-full text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green ${featured ? "bg-hero text-hero-ink hover:bg-hero/90" : "bg-hero-ink text-hero hover:bg-hero-ink/90"}`}>Start free trial</Link>
+                    <Link href="/signup" className={`mt-8 inline-flex h-12 items-center justify-center rounded-full text-[14px] font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent ${featured ? "bg-hero text-hero-ink hover:bg-hero/90" : "bg-hero-ink text-hero hover:bg-hero-ink/90"}`}>Start free trial</Link>
                   </div>
                 );
               })}
@@ -231,7 +231,7 @@ export default async function Home({ searchParams }) {
         <div className="divide-y divide-hero-line border-y border-hero-line">
           {FAQ.map(([q, a]) => (
             <details key={q} className="group py-1">
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-lg py-4 text-[17px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-green [&::-webkit-details-marker]:hidden">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-lg py-4 text-[17px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-hero-accent [&::-webkit-details-marker]:hidden">
                 {q}
                 <Plus className="size-5 shrink-0 text-hero-ink-2 transition-transform duration-300 group-open:rotate-45" aria-hidden="true" />
               </summary>
@@ -246,12 +246,12 @@ export default async function Home({ searchParams }) {
         <div className="relative overflow-hidden rounded-[28px] bg-[#121210] px-6 py-16 text-[#f2efe7] sm:px-12 lg:px-16 lg:py-20">
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
             <div>
-              <p className="text-[13px] font-semibold tracking-[0.14em] text-[#4fc28a] uppercase">Early access</p>
-              <h2 className="mt-4 text-[clamp(34px,4.8vw,64px)] leading-[1.02] font-semibold tracking-[-0.035em]">Good deals deserve a better <span className="text-[#4fc28a]">ending.</span></h2>
+              <p className="text-[13px] font-semibold tracking-[0.14em] text-[#5a9dff] uppercase">Early access</p>
+              <h2 className="mt-4 text-[clamp(34px,4.8vw,64px)] leading-[1.02] font-semibold tracking-[-0.035em]">Good deals deserve a better <span className="text-[#5a9dff]">ending.</span></h2>
               <p className="mt-5 max-w-[560px] text-[17px] leading-relaxed text-[#a29e93]">{BRAND.name} is new, and built for freelancers and small businesses. Join early, tell us what you need, and help shape what we build next.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
-              <Link href="/signup" className="inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-[#f2efe7] px-7 text-[15px] font-semibold text-[#121210] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4fc28a]">Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
+              <Link href="/signup" className="inline-flex h-[52px] items-center justify-center gap-2.5 rounded-full bg-[#f2efe7] px-7 text-[15px] font-semibold text-[#121210] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5a9dff]">Get started free<ArrowRight className="size-[18px]" aria-hidden="true" /></Link>
               <a href="#pricing" className={`${BTN_GHOST} text-[#f2efe7] ring-white/20 hover:ring-white/50`}>See pricing</a>
             </div>
           </div>

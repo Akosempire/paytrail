@@ -17,7 +17,7 @@ export function AuthLayout({ children }) {
         <div className="pointer-events-none absolute -right-40 -bottom-40 size-[520px] rounded-full bg-[#1570EF]/25 blur-[120px]" />
         <Link href="/" className="relative"><Logo withWord wordClass="!text-white" /></Link>
         <div className="relative mt-auto max-w-lg">
-          <p className="text-overline text-[#6ee0a6]">Quotes → invoices → receipts</p>
+          <p className="text-overline text-[#84b6ff]">Quotes → invoices → receipts</p>
           <h2 className="mt-3 text-[40px] leading-[48px] font-semibold tracking-[-0.02em]">Every naira, from quote to receipt.</h2>
           <p className="mt-4 text-[15px] leading-relaxed text-white/65">
             Usetally helps freelancers and companies price jobs properly, send professional quotes and collect payment, all under their own brand.
@@ -26,7 +26,7 @@ export function AuthLayout({ children }) {
             {POINTS.map(({ icon: Icon, title, text }) => (
               <li key={title} className="flex gap-3.5">
                 <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-white/[0.06] ring-1 ring-white/10">
-                  <Icon className="size-4 text-[#6ee0a6]" />
+                  <Icon className="size-4 text-[#84b6ff]" />
                 </span>
                 <span>
                   <span className="block text-sm font-medium">{title}</span>

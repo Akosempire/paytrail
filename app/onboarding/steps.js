@@ -72,8 +72,8 @@ export function StepStart({ ownerName, firstBusiness }) {
           <Field label="Phone / WhatsApp" htmlFor="phone"><Input id="phone" name="phone" placeholder="+234 801 234 5678" /></Field>
           <Field label="Website" htmlFor="website" optional><Input id="website" name="website" placeholder="yourbusiness.com" /></Field>
           <Field label="Address" htmlFor="address" className="sm:col-span-2"><Input id="address" name="address" placeholder="12 Admiralty Way, Lekki Phase 1" /></Field>
-          <Field label="City" htmlFor="city"><Input id="city" name="city" placeholder="Lagos" /></Field>
-          <Field label="Country" htmlFor="country"><Input id="country" name="country" defaultValue="Nigeria" /></Field>
+          <Field label="City" htmlFor="city"><Input id="city" name="city" placeholder="Your city" /></Field>
+          <Field label="Country" htmlFor="country"><Input id="country" name="country" placeholder="Your country" /></Field>
           <Field label="Main currency" htmlFor="currency"><Select id="currency" name="currency" defaultValue="NGN">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
           <Field label="Tax ID (TIN)" htmlFor="tax_id" optional><Input id="tax_id" name="tax_id" /></Field>
         </div>
@@ -169,7 +169,7 @@ export function StepMoney({ business }) {
         <section className="grid gap-4 sm:grid-cols-3">
           <Field label="Currency" htmlFor="currency"><Select id="currency" name="currency" defaultValue={business.currency}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
           <Field label="Tax name" htmlFor="tax_label"><Input id="tax_label" name="tax_label" defaultValue={business.tax_label} /></Field>
-          <Field label="Tax rate (%)" htmlFor="tax_rate" hint="Use 0 if you don't charge VAT. Nigeria VAT is 7.5%."><Input id="tax_rate" name="tax_rate" type="number" step="0.01" min="0" max="100" defaultValue={business.tax_rate} /></Field>
+          <Field label="Tax rate (%)" htmlFor="tax_rate" hint="Your local VAT or sales tax rate. Use 0 if you don't charge it."><Input id="tax_rate" name="tax_rate" type="number" step="0.01" min="0" max="100" defaultValue={business.tax_rate} /></Field>
           <Field label="Quotes are valid for (days)" htmlFor="qv"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={business.quote_validity_days} /></Field>
           <Field label="Invoices are due after (days)" htmlFor="idd"><Input id="idd" name="invoice_due_days" type="number" min="0" max="365" defaultValue={business.invoice_due_days} /></Field>
         </section>

@@ -6,11 +6,11 @@ export const revalidate = 3600;
 export const metadata = { title: "Terms of Service" };
 
 export default async function Terms() {
-  const { company, address, email, updated } = await legalDetails();
+  const { company, address, email, updated, law, courts } = await legalDetails();
   return (
     <LegalLayout title="Terms of Service" updated={updated}>
       <p>
-        These terms are an agreement between you and {company} ({address}), which runs Usetally. They apply when you create an account
+        These terms are an agreement between you and {company}{address ? ` (${address})` : ""}, which runs Usetally. They apply when you create an account
         or use Usetally to prepare quotations, invoices and receipts. If you use Usetally for a business, you accept these terms for that
         business. If you don't agree, please don't use Usetally.
       </p>
@@ -99,8 +99,8 @@ export default async function Terms() {
 
       <Section title="10. Governing law">
         <p>
-          These terms are governed by the laws of the Federal Republic of Nigeria. Disputes will be handled by the courts of Lagos State,
-          unless the law where you live gives you the right to bring a claim there.
+          These terms are governed by the laws of {law || `the country where ${company} is registered`}. Disputes will be handled by{" "}
+          {courts || "the courts of that country"}, unless the law where you live gives you the right to bring a claim there.
         </p>
       </Section>
 

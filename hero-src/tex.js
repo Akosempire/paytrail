@@ -4,7 +4,7 @@ const path = require("path");
 const OUT = path.join(__dirname, "tex");
 require("fs").mkdirSync(OUT, { recursive: true });
 
-const INK = "#161614", MUTED = "#6b6a63", LINE = "#e6e2d8", GREEN = "#1d7a4c", GREEN_SOFT = "#e3f1e8", PAPER = "#fffdf8";
+const INK = "#161614", MUTED = "#6b6a63", LINE = "#e6e2d8", BLUE = "#175cd3", BLUE_SOFT = "#e6eefc", PAPER = "#fffdf8";
 
 const base = `
   *{box-sizing:border-box;margin:0;padding:0}
@@ -20,10 +20,10 @@ const items = [
 ];
 
 function doc({ kind, number, status, statusTone, footer }) {
-  const pill = statusTone === "green"
-    ? `background:${GREEN_SOFT};color:${GREEN}`
+  const pill = statusTone === "blue"
+    ? `background:${BLUE_SOFT};color:${BLUE}`
     : statusTone === "amber" ? `background:#f6eedc;color:#8a5a12` : `background:#efece4;color:${MUTED}`;
-  const dot = statusTone === "green" ? GREEN : statusTone === "amber" ? "#c58a1c" : "#a3a196";
+  const dot = statusTone === "blue" ? BLUE : statusTone === "amber" ? "#c58a1c" : "#a3a196";
   return `<!doctype html><html><head><style>${base}
     .page{width:1400px;height:1980px;padding:120px 120px 100px;display:flex;flex-direction:column}
     .top{display:flex;justify-content:space-between;align-items:flex-start}
@@ -55,11 +55,11 @@ function doc({ kind, number, status, statusTone, footer }) {
     .sig .line{width:420px;border-top:2px solid ${LINE};padding-top:12px}
   </style></head><body><div class="page">
     <div class="top">
-      <div class="brand"><div class="mark">A</div><div><div class="bname">Adeyemi Studio</div><div class="bsub">Lagos, Nigeria</div></div></div>
+      <div class="brand"><div class="mark">A</div><div><div class="bname">Adeyemi Studio</div><div class="bsub">Design &amp; brand studio</div></div></div>
       <div class="kind"><h1>${kind}</h1><div class="no">${number}</div><div class="pill"><i></i>${status}</div></div>
     </div>
     <div class="meta">
-      <div><b>BILLED TO</b><p>Obi Foods Ltd<br>Chioma Obi<br>Victoria Island, Lagos</p></div>
+      <div><b>BILLED TO</b><p>Obi Foods Ltd<br>Chioma Obi<br>12 Marina Road</p></div>
       <div><b>${kind === "QUOTATION" ? "VALID UNTIL" : "DUE DATE"}</b><p>${kind === "QUOTATION" ? "7 November 2026" : "31 October 2026"}</p></div>
       <div><b>ISSUED</b><p>24 October 2026</p></div>
     </div>
@@ -81,17 +81,17 @@ const signature = `<svg width="300" height="90" viewBox="0 0 300 90"><path d="M1
 const pages = {
   quote_pending: doc({ kind: "QUOTATION", number: "QT-0042", status: "Awaiting response", statusTone: "grey",
     footer: `<div class="sig"><div style="height:90px"></div><div class="line">Customer acceptance</div></div><div>Thank you for the opportunity.</div>` }),
-  quote_accepted: doc({ kind: "QUOTATION", number: "QT-0042", status: "Accepted", statusTone: "green",
+  quote_accepted: doc({ kind: "QUOTATION", number: "QT-0042", status: "Accepted", statusTone: "blue",
     footer: `<div class="sig">${signature}<div class="line">Accepted by Chioma Obi · 24 Oct</div></div><div>Thank you for the opportunity.</div>` }),
   invoice_due: doc({ kind: "INVOICE", number: "INV-0042", status: "Due 31 Oct", statusTone: "amber",
     footer: `<div>Pay online by card or bank transfer.</div><div>From quotation QT-0042</div>` }),
-  invoice_paid: doc({ kind: "INVOICE", number: "INV-0042", status: "Paid", statusTone: "green",
+  invoice_paid: doc({ kind: "INVOICE", number: "INV-0042", status: "Paid", statusTone: "blue",
     footer: `<div>Paid in full · Receipt RC-0042</div><div>From quotation QT-0042</div>` }),
   card: `<!doctype html><html><head><style>${base}
     html,body{background:#ffffff}
     .c{width:1200px;height:700px;padding:80px 90px;display:flex;flex-direction:column}
     .row{display:flex;align-items:center;gap:30px}
-    .tick{width:92px;height:92px;border-radius:50%;background:${GREEN};display:flex;align-items:center;justify-content:center}
+    .tick{width:92px;height:92px;border-radius:50%;background:${BLUE};display:flex;align-items:center;justify-content:center}
     .t1{font-size:40px;font-weight:600;letter-spacing:-0.5px}
     .t2{font-size:26px;color:${MUTED};margin-top:6px}
     .amt{font-size:112px;font-weight:600;letter-spacing:-4px;margin-top:70px}

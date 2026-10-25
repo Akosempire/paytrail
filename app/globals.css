@@ -105,12 +105,12 @@
   --animate-fade-in: fade-in 160ms ease-out;
   --animate-rise: rise 220ms cubic-bezier(0.22, 1, 0.36, 1);
 
-  /* Landing hero (editorial): warm paper, near-black ink, restrained green */
+  /* Landing hero (editorial): warm paper, near-black ink, one confident blue */
   --color-hero: #f4f1ea;
   --color-hero-ink: #151513;
   --color-hero-ink-2: #5d5b53;
   --color-hero-line: #dcd7cb;
-  --color-hero-green: #1d7a4c;
+  --color-hero-accent: #175cd3;
   --color-hero-paper: #fffdf8;
   --color-hero-tint: #ebe7dd;
   --color-hero-violet: #6941c6;
@@ -132,7 +132,7 @@
   --color-hero-ink: #f2efe7;
   --color-hero-ink-2: #a29e93;
   --color-hero-line: #2e2c27;
-  --color-hero-green: #4fc28a;
+  --color-hero-accent: #5a9dff;
   --color-hero-paper: #1c1b18;
   --color-hero-tint: #1f1e1b;
   --color-hero-violet: #b692f6;

@@ -29,8 +29,8 @@ const GUIDES = {
   },
   paystack: {
     name: "Paystack",
-    blurb: "Cards, bank transfer, USSD and mobile money in Nigeria, Ghana, Kenya, South Africa and Côte d'Ivoire.",
-    regions: "Popular in Nigeria and Ghana",
+    blurb: "Cards, bank transfer, USSD and mobile money in the African countries Paystack supports.",
+    regions: "Popular across Africa",
     site: "https://dashboard.paystack.com",
     color: "#0BA4DB",
     keyLabel: "Secret key",

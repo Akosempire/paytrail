@@ -308,22 +308,17 @@ export function CodeBlock({ children, className }) {
   return <code className={cx("block overflow-x-auto rounded-md bg-contrast px-3.5 py-2.5 font-mono text-[12.5px] leading-relaxed text-white", className)}>{children}</code>;
 }
 
-// Usetally mark: a receipt with a trail of dots leading to a tick
+// Usetally mark: a "U" whose two arms are struck through like a tally group.
+// Same drawing as public/icons/icon.svg; keep them in step.
+export const MARK_BLUE = "#1570EF";
 export function Logo({ className = "size-9", withWord, wordClass = "" }) {
   return (
     <span className="inline-flex items-center gap-2.5">
-      <svg viewBox="0 0 40 40" className={className} aria-hidden>
-        <defs>
-          <linearGradient id="pt-g" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#4c95f5" />
-            <stop offset="1" stopColor="#1570EF" />
-          </linearGradient>
-        </defs>
-        <rect width="40" height="40" rx="11" fill="url(#pt-g)" />
-        <path d="M13 9.5h14a1.5 1.5 0 0 1 1.5 1.5v19.3l-2.6-1.6-2.6 1.6-2.6-1.6-2.6 1.6-2.6-1.6-2.6 1.6V11a1.5 1.5 0 0 1 1.5-1.5Z" fill="#fff" opacity=".95" />
-        <circle cx="15.5" cy="15.5" r="1.3" fill="#1570EF" />
-        <circle cx="19" cy="18.5" r="1.3" fill="#1570EF" opacity=".75" />
-        <path d="m21.2 21.4 2 2 3.6-4.2" fill="none" stroke="#079455" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <svg viewBox="0 0 40 40" className={className} aria-hidden="true">
+        <rect width="40" height="40" rx="11" fill={MARK_BLUE} />
+        <path d="M12.5 9.5v12.5a7.5 7.5 0 0 0 15 0V9.5" fill="none" stroke="#fff" strokeWidth="3.8" strokeLinecap="round" />
+        <path d="M8.5 25.5 31.5 16.5" stroke={MARK_BLUE} strokeWidth="7.6" strokeLinecap="round" />
+        <path d="M8.5 25.5 31.5 16.5" stroke="#fff" strokeWidth="3.8" strokeLinecap="round" />
       </svg>
       {withWord && <span className={cx("text-[17px] font-semibold tracking-[-0.02em] text-ink", wordClass)}>{BRAND.name}</span>}
     </span>

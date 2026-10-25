@@ -10,7 +10,7 @@ export default async function Privacy() {
   return (
     <LegalLayout title="Privacy Policy" updated={updated}>
       <p>
-        This policy explains what personal data {company} ({address}) collects through Usetally, why, and the choices you have. We follow
+        This policy explains what personal data {company}{address ? ` (${address})` : ""} collects through Usetally, why, and the choices you have. We follow
         the Nigeria Data Protection Act 2023 and, where it applies to you, other data protection laws such as the UK and EU GDPR.
       </p>
 

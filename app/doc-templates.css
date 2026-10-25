@@ -81,7 +81,7 @@
 .pt-accepted { padding: 2.4mm 3mm; background: #eef8f2; color: #0d6b3f; }
 .pt-foot { margin-top: 8mm; padding-top: 3mm; border-top: 0.25mm solid var(--pt-line); text-align: center; color: var(--pt-ink-3); font-size: 0.82em; white-space: pre-line; }
 
-.pt-stamp { position: absolute; top: 3mm; right: 6mm; z-index: 1; transform: rotate(-10deg); border: 0.8mm solid #0a7d4b; color: #0a7d4b; border-radius: 1.5mm;
+.pt-stamp { position: absolute; top: 3mm; right: 6mm; z-index: 1; transform: rotate(-10deg); border: 0.8mm solid #175cd3; color: #175cd3; border-radius: 1.5mm;
   padding: 1mm 3mm; font-size: 1.7em; font-weight: 700; letter-spacing: 0.15em; opacity: 0.85; pointer-events: none; }
 .pt-stamp-void { border-color: #b42318; color: #b42318; }
 

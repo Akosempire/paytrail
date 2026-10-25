@@ -15,8 +15,8 @@ import { useEffect, useRef } from "react";
 
 const THEMES = {
   // base = cloud dots, trail = pointer ink, hot = the brightest core of the trail
-  light: { base: [0.08, 0.08, 0.07], baseA: 0.2, trail: [0.114, 0.478, 0.298], hot: [0.04, 0.62, 0.36], trailA: 0.85 },
-  dark: { base: [0.95, 0.94, 0.9], baseA: 0.16, trail: [0.31, 0.76, 0.54], hot: [0.55, 0.93, 0.72], trailA: 0.95 },
+  light: { base: [0.08, 0.08, 0.07], baseA: 0.2, trail: [0.09, 0.361, 0.827], hot: [0.082, 0.439, 0.937], trailA: 0.85 },
+  dark: { base: [0.95, 0.94, 0.9], baseA: 0.16, trail: [0.353, 0.616, 1.0], hot: [0.65, 0.784, 1.0], trailA: 0.95 },
 };
 
 const FRAG = `precision highp float;

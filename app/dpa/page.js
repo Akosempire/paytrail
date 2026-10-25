@@ -12,7 +12,7 @@ export default async function Dpa() {
   return (
     <LegalLayout title="Data Processing Agreement" updated={updated}>
       <p>
-        This agreement is part of the <Link href="/terms" className={a}>Terms of Service</Link> between {company} ({address}) ("Usetally",
+        This agreement is part of the <Link href="/terms" className={a}>Terms of Service</Link> between {company}{address ? ` (${address})` : ""} ("Usetally",
         "we") and each business that uses Usetally ("you"). It applies when we process personal data on your behalf, mainly the details of
         your customers. It is written to meet section 29 of the Nigeria Data Protection Act 2023 and Article 28 of the EU and UK GDPR.
         You accept it by using Usetally; no signature is needed. If it conflicts with the Terms on data protection, this agreement wins.
