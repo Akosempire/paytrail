@@ -7,6 +7,7 @@ import { DocPreview } from "@/components/doc-preview";
 import { LayoutPanel } from "@/components/layout-panel";
 import { buildModel } from "@/lib/doc-model";
 import { defaultLayout } from "@/lib/doc-templates";
+import { sampleDocument } from "@/lib/sample-document";
 import { saveDocumentDefaults } from "./actions";
 
 const KINDS = [["quote", "Quotations", ScrollText], ["invoice", "Invoices", FileText], ["receipt", "Receipts", Receipt]];
@@ -21,11 +22,11 @@ export function DocumentDefaults({ business, samples }) {
   const [pending, start] = useTransition();
   const value = values[kind];
   const deferred = useDeferredValue(value);
-  const sample = samples[kind];
+  // your latest real document if there is one, otherwise a sample in your branding
+  const real = samples[kind];
+  const sample = useMemo(() => real || sampleDocument(kind, business), [real, kind, business]);
   const model = useMemo(() => {
-    if (!sample) return null;
     const override = { template: deferred.template, paper: deferred.paper, layout: deferred.layout };
-    // previews your latest real document with the layout being edited
     return buildModel({ ...sample, business, override });
   }, [sample, deferred, business]);
 
@@ -52,12 +53,10 @@ export function DocumentDefaults({ business, samples }) {
           </div>
         </Card>
         <div className="min-w-0 rounded-2xl bg-tray p-3 sm:p-5">
-          {model ? <DocPreview model={model} label="Preview" /> : (
-            <div className="flex min-h-64 flex-col items-center justify-center gap-1 text-center">
-              <p className="text-title-3 text-ink">Nothing to preview yet</p>
-              <p className="max-w-sm text-[13px] text-ink-3">The preview shows your latest {kind === "receipt" ? "receipt" : kind === "quote" ? "quotation" : "invoice"}. Create one and it will appear here with these settings.</p>
-            </div>
-          )}
+          <p className="mb-3 text-[13px] text-ink-3">
+            {real ? `Showing your latest ${kind === "quote" ? "quotation" : kind} with these settings.` : `Sample ${kind === "quote" ? "quotation" : kind} with your branding. Your own appears here once you've made one.`}
+          </p>
+          <DocPreview model={model} label={`Preview: ${value.template} template`} />
         </div>
       </div>
     </div>
