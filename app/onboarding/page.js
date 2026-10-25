@@ -41,19 +41,16 @@ export default async function Onboarding({ searchParams }) {
       </header>
       {/* bottom padding leaves room for the fixed action bar */}
       <div className="mx-auto w-full max-w-[880px] px-4 pb-32 sm:px-6">
-        {/* phones: one line and a thin progress bar instead of four chips */}
-        <div className="mb-4 sm:hidden" aria-hidden="true">
-          <div className="flex items-baseline justify-between text-[13px]">
-            <span className="font-semibold text-ink">{STEPS[index].label}</span>
-            <span className="text-ink-3 tabular">Step {index + 1} of {STEPS.length}</span>
-          </div>
-          <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line"><div className="h-full rounded-full bg-brand transition-all" style={{ width: `${((index + 1) / STEPS.length) * 100}%` }} /></div>
+        {/* phones: a quiet label and tally marks (one stroke per step; finishing strikes them through) */}
+        <div className="mb-4 flex items-center justify-between sm:hidden">
+          <span className="text-[13px] text-ink-3">{STEPS[index].label}</span>
+          <Tally done={index + 1} total={STEPS.length} />
         </div>
         <ol className="mb-8 hidden grid-cols-4 gap-1.5 rounded-2xl bg-tray p-1.5 sm:grid" aria-label={`Setup progress: step ${index + 1} of ${STEPS.length}, ${STEPS[index].label}`}>
           {STEPS.map((s, i) => (
             <li key={s.key} aria-current={i === index ? "step" : undefined}
               className={`rounded-xl px-3 py-2.5 ${i === index ? "bg-surface shadow-[var(--shadow-card)] ring-1 ring-line" : ""}`}>
-              <span className={`block text-[11px] font-semibold tabular ${i <= index ? "text-brand-ink" : "text-ink-3"}`}>Step {i + 1}</span>
+              <span className={`block text-[11px] tabular ${i === index ? "text-brand-ink" : "text-ink-3"}`}>Step {i + 1}</span>
               <span className={`block truncate text-[13px] font-medium ${i === index ? "text-ink" : "text-ink-3"}`}>{s.label}</span>
             </li>
           ))}
@@ -64,5 +61,24 @@ export default async function Onboarding({ searchParams }) {
         {step === "finish" && <StepFinish business={pending} />}
       </div>
     </div>
+  );
+}
+
+// progress as tally marks, like the strike in the Usetally logo
+function Tally({ done, total }) {
+  const gap = 6, h = 16, w = gap * (total - 1) + 2;
+  const finished = done >= total;
+  return (
+    <span className="inline-flex items-center gap-2" role="img" aria-label={`Step ${done} of ${total}`}>
+      <svg width={w + 6} height={h} viewBox={`-3 0 ${w + 6} ${h}`} aria-hidden="true" className="overflow-visible">
+        {Array.from({ length: total }, (_, i) => (
+          <line key={i} x1={1 + i * gap} y1="2" x2={1 + i * gap} y2={h - 2} strokeWidth="1.75" strokeLinecap="round"
+            className={`transition-colors duration-500 ${i < done ? "stroke-brand" : "stroke-line-strong"}`} />
+        ))}
+        <line x1="-2" y1={h - 3} x2={w + 2} y2="3" strokeWidth="1.75" strokeLinecap="round"
+          className={`stroke-brand transition-opacity duration-500 ${finished ? "opacity-100" : "opacity-0"}`} />
+      </svg>
+      <span className="text-[11px] text-ink-3 tabular">{done}/{total}</span>
+    </span>
   );
 }
