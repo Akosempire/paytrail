@@ -84,14 +84,14 @@ export default async function Home({ searchParams }) {
         {/* phones & tablets: film first, then the words, all fitted to one screen
             (sizes follow the screen height); desktop: words left, film right */}
         <section className={`flex min-h-[calc(100svh-68px)] flex-col items-center justify-center gap-3 pt-1 pb-6 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-4 lg:pt-20 lg:pb-12 ${WRAP}`}>
-          <div className="mx-auto max-w-[560px] text-center lg:mx-0 lg:pb-10 lg:text-left">
+          <div className="w-full max-w-[560px] self-start text-left lg:self-auto lg:pb-10">
             <h1 className="font-display text-[clamp(32px,6svh,60px)] leading-[0.98] font-semibold tracking-[-0.045em] lg:text-[clamp(46px,6.4vw,84px)]">
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
-            <p className="mx-auto mt-4 max-w-[440px] text-[15px] leading-relaxed text-hero-ink-2 sm:max-w-[520px] sm:text-[17px] lg:mx-0 lg:mt-6 lg:max-w-[560px] lg:text-[19px] [@media(max-height:700px)]:text-[14px] [@media(max-height:700px)]:leading-snug">Send branded quotes, turn them into invoices, and get paid straight into your own Paystack or Stripe. See your real profit on every job, with receipts sent automatically.</p>
-            <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-center sm:gap-6 lg:mt-9 lg:justify-start">
+            <p className="mt-4 max-w-[440px] text-[15px] leading-relaxed text-hero-ink-2 sm:max-w-[520px] sm:text-[17px] lg:mt-6 lg:max-w-[560px] lg:text-[19px] [@media(max-height:700px)]:text-[14px] [@media(max-height:700px)]:leading-snug">Send branded quotes, turn them into invoices, and get paid straight into your own Paystack or Stripe. See your real profit on every job, with receipts sent automatically.</p>
+            <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-6 lg:mt-9">
               <PrimaryCta href="/signup">Get started free</PrimaryCta>
-              <a href="#how-it-works" className="group inline-flex items-center justify-center gap-2 text-[15px] font-medium sm:justify-start [@media(max-height:700px)]:max-lg:hidden">
+              <a href="#how-it-works" className="group inline-flex items-center justify-start gap-2 self-start text-[15px] font-medium sm:self-auto [@media(max-height:700px)]:max-lg:hidden">
                 <span className="border-b border-hero-line pb-0.5 transition-colors group-hover:border-hero-ink">See how it works</span>
                 <ArrowDown className="size-4 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
               </a>
