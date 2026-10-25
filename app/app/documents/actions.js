@@ -8,7 +8,7 @@ import { emailConfigured, sendEmail } from "@/lib/email";
 import { documentEmail, receiptEmail } from "@/lib/emails";
 import { formatMoney, toMinor } from "@/lib/money";
 import { formatDate } from "@/lib/format";
-import { logoUrl, siteUrl } from "@/lib/site";
+import { logoUrl, absoluteLogoUrl, siteUrl } from "@/lib/site";
 
 function refresh(id) {
   revalidatePath("/app", "layout");
@@ -48,7 +48,7 @@ async function sendDocumentInternal(ctx, id, { email, expected }) {
 
 async function emailDocument(ctx, { doc, link }) {
   const b = ctx.business;
-  return sendEmail({ to: doc.customer_email, replyTo: b.email || undefined, fromName: b.name, ...documentEmail({ business: b, logo: logoUrl(b.logo_path), doc, link }) });
+  return sendEmail({ to: doc.customer_email, replyTo: b.email || undefined, fromName: b.name, ...documentEmail({ business: b, logo: absoluteLogoUrl(b.logo_path), doc, link }) });
 }
 
 export async function sendDocument(id, { email = true, expected } = {}) {
@@ -152,7 +152,7 @@ export async function emailReceipt(receiptId) {
   const link = `${siteUrl()}/r/${receipt.access_token}`;
   const r = await sendEmail({
     to: receipt.documents.customer_email, fromName: b.name, replyTo: b.email || undefined,
-    ...receiptEmail({ business: b, logo: logoUrl(b.logo_path), receipt, documentNumber: receipt.documents.number, link }),
+    ...receiptEmail({ business: b, logo: absoluteLogoUrl(b.logo_path), receipt, documentNumber: receipt.documents.number, link }),
   });
   return r.sent ? { message: "Receipt emailed." } : { error: "The email could not be sent." };
 }

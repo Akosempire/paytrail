@@ -107,12 +107,12 @@ async function render(decoded, crop, { whiteToTransparent = false, name = "logo"
   if (whiteToTransparent) dropWhite(octx, canvas.width, canvas.height);
 
   // PNG keeps transparency; a photo with no transparency is smaller as JPEG.
-  // Busy images are stepped down until they're under ~1.5 MB.
+  // Busy images are stepped down until they're under 1 MB (the upload limit).
   let blob = null;
   for (let i = 0; i < 5; i++) {
     blob = await toBlob(canvas, "image/png");
     if (blob && !box.anyClear && !whiteToTransparent && blob.size > 600 * 1024) blob = (await toBlob(canvas, "image/jpeg", 0.88)) || blob;
-    if (!blob || blob.size <= 1.5 * 1024 * 1024) break;
+    if (!blob || blob.size <= 950 * 1024) break;
     const smaller = document.createElement("canvas");
     smaller.width = Math.max(1, Math.round(canvas.width * 0.75)); smaller.height = Math.max(1, Math.round(canvas.height * 0.75));
     const sctx = smaller.getContext("2d"); sctx.imageSmoothingQuality = "high";

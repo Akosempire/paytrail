@@ -194,3 +194,41 @@ async function sendTestEmailInner(ctx) {
   const who = status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo";
   return { error: `${who} refused the email: ${r.detail || "no reason given"}`, hints: status.env.hints.length ? status.env.hints : status.source === "vercel" && login ? ["Easiest fix: paste a Brevo API key in the form above instead. It replaces the SMTP settings in Vercel."] : [] };
 }
+
+// Copies logos and signatures still in Supabase Storage to Cloudflare R2 and
+// points the businesses at the copies. Safe to run again: files already on R2
+// are skipped, and a file that fails stays where it is (still shown).
+export async function moveImagesToR2() {
+  await requirePlatformAdmin();
+  const { r2Ready, r2Put } = await import("@/lib/storage");
+  if (!r2Ready()) return { error: "Cloudflare R2 isn't set up yet. Add the four R2_ settings in Vercel and redeploy." };
+  const service = createSupabaseService();
+  const { data: rows, error } = await service.from("businesses").select("id, logo_path, signature_path")
+    .or("logo_path.not.is.null,signature_path.not.is.null").limit(2000);
+  if (error) return { error: error.message };
+  let moved = 0, failed = 0;
+  for (const b of rows || []) {
+    const update = {};
+    for (const field of ["logo_path", "signature_path"]) {
+      const path = b[field];
+      if (!path || path.startsWith("r2:") || path.startsWith("http")) continue;
+      try {
+        const { data: blob, error: dlError } = await service.storage.from("logos").download(path);
+        if (dlError || !blob) throw new Error(dlError?.message || "missing");
+        const ext = path.split(".").pop().toLowerCase();
+        const type = ext === "jpg" || ext === "jpeg" ? "image/jpeg" : ext === "webp" ? "image/webp" : "image/png";
+        const kind = field === "logo_path" ? "logo" : "signature";
+        const key = `${b.id}/${kind}-${Date.now()}.${ext === "jpeg" ? "jpg" : ext}`;
+        await r2Put(key, Buffer.from(await blob.arrayBuffer()), type);
+        update[field] = `r2:${key}`;
+        moved++;
+      } catch (e) { failed++; console.error("storage.move_failed", { business: b.id, field, message: e?.message }); }
+    }
+    if (Object.keys(update).length) {
+      const { error: upError } = await service.from("businesses").update(update).eq("id", b.id);
+      if (upError) { failed += Object.keys(update).length; moved -= Object.keys(update).length; }
+    }
+  }
+  revalidatePath("/admin/settings");
+  return { moved, failed };
+}
