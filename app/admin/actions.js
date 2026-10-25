@@ -135,20 +135,25 @@ function serverProblem(e) {
 }
 
 async function saveEmailSettingsInner(ctx, form) {
-  const { checkBrevo, checkBrevoSmtp, forgetEmailConfig } = await import("@/lib/email");
+  const { checkBrevo, checkBrevoSmtp, checkSendhiiv, forgetEmailConfig } = await import("@/lib/email");
   const smtpLogin = String(form.smtpLogin || "").trim().toLowerCase();
   // works with either kind of Brevo key: an API key (xkeysib-) or an SMTP key (xsmtpsib-) plus its login
-  const verify = (secret, address) => secret.includes("\n")
-    ? checkBrevoSmtp(...secret.split("\n"))
+  // the key's prefix says which service it belongs to
+  const verify = (secret, address) => !/^(sh_|xkeysib-|[^\n]*\n)/.test(secret)
+    ? { ok: false, error: "That doesn't look like a Sendhiiv key (starts sh_live_) or a Brevo key (starts xkeysib- or xsmtpsib-). Copy the whole key from your dashboard." }
+    : /^sh_(live|test)_/.test(secret) ? checkSendhiiv(secret)
+    : secret.includes("\n") ? checkBrevoSmtp(...secret.split("\n"))
     : checkBrevo(secret, address);
   const key = String(form.apiKey || "").trim().replace(/^["']|["']$/g, "");
   const fromName = String(form.fromName || "").trim().slice(0, 80) || "Usetally";
   const fromAddress = String(form.fromAddress || "").trim().toLowerCase();
-  if (!/^[^\s@<>]+@[^\s@<>]+\.[a-z]{2,}$/i.test(fromAddress)) return { error: "Enter the address emails should come from, like hello@usetally.cc." };
   const service = createSupabaseService();
   const { data: current, error: readError } = await service.from("platform_settings").select("email_api_key_enc, email_from_address").eq("id", true).single();
   if (readError) return { error: /email_api_key_enc/.test(readError.message) ? "Run the new SQL first (supabase/RUN_NEW_2026-10-25b.sql), then try again." : readError.message };
-  if (!key && !current?.email_api_key_enc) return { error: "Paste your Brevo API key." };
+  // Sendhiiv can send from its shared address, so the sender may be left empty there
+  const sendhiiv = /^sh_(live|test)_/.test(key) || (!key && current?.email_api_key_enc && /^sh_/.test(decryptSecret(current.email_api_key_enc)));
+  if (!(sendhiiv && !fromAddress) && !/^[^\s@<>]+@[^\s@<>]+\.[a-z]{2,}$/i.test(fromAddress)) return { error: "Enter the address emails should come from, like hello@usetally.cc." };
+  if (!key && !current?.email_api_key_enc) return { error: "Paste your Sendhiiv or Brevo API key." };
   // the saved key still works: changing it needs a code. If it no longer
   // works, a code couldn't be delivered anyway, so let the admin replace it.
   const savedWorks = current?.email_api_key_enc ? (await verify(decryptSecret(current.email_api_key_enc), current.email_from_address || fromAddress)).ok : false;
@@ -168,7 +173,7 @@ async function saveEmailSettingsInner(ctx, form) {
   revalidatePath("/admin/settings");
   return check.senderNote
     ? { warning: true, messageTitle: "Key saved, one step left", message: check.senderNote }
-    : { message: `Connected to Brevo${check.account ? ` (${check.account})` : ""}. Send a test email to be sure.` };
+    : { message: /^sh_/.test(secret) ? "Connected to Sendhiiv. Send a test email to be sure." : `Connected to Brevo${check.account ? ` (${check.account})` : ""}. Send a test email to be sure.` };
 }
 
 // sends a test email to the signed-in admin and reports the mail server's answer
@@ -183,8 +188,9 @@ async function sendTestEmailInner(ctx) {
   const { adminAlertEmail } = await import("@/lib/emails");
   const status = await emailStatus();
   if (!status.ready) return { error: "Email isn't set up yet. Paste your Brevo API key above and save." };
-  const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Email is working", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email through Brevo."] }) });
+  const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Email is working", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email."] }) });
   if (r.sent) return { message: `Sent to ${ctx.user.email}. Check your inbox (and spam).` };
   const login = /535|auth/i.test(r.detail || "");
-  return { error: `Brevo refused the email: ${r.detail || "no reason given"}`, hints: status.env.hints.length ? status.env.hints : status.source === "vercel" && login ? ["Easiest fix: paste a Brevo API key in the form above instead. It replaces the SMTP settings in Vercel."] : [] };
+  const who = status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo";
+  return { error: `${who} refused the email: ${r.detail || "no reason given"}`, hints: status.env.hints.length ? status.env.hints : status.source === "vercel" && login ? ["Easiest fix: paste a Brevo API key in the form above instead. It replaces the SMTP settings in Vercel."] : [] };
 }
