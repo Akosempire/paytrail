@@ -40,7 +40,7 @@ export async function uploadDocumentFile(documentId, form) {
     if ((count || 0) >= MAX_FILES) return { error: `A document can have up to ${MAX_FILES} files. Remove one first.` };
 
     const id = randomUUID(), key = `${ctx.business.id}/docs/${doc.id}/${id}.${type.ext}`, name = cleanFileName(file.name);
-    await r2Put(key, Buffer.from(await file.arrayBuffer()), type.mime);
+    await r2Put(key, new Uint8Array(await file.arrayBuffer()), type.mime);
     const { error } = await ctx.supabase.from("document_files").insert({ id, business_id: ctx.business.id, document_id: doc.id, name, content_type: type.mime,
       size_bytes: file.size, storage_key: key, uploaded_by: ctx.user.id, uploaded_by_name: who(ctx) });
     if (error) { await r2Delete(key).catch(() => {}); return { error: missingTable(error) ? NEEDS_SQL : "The file couldn't be saved. Try again." }; }

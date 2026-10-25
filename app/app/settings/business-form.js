@@ -4,6 +4,7 @@ import { useStepUp } from "@/components/step-up";
 import { Save } from "lucide-react";
 import { LogoInput } from "@/components/logo-input";
 import { SignatureField } from "@/components/signature-field";
+import { TermsField } from "@/components/terms-field";
 import { Card, CardHeader, Checkbox, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { SubmitButton, Switch, useActionToast, FormMessage } from "@/components/ui-client";
 import { CURRENCIES } from "@/lib/money";
@@ -100,7 +101,13 @@ export function BusinessForm({ business: b, logo: initialLogo, signature: signat
             <Field label="Bank" htmlFor="bn"><Input id="bn" name="bank_name" defaultValue={b.bank_name} /></Field>
             <Field label="Account name" htmlFor="ban"><Input id="ban" name="bank_account_name" defaultValue={b.bank_account_name} /></Field>
             <Field label="Account number" htmlFor="bno"><Input id="bno" name="bank_account_number" defaultValue={b.bank_account_number} inputMode="numeric" /></Field>
-            <Field label="Default terms" htmlFor="terms" className="sm:col-span-3"><Textarea id="terms" name="default_terms" rows={3} defaultValue={b.default_terms} /></Field>
+          </div>
+        </Card>
+
+        <Card>
+          <CardHeader title="Terms & conditions" description="Printed at the bottom of every new quote and invoice." />
+          <div className="p-5">
+            <TermsField defaultValue={b.default_terms} validityDays={b.quote_validity_days} dueDays={b.invoice_due_days} />
           </div>
         </Card>
 

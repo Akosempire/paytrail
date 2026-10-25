@@ -7,6 +7,7 @@ import { FormMessage, SubmitButton } from "@/components/ui-client";
 import { CURRENCIES, formatMoney } from "@/lib/money";
 import { finishOnboarding, saveBrand, saveMoney, startBusiness } from "./actions";
 import { LogoInput } from "@/components/logo-input";
+import { TermsField } from "@/components/terms-field";
 
 const SWATCHES = ["#1570EF", "#079455", "#7A5AF8", "#DC6803", "#D92D20", "#0E9384", "#101828", "#C11574"];
 
@@ -229,8 +230,8 @@ export function StepMoney({ business }) {
               <Field label="Invoice prefix" htmlFor="ip" hint="INV-0001"><Input id="ip" name="invoice_prefix" defaultValue={business.invoice_prefix} maxLength={8} /></Field>
               <Field label="Receipt prefix" htmlFor="rp" hint="RCT-0001"><Input id="rp" name="receipt_prefix" defaultValue={business.receipt_prefix} maxLength={8} /></Field>
             </div>
-            <Field label="Default terms" htmlFor="terms" optional hint="Added to new documents. Edit per document if needed.">
-              <Textarea id="terms" name="default_terms" rows={3} defaultValue={business.default_terms} placeholder="70% deposit before work starts, balance on delivery. Prices valid for the period stated." />
+            <Field label="Terms & conditions" htmlFor="terms" optional>
+              <TermsField defaultValue={business.default_terms} validityDays={business.quote_validity_days} dueDays={business.invoice_due_days} />
             </Field>
           </div>
         </More>
