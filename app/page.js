@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { preload } from "react-dom";
-import { ArrowDown, Building2, Check, EyeOff, Landmark, Plus, UserRound } from "lucide-react";
+import { ArrowDown, EyeOff, Landmark, Plus } from "lucide-react";
 import { Alert, Logo } from "@/components/ui";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
@@ -12,6 +12,7 @@ import { PrimaryCta, SecondaryCta } from "@/components/landing/cta";
 import { ThemeSwitch } from "@/components/landing/theme-switch";
 import { Platforms } from "@/components/landing/platforms";
 import { Pricing } from "@/components/landing/pricing";
+import { Team } from "@/components/landing/team";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
@@ -33,12 +34,6 @@ const PAPER = "rounded-[18px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.05),
 const WRAP = "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10";
 const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase";
 const H2 = "font-display text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]";
-
-const ROLES = [
-  { icon: Building2, role: "Owner", who: "Runs the business", can: ["Everything, including billing", "Sees costs and profit", "Sets who sees what"] },
-  { icon: UserRound, role: "Finance", who: "Sends and collects", can: ["Creates and sends documents", "Records payments", "Sees hidden costs"] },
-  { icon: UserRound, role: "Junior", who: "Prepares drafts", can: ["Drafts quotes and invoices", "Needs approval to send", "Costs hidden unless allowed"] },
-];
 
 const PROVIDERS = [
   ["Paystack", "Cards, bank transfer and USSD"],
@@ -114,27 +109,7 @@ export default async function Home({ searchParams }) {
       <Chapters />
 
       {/* ------------------------------------------------ teams */}
-      <section className={`py-24 ${WRAP}`} aria-labelledby="teams-title">
-        <div className="grid gap-12 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:items-center">
-          <div className="max-w-[520px]">
-            <p className={KICKER}>For teams</p>
-            <h2 id="teams-title" className={`mt-4 ${H2}`}>Everyone does their part. You see everything.</h2>
-            <p className="mt-5 text-[17px] leading-relaxed text-hero-ink-2">Invite your finance people and juniors. Junior drafts wait for approval, and you decide who can see your costs and profit.</p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {ROLES.map((r, i) => (
-              <div key={r.role} className={`${PAPER} p-5 ${i === 1 ? "sm:translate-y-6" : ""}`}>
-                <span className="inline-flex size-10 items-center justify-center rounded-full bg-hero-tint"><r.icon className="size-5 text-hero-ink" aria-hidden="true" /></span>
-                <p className="mt-4 text-[18px] font-semibold tracking-[-0.01em]">{r.role}</p>
-                <p className="text-[13px] text-hero-ink-2">{r.who}</p>
-                <ul className="mt-4 space-y-2 text-[13.5px]">
-                  {r.can.map((c) => <li key={c} className="flex gap-2"><Check className="mt-0.5 size-4 shrink-0 text-hero-accent" aria-hidden="true" />{c}</li>)}
-                </ul>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <Team wrap={WRAP} kicker={KICKER} h2={H2} />
 
       {/* ------------------------------------------------ get paid + print */}
       <section className="bg-hero-tint/60 py-24" aria-labelledby="paid-title">
