@@ -26,7 +26,8 @@ export function DocumentDefaults({ business, samples, extraTemplates = false }) 
   const real = samples[kind];
   const sample = useMemo(() => real || sampleDocument(kind, business), [real, kind, business]);
   const model = useMemo(() => {
-    const override = { template: deferred.template, paper: deferred.paper, layout: deferred.layout };
+    // a settings preview: always in today's branding
+    const override = { template: deferred.template, paper: deferred.paper, layout: deferred.layout, live: true };
     return buildModel({ ...sample, business, override });
   }, [sample, deferred, business]);
 

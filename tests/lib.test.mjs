@@ -108,7 +108,7 @@ test("Paystack: webhook signature, keys and verify results", () => {
   assert.equal(paystack.normalisePaystack({ status: "abandoned" }).state, "failed");
 });
 
-test("receipts use the business's current branding and template; sent invoices stay frozen", async () => {
+test("receipts use the business's current branding and template; sent invoices keep their details but show the current logo and signature", async () => {
   const { buildModel } = await import("../lib/doc-model.js");
   const business = {
     name: "New Name Ltd", logo_path: "https://cdn.test/new-logo.png", signature_path: "https://cdn.test/new-sig.png", signatory_name: "Tolu",
@@ -128,7 +128,8 @@ test("receipts use the business's current branding and template; sent invoices s
   assert.equal(r.template, "ledger");
   assert.equal(r.paper, "a5");
   const inv = buildModel({ doc, items: [], business });
-  assert.equal(inv.business.logo, "https://cdn.test/old-logo.png");
+  assert.equal(inv.business.logo, "https://cdn.test/new-logo.png");
+  assert.equal(inv.signature.image, "https://cdn.test/new-sig.png");
   assert.equal(inv.business.name, "Old Name");
   assert.equal(inv.template, "signature");
 });
