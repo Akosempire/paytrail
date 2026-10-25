@@ -26,7 +26,7 @@ export async function uploadDocumentFile(documentId, form) {
   return guard(async () => {
     const ctx = await requireBusiness();
     if (!can(ctx.member, "documents.create")) return { error: "Your role can't add files." };
-    if (!r2Ready()) return { error: "File storage isn't connected yet (Cloudflare R2 settings in Vercel)." };
+    if (!(await r2Ready())) return { error: "File storage isn't connected yet. A Usetally admin can set up Cloudflare R2 in Admin → Trial & billing." };
     const file = form.get("file");
     if (!file || typeof file === "string" || !file.size) return { error: "Choose a file to attach." };
     const type = fileTypeOf(file.name);

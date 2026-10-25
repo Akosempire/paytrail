@@ -5,7 +5,7 @@ import { PlatformSettings } from "./platform-settings";
 import { EmailStatus } from "./email-status";
 import { emailStatus } from "@/lib/email";
 import { StorageStatus } from "./storage-status";
-import { r2Check } from "@/lib/storage";
+import { r2Check, storageSaved } from "@/lib/storage";
 import { createSupabaseService } from "@/lib/supabase/server";
 
 // images not yet on R2 (old uploads in Supabase Storage)
@@ -24,7 +24,7 @@ export default async function Page() {
     <div className="flex flex-col gap-6">
       <PageHeader title="Trial & billing" description="How new businesses try Usetally, and how Usetally collects subscription payments." />
       <EmailStatus status={await emailStatus()} />
-      <StorageStatus status={await r2Check()} waiting={await imagesWaiting()} />
+      <StorageStatus status={await r2Check()} saved={await storageSaved()} waiting={await imagesWaiting()} />
       <PlatformSettings settings={s} webhooks={Object.fromEntries(["stripe", "paystack", "flutterwave", "bachs"].map((p) => [p, `${siteUrl()}/api/webhooks/${p}/platform`]))} />
     </div>
   );

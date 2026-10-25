@@ -201,7 +201,7 @@ async function sendTestEmailInner(ctx) {
 export async function moveImagesToR2() {
   await requirePlatformAdmin();
   const { r2Ready, r2Put } = await import("@/lib/storage");
-  if (!r2Ready()) return { error: "Cloudflare R2 isn't set up yet. Add the four R2_ settings in Vercel and redeploy." };
+  if (!(await r2Ready())) return { error: "Cloudflare R2 isn't connected yet. Save your R2 details above first." };
   const service = createSupabaseService();
   const { data: rows, error } = await service.from("businesses").select("id, logo_path, signature_path")
     .or("logo_path.not.is.null,signature_path.not.is.null").limit(2000);
@@ -231,4 +231,58 @@ export async function moveImagesToR2() {
   }
   revalidatePath("/admin/settings");
   return { moved, failed };
+}
+
+// Cloudflare R2 for logos, signatures and attached files, pasted here instead
+// of Vercel. Checked (list, write, delete a test file) before it's saved;
+// replacing working settings needs a security code.
+export async function saveStorageSettings(form) {
+  const ctx = await requirePlatformAdmin();
+  try { return await saveStorageSettingsInner(ctx, form); }
+  catch (e) { console.error("storage_settings.save_failed", { message: e?.message }); return { error: storageProblem(e) }; }
+}
+
+function storageProblem(e) {
+  const m = String(e?.message || e || "");
+  if (/r2_|column|schema cache/i.test(m)) return "The database needs the storage update first. Run supabase/RUN_NEW_2026-10-25f.sql in Supabase → SQL Editor, then try again.";
+  if (/purpose_check|security_codes/i.test(m)) return "The database needs the storage update first. Run supabase/RUN_NEW_2026-10-25f.sql in Supabase → SQL Editor, then try again.";
+  return serverProblem(e);
+}
+
+async function saveStorageSettingsInner(ctx, form) {
+  const { r2Check, r2Problem, parseR2, forgetStorageConfig } = await import("@/lib/storage");
+  const service = createSupabaseService();
+  const { data: current, error: readError } = await service.from("platform_settings").select("r2_account_id, r2_bucket, r2_access_key_id, r2_secret_enc").eq("id", true).single();
+  if (readError) return { error: storageProblem(readError) };
+  const savedRaw = current?.r2_secret_enc ? { accountId: current.r2_account_id, bucket: current.r2_bucket, accessKeyId: current.r2_access_key_id, secretAccessKey: decryptSecret(current.r2_secret_enc) } : null;
+  // empty secret: keep the saved one (so the bucket or account can be fixed alone)
+  const raw = {
+    accountId: String(form.accountId || "").trim() || savedRaw?.accountId || "",
+    bucket: String(form.bucket || "").trim() || savedRaw?.bucket || "",
+    accessKeyId: String(form.accessKeyId || "").trim() || savedRaw?.accessKeyId || "",
+    secretAccessKey: String(form.secretAccessKey || "").trim() || savedRaw?.secretAccessKey || "",
+    endpoint: process.env.R2_ENDPOINT,
+  };
+  const problem = r2Problem(raw);
+  if (problem) return { error: problem };
+  const next = parseR2(raw);
+  const changed = !savedRaw || ["accountId", "bucket", "accessKeyId", "secretAccessKey"].some((k) => {
+    const before = parseR2({ ...savedRaw, endpoint: process.env.R2_ENDPOINT });
+    return !before || before[k] !== next[k];
+  });
+  if (savedRaw && changed && (await r2Check({ ...savedRaw, endpoint: process.env.R2_ENDPOINT })).ready) {
+    const gate = await requireStepUp(ctx, "storage_settings", null);
+    if (gate) return gate;
+  }
+  const check = await r2Check(raw);
+  if (!check.ready) return { error: check.note };
+  const { error } = await service.from("platform_settings").update({
+    r2_account_id: next.accountId || raw.accountId, r2_bucket: next.bucket, r2_access_key_id: next.accessKeyId,
+    r2_secret_enc: encryptSecret(next.secretAccessKey), r2_key_hint: hint(next.accessKeyId), r2_checked_at: new Date().toISOString(), updated_at: new Date().toISOString(),
+  }).eq("id", true);
+  if (error) return { error: storageProblem(error) };
+  forgetStorageConfig();
+  if (savedRaw && changed) await notifyAdmins({ subject: "Usetally file storage changed", lines: [`${ctx.user.email} changed the Cloudflare R2 settings at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and fix them straight away."], link: "/admin/settings" });
+  revalidatePath("/admin/settings");
+  return { message: `Connected to bucket ${next.bucket}. New logos, signatures and attachments are saved to Cloudflare.` };
 }

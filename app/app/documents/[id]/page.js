@@ -48,7 +48,7 @@ export default async function DocumentPage({ params, searchParams }) {
   const payLink = await payLinkFor(ctx.supabase, doc, full.connections);
   const canEditLayout = draft || can(ctx.member, "documents.send");
   const files = await filesFor(ctx, doc.id);
-  const storageOn = r2Ready();
+  const storageOn = await r2Ready();
 
   return (
     <div className="flex flex-col gap-6">

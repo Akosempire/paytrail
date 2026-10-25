@@ -36,7 +36,7 @@ export async function GET() {
       settingsProblems: email.env?.hints || [],
       lastFailure: lastEmailFailure(),
     },
-    storage: { images: r2.ready ? "cloudflare-r2" : "supabase", note: r2.note, target: r2.target || null, maxImageSize: "1 MB" },
+    storage: { images: r2.ready ? "cloudflare-r2" : "supabase", settingsFrom: r2.source === "dashboard" ? "admin settings" : r2.source === "vercel" ? "Vercel" : null, note: r2.note, target: r2.target || null, maxImageSize: "1 MB", maxAttachmentSize: "4 MB" },
     google: { enabled: google, note: google ? "Google sign-in button is showing" : googleCheckProblem() || "Supabase reports Google as switched off (Authentication → Sign In / Providers → Google)" },
   }, { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });
 }
