@@ -107,3 +107,28 @@ test("Paystack: webhook signature, keys and verify results", () => {
   assert.deepEqual([v.state, v.amountMinor, v.reference, v.providerReference], ["succeeded", 1666250, "PT-3", "99"]);
   assert.equal(paystack.normalisePaystack({ status: "abandoned" }).state, "failed");
 });
+
+test("receipts use the business's current branding and template; sent invoices stay frozen", async () => {
+  const { buildModel } = await import("../lib/doc-model.js");
+  const business = {
+    name: "New Name Ltd", logo_path: "https://cdn.test/new-logo.png", signature_path: "https://cdn.test/new-sig.png", signatory_name: "Tolu",
+    brand_color: "#0E9384", currency: "NGN", footer_note: "New footer",
+    document_prefs: { receipt: { template: "ledger", paper: "a5", layout: {} } },
+  };
+  const doc = {
+    kind: "invoice", number: "INV-0001", status: "paid", currency: "NGN", template: "signature", paper: "a4", layout: {},
+    customer_name: "Ada", subtotal_minor: 10000, tax_minor: 0, total_minor: 10000, amount_paid_minor: 10000, discount_minor: 0,
+    snapshot: { name: "Old Name", logo_path: "https://cdn.test/old-logo.png", signature_path: null, footer_note: "Old footer" },
+  };
+  const receipt = { number: "RCT-0001", amount_minor: 10000, balance_after_minor: 0, currency: "NGN", issued_at: "2026-10-25T10:00:00Z", template: "signature", paper: "a4" };
+  const r = buildModel({ doc, items: [], business, receipt, payment: { method: "bank_transfer", paid_at: "2026-10-25T10:00:00Z" } });
+  assert.equal(r.business.logo, "https://cdn.test/new-logo.png");
+  assert.equal(r.business.name, "New Name Ltd");
+  assert.equal(r.signature.image, "https://cdn.test/new-sig.png");
+  assert.equal(r.template, "ledger");
+  assert.equal(r.paper, "a5");
+  const inv = buildModel({ doc, items: [], business });
+  assert.equal(inv.business.logo, "https://cdn.test/old-logo.png");
+  assert.equal(inv.business.name, "Old Name");
+  assert.equal(inv.template, "signature");
+});

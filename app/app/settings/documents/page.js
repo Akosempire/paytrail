@@ -32,7 +32,7 @@ export default async function DocumentsSettings() {
   }
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Documents & printing" description="Default template and paper size for each document type. You can still change them on any document. Documents already sent keep the look and branding they were sent with." />
+      <PageHeader title="Documents & printing" description="Default template and paper size for each document type. You can still change them on any document. Quotes and invoices already sent keep the look they were sent with; receipts always use your latest settings and branding." />
       <DocumentDefaults business={ctx.business} samples={{ quote, invoice, receipt }} extraTemplates={extra} />
     </div>
   );

@@ -13,7 +13,8 @@ test("every template/paper/kind combination renders a PDF at the right size", as
   for (const [template, paper, kind] of combos) {
     const receipt = kind === "receipt" ? { number: "RC-0042", amount_minor: 50000000, currency: "NGN", balance_after_minor: 75775000, issued_at: "2026-10-24T10:00:00Z", template, paper } : null;
     const d = doc({ kind: kind === "receipt" ? "invoice" : kind, template, paper });
-    const model = buildModel({ doc: d, items: items(4), business, receipt, payment: receipt ? { method: "paystack", reference: "PSK-1", paid_at: "2026-10-24T10:00:00Z" } : null });
+    // receipts follow the business's receipt default, so choose the combination through the override
+    const model = buildModel({ doc: d, items: items(4), business, receipt, payment: receipt ? { method: "paystack", reference: "PSK-1", paid_at: "2026-10-24T10:00:00Z" } : null, override: receipt ? { template, paper } : {} });
     const bytes = await renderPdf(model);
     const pdf = await PDFDocument.load(bytes);
     const [w, h] = [pdf.getPage(0).getMediaBox().width, pdf.getPage(0).getMediaBox().height];
