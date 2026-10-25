@@ -2,6 +2,8 @@ import { googleCheckProblem, googleEnabled } from "@/lib/auth-providers";
 import { emailStatus, lastEmailFailure } from "@/lib/email";
 import { supabaseUrl } from "@/lib/supabase/url";
 import { lastStorageFailure, r2Check } from "@/lib/storage";
+import { credentialsFor } from "@/lib/payments";
+import { createSupabaseService } from "@/lib/supabase/server";
 
 // Public, non-secret health check: which deploy is live, whether the site can
 // talk to Supabase, how email is sent and the last email problem, and whether
@@ -36,6 +38,7 @@ export async function GET() {
       settingsProblems: email.env?.hints || [],
       lastFailure: lastEmailFailure(),
     },
+    billing: await credentialsFor(createSupabaseService(), null).then((c) => c && c.provider !== "manual" ? { provider: c.provider, mode: c.mode, takesRealPayments: c.mode === "live" } : { provider: "manual" }).catch(() => null),
     storage: { images: r2.ready ? "cloudflare-r2" : "supabase", settingsFrom: r2.source === "dashboard" ? "admin settings" : r2.source === "vercel" ? "Vercel" : null, note: r2.note, target: r2.target || null, maxImageSize: "1 MB", maxAttachmentSize: "4 MB", lastUploadFailure: lastStorageFailure() },
     google: { enabled: google, note: google ? "Google sign-in button is showing" : googleCheckProblem() || "Supabase reports Google as switched off (Authentication → Sign In / Providers → Google)" },
   }, { headers: { "Cache-Control": "no-store", "X-Robots-Tag": "noindex" } });

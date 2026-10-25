@@ -4,6 +4,8 @@ import path from "node:path";
 const root = path.resolve(import.meta.dirname, "..");
 export async function resolve(specifier, context, next) {
   if (specifier === "server-only") return { url: "data:text/javascript,export{}", shortCircuit: true };
+  // payment tests swap the database for an in-memory one (tests/fixtures/fake-supabase.mjs)
+  if (specifier === "@/lib/supabase/server") return { url: pathToFileURL(path.join(root, "tests/fixtures/fake-supabase.mjs")).href, shortCircuit: true, format: "module" };
   if (specifier.startsWith("@/")) {
     let file = path.join(root, specifier.slice(2));
     if (!path.extname(file)) file += ".js";

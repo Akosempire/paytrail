@@ -3,7 +3,7 @@ import { useStepUp } from "@/components/step-up";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "lucide-react";
-import { Button, Card, CardHeader, Field, Input, Select, cx } from "@/components/ui";
+import { Button, Card, CardHeader, Field, Input, Select, cx, Badge } from "@/components/ui";
 import { CopyButton, useToast } from "@/components/ui-client";
 import { saveBilling, saveTrial } from "../actions";
 
@@ -14,7 +14,7 @@ const PROVIDER_INFO = {
   bachs: { name: "Bachs", key: "sk_live_…", hook: "Webhook signing secret" },
 };
 
-export function PlatformSettings({ settings, webhooks }) {
+export function PlatformSettings({ settings, webhooks, billingMode }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -43,7 +43,13 @@ export function PlatformSettings({ settings, webhooks }) {
         </div>
       </Card>
       <Card>
-        <CardHeader title="Collecting subscriptions" description="Usetally's own payment account, separate from the businesses' accounts." />
+        <CardHeader title="Collecting subscriptions" description="Usetally's own payment account, separate from the businesses' accounts."
+          actions={settings.billing_provider === "manual" ? <Badge tone="neutral" size="sm">Bank transfer</Badge> : billingMode === "live" ? <Badge tone="success" size="sm">Live key</Badge> : billingMode === "test" ? <Badge tone="warn" size="sm">Test key · no real payments</Badge> : null} />
+        {settings.billing_provider !== "manual" && billingMode === "test" && (
+          <p className="mx-5 mt-4 rounded-lg bg-warn-soft px-3.5 py-3 text-[13px] leading-relaxed text-warn-ink">
+            The saved key is a test (sandbox) key. Test checkouts don't take real money, so businesses can't subscribe with it: they'll be told online payment isn't available yet, and no plan is ever activated by a test payment. Paste your live secret key to start collecting.
+          </p>
+        )}
         <div className="flex flex-col gap-4 p-5">
           <Field label="How businesses pay Usetally" htmlFor="bp">
             <Select id="bp" value={billing.provider} onChange={(e) => setBilling({ ...billing, provider: e.target.value })}>
