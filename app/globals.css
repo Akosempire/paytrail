@@ -332,3 +332,33 @@
   letter-spacing: 0;
   word-spacing: -0.12em;
 }
+
+/* Landing: receipt tape (trust facts) */
+@keyframes tape-left { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@keyframes tape-right { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+.tape-left { animation: tape-left 46s linear infinite; }
+.tape-right { animation: tape-right 38s linear infinite; }
+.tape-zone:hover .tape-track { animation-play-state: paused; }
+@media (prefers-reduced-motion: reduce) { .tape-track { animation: none; } }
+/* torn zig-zag top and bottom edges, like paper off a receipt printer */
+.tape-paper {
+  --z: 7px;
+  mask:
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--z)) 51% repeat-x,
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--z)) 51% repeat-x;
+}
+.tape-shadow { filter: drop-shadow(0 10px 18px rgb(20 16 8 / 0.16)) drop-shadow(0 1px 1px rgb(20 16 8 / 0.08)); }
+:root[data-theme="dark"] .tape-shadow { filter: drop-shadow(0 12px 22px rgb(0 0 0 / 0.55)); }
+
+/* Landing: footer wordmark drawn in LED dots */
+.footer-mark {
+  font-size: clamp(76px, 21.5vw, 340px);
+  background-image: radial-gradient(circle, var(--color-hero-accent) 38%, transparent 42%);
+  background-size: max(0.035em, 5px) max(0.035em, 5px);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  margin-bottom: -0.04em;
+  transition: background-size 0.6s ease;
+}
+.footer-mark:hover { background-size: max(0.03em, 4.5px) max(0.03em, 4.5px); }
