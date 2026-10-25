@@ -28,7 +28,7 @@ export async function GET() {
     deployedFrom: process.env.VERCEL_GIT_COMMIT_MESSAGE?.split("\n")[0] || null,
     supabase,
     email: email && {
-      sendingWith: email.source === "dashboard" ? `${email.provider} (admin settings)` : email.source === "vercel" ? "SMTP settings in Vercel" : "not set up (Supabase sends its own emails)",
+      sendingWith: email.source === "vercel-sendhiiv" ? "sendhiiv (SENDHIIV_API_KEY in Vercel)" : email.source === "dashboard" ? `${email.provider} (admin settings)` : email.source === "vercel" ? "SMTP settings in Vercel" : "not set up (Supabase sends its own emails)",
       settingsProblems: email.env?.hints || [],
       lastFailure: lastEmailFailure(),
     },

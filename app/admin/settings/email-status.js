@@ -41,7 +41,7 @@ export function EmailStatus({ status }) {
     <Card>
       {dialog}
       <CardHeader icon={Mail} title="Email delivery" description="Sign-up codes, password resets, security codes, invoices and receipts all go out through your Sendhiiv or Brevo account."
-        actions={status.source === "dashboard" ? <Badge tone="success" size="sm">Connected · {status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo"}</Badge> : status.source === "vercel" ? <Badge tone="warn" size="sm">Using Vercel SMTP</Badge> : <Badge tone="neutral" size="sm">Not set up</Badge>} />
+        actions={status.source === "dashboard" ? <Badge tone="success" size="sm">Connected · {status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo"}</Badge> : status.source === "vercel-sendhiiv" ? <Badge tone="success" size="sm">Connected · Sendhiiv (Vercel)</Badge> : status.source === "vercel" ? <Badge tone="warn" size="sm">Using Vercel SMTP</Badge> : <Badge tone="neutral" size="sm">Not set up</Badge>} />
       <div className="flex flex-col gap-4 px-5 pb-5">
         <div role="tablist" aria-label="Email service" className="grid grid-cols-2 gap-1 rounded-xl bg-tray p-1 sm:inline-grid sm:w-72">
           {[["sendhiiv", "Sendhiiv"], ["brevo", "Brevo"]].map(([key, label]) => (
