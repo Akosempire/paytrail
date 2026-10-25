@@ -104,6 +104,19 @@ export function DocView({ model: m, screen = true }) {
           </section>
         )}
 
+        {m.signature && (
+          <section className="pt-sign">
+            <div className="pt-sign-box">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {m.signature.image ? <img src={m.signature.image} alt={`Signature of ${m.signature.name || m.business.name}`} className="pt-sign-img" /> : <div className="pt-sign-space" />}
+              <div className="pt-sign-line" />
+              {m.signature.name && <p className="pt-strong">{m.signature.name}</p>}
+              {m.signature.title && <p className="pt-sign-title">{m.signature.title}</p>}
+              <p className="pt-label">Authorised signature</p>
+            </div>
+          </section>
+        )}
+
         {(m.business.footer || thermal) && <footer className="pt-foot">{m.business.footer || "Thank you"}</footer>}
       </div>
     </article>

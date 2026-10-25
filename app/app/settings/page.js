@@ -10,7 +10,7 @@ export default async function Page() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Business & branding" description="What your customers see on every quote, invoice, receipt and email." />
-      <BusinessForm business={ctx.business} logo={logoUrl(ctx.business.logo_path)} />
+      <BusinessForm business={ctx.business} logo={logoUrl(ctx.business.logo_path)} signature={logoUrl(ctx.business.signature_path)} />
     </div>
   );
 }

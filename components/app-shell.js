@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer,
+  Plus, Menu, X, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -12,6 +12,7 @@ import { ThemeToggle } from "@/components/ui-client";
 import { PageSkeleton } from "@/components/page-skeleton";
 import { signOut } from "@/app/(auth)/actions";
 import { InstallPrompt, clearOfflinePages } from "@/components/pwa";
+import { Tour, TourButton } from "@/components/tour";
 import { switchBusiness } from "@/app/app/actions";
 
 function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts }) {
@@ -37,7 +38,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts 
   ].filter((g) => g.items.length);
 }
 
-export function AppShell({ business, member, memberships, isPlatformAdmin, allowance, perms, logo, children }) {
+export function AppShell({ business, member, memberships, isPlatformAdmin, allowance, perms, logo, tour, children }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [switcher, setSwitcher] = useState(false);
@@ -89,7 +90,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
                 const on = active(item);
                 return (
                   <li key={item.href}>
-                    <Link href={item.href} aria-current={on ? "page" : undefined}
+                    <Link href={item.href} aria-current={on ? "page" : undefined} data-tour={`nav:${item.href}`}
                       onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { setGoingTo(item.href); setOpen(false); } }}
                       className={cx("relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-75",
                         on ? "bg-brand-soft text-brand-ink ring-1 ring-inset ring-brand-line/60" : "text-ink-2 hover:bg-hover hover:text-ink")}>
@@ -122,6 +123,9 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
             <span className="block truncate text-[13px] font-medium text-ink">{member.full_name || "You"}</span>
             <span className="block truncate text-xs text-ink-3">{member.email}</span>
           </span>
+          <TourButton className="inline-flex size-8 items-center justify-center rounded-md text-ink-3 hover:bg-hover hover:text-ink">
+            <span className="sr-only">Take the tour</span><CircleHelp className="size-4" aria-hidden="true" />
+          </TourButton>
           <form action={signOut} onSubmit={clearOfflinePages}>
             <button type="submit" aria-label="Sign out" title="Sign out" className="inline-flex size-8 items-center justify-center rounded-md text-ink-3 hover:bg-hover hover:text-ink">
               <LogOut className="size-4" />
@@ -135,6 +139,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   return (
     <div className="min-h-dvh bg-canvas">
       <InstallPrompt />
+      <Tour userId={tour?.userId} done={tour?.done} />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-line bg-surface lg:block">{sidebar}</aside>
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -144,14 +149,14 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
       )}
       <div className="lg:pl-[264px]">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-canvas/85 px-4 backdrop-blur sm:px-6 lg:px-8">
-          <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu">
+          <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu" data-tour="menu">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
           <Link href="/app" className="lg:hidden"><Logo className="size-8" /></Link>
           <div className="flex-1" />
           <ThemeToggle />
           <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
-          <Button href="/app/quotes/new" variant="primary" icon={Plus}><span className="max-sm:hidden">New </span>Quote</Button>
+          <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote"><span className="max-sm:hidden">New </span>Quote</Button>
         </header>
         <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
       </div>

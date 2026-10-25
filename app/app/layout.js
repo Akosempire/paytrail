@@ -18,6 +18,7 @@ export default async function Layout({ children }) {
       isPlatformAdmin={ctx.isPlatformAdmin}
       allowance={ctx.allowance}
       logo={logoUrl(business.logo_path)}
+      tour={{ userId: ctx.user.id, done: Boolean(ctx.profile?.tour_done_at) }}
       perms={{
         canSettings: can(member, "settings.business"),
         canPayments: can(member, "settings.payments"),

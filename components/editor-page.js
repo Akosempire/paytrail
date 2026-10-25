@@ -43,7 +43,7 @@ export async function EditorPage({ kind, id, customerId }) {
         presets={presets || []}
         business={{ currency: b.currency, tax_rate: Number(b.tax_rate), tax_label: b.tax_label, default_terms: b.default_terms, quote_validity_days: b.quote_validity_days, invoice_due_days: b.invoice_due_days, require_approval: b.require_approval,
           name: b.name, legal_name: b.legal_name, email: b.email, phone: b.phone, website: b.website, address: b.address, city: b.city, country: b.country, tax_id: b.tax_id,
-          logo_path: b.logo_path, brand_color: b.brand_color, footer_note: b.footer_note, bank_name: b.bank_name, bank_account_name: b.bank_account_name, bank_account_number: b.bank_account_number, document_prefs: b.document_prefs }}
+          logo_path: b.logo_path, signature_path: b.signature_path, signatory_name: b.signatory_name, signatory_title: b.signatory_title, brand_color: b.brand_color, footer_note: b.footer_note, bank_name: b.bank_name, bank_account_name: b.bank_account_name, bank_account_number: b.bank_account_number, document_prefs: b.document_prefs }}
         perms={{ canViewCosts: showCosts, isJunior: ctx.member.role === "junior_finance" }}
         emailReady={await emailConfigured()}
       />

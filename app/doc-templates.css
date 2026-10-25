@@ -79,6 +79,17 @@
 .pt-link { word-break: break-all; color: var(--pt-ink); }
 .pt-bank-no { font-weight: 700; font-size: 1.2em; letter-spacing: 0.04em; color: var(--pt-ink); }
 .pt-accepted { padding: 2.4mm 3mm; background: #eef8f2; color: #0d6b3f; }
+/* authorised signature: right-aligned on sheets, centred on thermal rolls */
+.pt-sign { display: flex; justify-content: flex-end; margin-top: 7mm; break-inside: avoid; }
+.pt-sign-box { width: 62mm; text-align: center; }
+.pt-sign-img { display: block; max-width: 100%; max-height: 16mm; margin: 0 auto 1mm; object-fit: contain; }
+.pt-sign-space { height: 12mm; }
+.pt-sign-line { border-top: 0.25mm solid var(--pt-ink-3); margin-bottom: 1.5mm; }
+.pt-sign-title { color: var(--pt-ink-3); font-size: 0.86em; }
+.pt-sign .pt-label { margin-top: 0.8mm; }
+.pt-thermal .pt-sign { justify-content: center; margin-top: 4mm; }
+.pt-thermal .pt-sign-box { width: 70%; }
+.pt-thermal .pt-sign-img { max-height: 12mm; }
 .pt-foot { margin-top: 8mm; padding-top: 3mm; border-top: 0.25mm solid var(--pt-line); text-align: center; color: var(--pt-ink-3); font-size: 0.82em; white-space: pre-line; }
 
 .pt-stamp { position: absolute; top: 3mm; right: 6mm; z-index: 1; transform: rotate(-10deg); border: 0.8mm solid #175cd3; color: #175cd3; border-radius: 1.5mm;
@@ -144,6 +155,7 @@
 .pt-t-pos .pt-totals { order: 8; }
 .pt-t-pos .pt-receipt-rows { order: 9; }
 .pt-t-pos .pt-blocks { order: 10; }
+.pt-t-pos .pt-sign { order: 10; }
 .pt-t-pos .pt-foot { order: 11; }
 .pt-t-pos .pt-doctitle { font-size: 1.05em; margin-top: 2mm; }
 .pt-t-pos .pt-received { margin-top: 2mm; padding: 2mm 0 0; background: none; text-align: center; }

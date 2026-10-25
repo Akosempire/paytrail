@@ -58,7 +58,7 @@ export default async function Dashboard({ searchParams }) {
       </Callout>}
 
       {remaining > 0 && (
-        <Card>
+        <Card data-tour="setup">
           <CardHeader title="Get set up" description={`${checklist.length - remaining} of ${checklist.length} done`} />
           <ul className="grid gap-1.5 bg-tray p-1.5 sm:grid-cols-2 lg:grid-cols-4">
             {checklist.map((c) => (

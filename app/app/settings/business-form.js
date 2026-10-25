@@ -3,6 +3,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useStepUp } from "@/components/step-up";
 import { Save } from "lucide-react";
 import { LogoInput } from "@/components/logo-input";
+import { SignatureField } from "@/components/signature-field";
 import { Card, CardHeader, Checkbox, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { SubmitButton, Switch, useActionToast, FormMessage } from "@/components/ui-client";
 import { CURRENCIES } from "@/lib/money";
@@ -11,7 +12,7 @@ import { updateBusiness } from "./actions";
 
 const SWATCHES = ["#1570EF", "#079455", "#7A5AF8", "#DC6803", "#D92D20", "#0E9384", "#101828", "#C11574"];
 
-export function BusinessForm({ business: b, logo: initialLogo }) {
+export function BusinessForm({ business: b, logo: initialLogo, signature: signatureUrl }) {
   const [state, action] = useActionState(updateBusiness, null);
   useActionToast(state);
   const formRef = useRef(null);
@@ -57,6 +58,10 @@ export function BusinessForm({ business: b, logo: initialLogo }) {
             </Field>
             <Field label="Footer note" htmlFor="footer" optional><Textarea id="footer" name="footer_note" rows={2} value={footer} onChange={(e) => setFooter(e.target.value)} /></Field>
           </div>
+        </Card>
+        <Card>
+          <CardHeader title="Signature" description="Adds an authorised signature to your quotes, invoices and receipts. Hide it per layout in Documents & printing." />
+          <div className="p-5"><SignatureField business={b} signatureUrl={signatureUrl} /></div>
         </Card>
 
         <Card>
