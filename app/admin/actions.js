@@ -121,6 +121,20 @@ export async function updateBusinessAccount(businessId, form) {
 // every sign-up and reset code.
 export async function saveEmailSettings(form) {
   const ctx = await requirePlatformAdmin();
+  // never crash the card: show the admin what went wrong instead
+  try { return await saveEmailSettingsInner(ctx, form); }
+  catch (e) { console.error("email_settings.save_failed", { message: e?.message }); return { error: serverProblem(e) }; }
+}
+
+function serverProblem(e) {
+  const m = String(e?.message || e || "");
+  if (/APP_ENCRYPTION_KEY/.test(m)) return "APP_ENCRYPTION_KEY is missing in Vercel, so the key can't be stored safely. In Vercel → Settings → Environment Variables, add APP_ENCRYPTION_KEY with any long random text (at least 32 characters), redeploy, then try again. Keep that value: changing it later means re-entering saved keys.";
+  if (/SUPABASE_SERVICE_ROLE_KEY/.test(m)) return "SUPABASE_SERVICE_ROLE_KEY is missing in Vercel. Copy it from Supabase → Project Settings → API (service_role), add it in Vercel, redeploy, then try again.";
+  if (/column|email_api_key_enc|schema cache/i.test(m)) return "The database is missing the new email columns. Run supabase/RUN_NEW_2026-10-25b.sql in Supabase → SQL Editor, then try again.";
+  return `Something went wrong on the server: ${m.slice(0, 240) || "no details"}`;
+}
+
+async function saveEmailSettingsInner(ctx, form) {
   const { checkBrevo, checkBrevoSmtp, forgetEmailConfig } = await import("@/lib/email");
   const smtpLogin = String(form.smtpLogin || "").trim().toLowerCase();
   // works with either kind of Brevo key: an API key (xkeysib-) or an SMTP key (xsmtpsib-) plus its login
@@ -160,6 +174,11 @@ export async function saveEmailSettings(form) {
 // sends a test email to the signed-in admin and reports the mail server's answer
 export async function sendTestEmail() {
   const ctx = await requirePlatformAdmin();
+  try { return await sendTestEmailInner(ctx); }
+  catch (e) { console.error("email_settings.test_failed", { message: e?.message }); return { error: serverProblem(e) }; }
+}
+
+async function sendTestEmailInner(ctx) {
   const { emailStatus, sendEmail } = await import("@/lib/email");
   const { adminAlertEmail } = await import("@/lib/emails");
   const status = await emailStatus();
