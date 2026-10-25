@@ -12,6 +12,8 @@ const MESSAGES = {
   "account=deleted": ["success", { title: "Account deleted", message: "Your data has been removed. Thanks for using Usetally." }],
   "switched=1": ["success", "Switched business."],
   "signed_out=1": ["info", "You've signed out."],
+  "oauth=cancelled": ["info", "Google sign-in was cancelled."],
+  "oauth=failed": ["error", { title: "Google sign-in didn't work", message: "Try again, or use your email and password." }],
   "link=expired": ["warning", { title: "Link expired", message: "That link has expired or was already used. Ask for a new one." }],
 };
 

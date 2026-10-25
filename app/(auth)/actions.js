@@ -127,3 +127,16 @@ export async function signOut() {
   await supabase.auth.signOut();
   redirect("/login?signed_out=1");
 }
+
+// "Continue with Google": Supabase sends the person to Google, then back to
+// /auth/callback, which signs them in. New people land in onboarding (via /app).
+export async function continueWithGoogle(next) {
+  const supabase = await createSupabaseServer();
+  const target = safeNext(next, "/app");
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${siteUrl()}/auth/callback?next=${encodeURIComponent(target)}`, queryParams: { prompt: "select_account" } },
+  });
+  if (error || !data?.url) return { errorTitle: "Google sign-in isn't available", error: "Use your email and password for now, or try again shortly." };
+  redirect(data.url);
+}

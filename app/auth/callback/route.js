@@ -6,6 +6,12 @@ export async function GET(request) {
   const url = new URL(request.url);
   const nextParam = url.searchParams.get("next") || "/app";
   const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/app";
+  // Google (or another provider) sent the person back without signing in:
+  // they cancelled, or the provider refused
+  if (url.searchParams.get("error")) {
+    const cancelled = url.searchParams.get("error") === "access_denied";
+    return NextResponse.redirect(new URL(`/login?oauth=${cancelled ? "cancelled" : "failed"}`, url.origin));
+  }
   const supabase = await createSupabaseServer();
   const code = url.searchParams.get("code");
   const tokenHash = url.searchParams.get("token_hash");

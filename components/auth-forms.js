@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
 import { Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton, useActionToast } from "@/components/ui-client";
-import { requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
+import { continueWithGoogle, requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
 import { BRAND } from "@/lib/brand";
 import { OtpInput, ResendCode } from "@/components/otp-input";
 
@@ -49,15 +49,40 @@ export function VerifyEmailForm({ email, next, intro }) {
   );
 }
 
-export function LoginForm({ next, notice }) {
+
+// "Continue with Google", above the email form. Only rendered when Google is
+// switched on in Supabase (see lib/auth-providers.js).
+function GoogleSignIn({ next, label = "Continue with Google" }) {
+  const [state, action] = useActionState(() => continueWithGoogle(next), null);
+  return (
+    <>
+      <form action={action}>
+        <FormMessage state={state} />
+        <SubmitButton size="lg" block variant="secondary" pendingText="Opening Google…">
+          <span className="inline-flex items-center gap-2.5">
+            <svg aria-hidden="true" viewBox="0 0 48 48" className="size-[18px]"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>
+            {label}
+          </span>
+        </SubmitButton>
+      </form>
+      <div className="flex items-center gap-3 text-xs text-ink-3" aria-hidden="true">
+        <span className="h-px flex-1 bg-line" />or<span className="h-px flex-1 bg-line" />
+      </div>
+    </>
+  );
+}
+
+export function LoginForm({ next, google = false }) {
   const [state, action] = useActionState(signIn, null);
   if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} intro="Your email isn't confirmed yet. We sent a new 6-digit code to" />;
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-title-1 text-ink">Sign in to {BRAND.name}</h1>
         <p className="mt-1 text-sm text-ink-2">Welcome back. Pick up where you left off.</p>
       </div>
+      {google && <GoogleSignIn next={next} />}
+    <form action={action} className="flex flex-col gap-5">
       <FormMessage state={state} />
       <input type="hidden" name="next" value={next || ""} />
       <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
@@ -68,18 +93,21 @@ export function LoginForm({ next, notice }) {
       <SubmitButton size="lg" block pendingText="Signing in…">Sign in</SubmitButton>
       <p className="text-center text-sm text-ink-2">New to {BRAND.name}? <Link href={`/signup${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-brand-ink hover:underline">Create an account</Link></p>
     </form>
+    </div>
   );
 }
 
-export function SignupForm({ next, email, trialText }) {
+export function SignupForm({ next, email, trialText, google = false }) {
   const [state, action] = useActionState(signUp, null);
   if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} />;
   return (
-    <form action={action} className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5">
       <div>
         <h1 className="text-title-1 text-ink">Create your {BRAND.name} account</h1>
         <p className="mt-1 text-sm text-ink-2">{trialText || "Start free. No card needed."}</p>
       </div>
+      {google && <GoogleSignIn next={next || "/onboarding"} label="Sign up with Google" />}
+    <form action={action} className="flex flex-col gap-5">
       <FormMessage state={state} />
       <input type="hidden" name="next" value={next || ""} />
       <Field label="Your full name" htmlFor="name"><Input id="name" icon={User} name="name" defaultValue={state?.name ?? ""} placeholder="Tolu Adeyemi" autoComplete="name" required /></Field>
@@ -89,6 +117,7 @@ export function SignupForm({ next, email, trialText }) {
       <p className="text-center text-xs text-ink-3">By creating an account you agree to the <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-ink">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-ink">Privacy Policy</Link>.</p>
       <p className="text-center text-sm text-ink-2">Already have an account? <Link href={`/login${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-medium text-brand-ink hover:underline">Sign in</Link></p>
     </form>
+    </div>
   );
 }
 

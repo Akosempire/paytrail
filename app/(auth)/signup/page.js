@@ -1,4 +1,5 @@
 import { SignupForm } from "@/components/auth-forms";
+import { googleEnabled } from "@/lib/auth-providers";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 export const metadata = { title: "Create account" };
 
@@ -13,5 +14,6 @@ async function trialText() {
 
 export default async function Page({ searchParams }) {
   const { next, email } = await searchParams;
-  return <SignupForm next={next} email={email} trialText={await trialText()} />;
+  const [trial, google] = await Promise.all([trialText(), googleEnabled()]);
+  return <SignupForm next={next} email={email} trialText={trial} google={google} />;
 }
