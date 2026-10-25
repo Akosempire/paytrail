@@ -153,9 +153,6 @@ function ChaptersCompact({ step }) {
         <p className="text-[12px] font-semibold tracking-[0.14em] text-hero-accent uppercase">How it works</p>
         <p className="font-mono text-[12px] text-hero-ink-2 tabular-nums">0{step + 1} / 0{CHAPTERS.length}</p>
       </div>
-      <div className="mt-3 grid grid-cols-4 gap-1.5" aria-hidden="true">
-        {CHAPTERS.map((c, i) => <span key={c.kicker} className={cx("h-1 rounded-full transition-colors duration-300", i <= step ? "bg-hero-accent" : "bg-hero-line")} />)}
-      </div>
       <div className="relative mt-5 h-[184px] shrink-0 [@media(max-height:700px)]:h-[150px]">
         {CHAPTERS.map((c, i) => (
           <div key={c.kicker} aria-hidden={i !== step} className={cx("absolute inset-0 transition-all duration-500", i === step ? "translate-y-0 opacity-100" : i < step ? "-translate-y-3 opacity-0" : "translate-y-3 opacity-0")}>
