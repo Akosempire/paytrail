@@ -313,3 +313,22 @@
   mask-image: linear-gradient(to right, transparent, #000 5%, #000 95%, transparent), linear-gradient(to bottom, transparent, #000 4%, #000 96%, transparent);
   mask-composite: intersect;
 }
+
+/* Display font for landing headings: Chintzy CPU by Brian Kent (freeware,
+   commercial use allowed; see public/fonts/licenses/chintzy-cpu.txt).
+   It has one weight and no ₦ sign; ₦ falls back to the body font.
+   Unlayered on purpose so it wins over weight/tracking utilities. */
+@font-face {
+  font-family: "Chintzy CPU";
+  src: url("/fonts/chintzy-cpu.woff2") format("woff2");
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+.font-display {
+  font-family: "Chintzy CPU", var(--font-sans);
+  font-weight: 400;
+  font-synthesis: none;
+  letter-spacing: 0;
+  word-spacing: -0.12em;
+}

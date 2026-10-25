@@ -30,7 +30,7 @@ export function PainStory() {
           <div className="mx-auto grid w-full max-w-[1280px] items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,0.9fr)] lg:gap-16 lg:px-10 lg:py-0">
             <div className="max-w-[560px]">
               <p className="text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase">The problem</p>
-              <h2 className="mt-4 text-[clamp(34px,4.6vw,60px)] leading-[1.02] font-semibold tracking-[-0.035em]">
+              <h2 className="font-display mt-4 text-[clamp(34px,4.6vw,60px)] leading-[1.02] font-semibold tracking-[-0.035em]">
                 You quoted ₦500,000.<br /><span className="text-hero-ink-2">What did you keep?</span>
               </h2>
               <ScrollWords from={0.05} to={0.75} className="mt-6 text-[17px] leading-relaxed text-hero-ink sm:text-[19px]"
@@ -136,7 +136,7 @@ function ChapterIntro({ small }) {
     : (
       <div className="max-w-[640px]">
         <p className="text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase">How it works</p>
-        <h2 className="mt-4 text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]">One flow, from first price to final receipt.</h2>
+        <h2 className="font-display mt-4 text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]">One flow, from first price to final receipt.</h2>
       </div>
     );
 }
@@ -145,7 +145,7 @@ function ChapterText({ chapter }) {
   return (
     <div className="max-w-[520px]">
       <p className="text-[13px] font-semibold tabular-nums text-hero-ink-2">{chapter.kicker}</p>
-      <h3 className="mt-3 text-[clamp(28px,3.4vw,44px)] leading-[1.06] font-semibold tracking-[-0.03em]">{chapter.title}</h3>
+      <h3 className="font-display mt-3 text-[clamp(28px,3.4vw,44px)] leading-[1.06] font-semibold tracking-[-0.03em]">{chapter.title}</h3>
       <p className="mt-4 text-[17px] leading-relaxed text-hero-ink-2">{chapter.body}</p>
     </div>
   );

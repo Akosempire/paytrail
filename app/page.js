@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { preload } from "react-dom";
 import { ArrowDown, ArrowRight, BadgeCheck, Building2, Check, EyeOff, Landmark, Lock, Plus, ShieldCheck, UserRound, Wallet } from "lucide-react";
 import { Alert, Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
@@ -29,7 +30,7 @@ const BTN_GHOST = "inline-flex h-[52px] items-center justify-center gap-2 rounde
 const PAPER = "rounded-[18px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.05),0_18px_40px_-24px_rgba(20,16,8,.3)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
 const WRAP = "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10";
 const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase";
-const H2 = "text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]";
+const H2 = "font-display text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]";
 
 // everything here is true of the product today
 const TRUST = [
@@ -64,6 +65,7 @@ const FAQ = [
 ];
 
 export default async function Home({ searchParams }) {
+  preload("/fonts/chintzy-cpu.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
   const sp = await searchParams;
   const [{ plans: allPlans, trial }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
   const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Free trial";
@@ -94,7 +96,7 @@ export default async function Home({ searchParams }) {
 
         <section className={`grid items-center gap-6 pt-8 pb-10 sm:pt-12 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:pt-6 lg:pb-12 ${WRAP}`}>
           <div className="max-w-[560px] lg:pb-10">
-            <h1 className="text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em]">
+            <h1 className="font-display text-[clamp(46px,6.4vw,84px)] leading-[0.98] font-semibold tracking-[-0.045em]">
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
             <p className="mt-6 text-[17px] leading-relaxed text-hero-ink-2 sm:text-[19px]">From quote to payment. Everything flows.</p>
@@ -255,7 +257,7 @@ export default async function Home({ searchParams }) {
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)] lg:items-end">
             <div>
               <p className="text-[13px] font-semibold tracking-[0.14em] text-[#5a9dff] uppercase">Early access</p>
-              <h2 className="mt-4 text-[clamp(34px,4.8vw,64px)] leading-[1.02] font-semibold tracking-[-0.035em]">Good deals deserve a better <span className="text-[#5a9dff]">ending.</span></h2>
+              <h2 className="font-display mt-4 text-[clamp(34px,4.8vw,64px)] leading-[1.02] font-semibold tracking-[-0.035em]">Good deals deserve a better <span className="text-[#5a9dff]">ending.</span></h2>
               <p className="mt-5 max-w-[560px] text-[17px] leading-relaxed text-[#a29e93]">{BRAND.name} is new, and built for freelancers and small businesses. Join early, tell us what you need, and help shape what we build next.</p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
