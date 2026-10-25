@@ -47,7 +47,6 @@ export default async function Dashboard({ searchParams }) {
       <PageHeader title={`${greeting()}${firstName ? `, ${firstName}` : ""}`} description={`Here's how ${business.name} is doing.`} />
 
       {sp.welcome && <Callout tone="success" icon={Check} title="You're all set up">Create your first quote. Add your hidden costs on the right to see your profit before you send it.</Callout>}
-      {sp.denied && <Callout tone="warn">Your role doesn't have access to that page.</Callout>}
       {ctx.allowance?.reason === "deletion_pending" && <Callout tone="danger" icon={AlertCircle} title={`${business.name} will be permanently deleted on ${formatDate(ctx.allowance.deletes_at)}`}
         action={member.role === "owner" && <Button href="/app/settings/privacy" size="sm" variant="primary">Keep my business</Button>}>
         Sending is switched off. Download anything you need from Settings → Privacy & data before then.

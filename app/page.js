@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { preload } from "react-dom";
 import { ArrowDown, EyeOff, Landmark, Plus } from "lucide-react";
-import { Alert, Logo } from "@/components/ui";
+import { Logo } from "@/components/ui";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
 import { TemplateThumb } from "@/components/layout-panel";
@@ -80,7 +80,6 @@ export default async function Home({ searchParams }) {
               : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><PrimaryCta href="/signup" size="sm">Get started</PrimaryCta></>}
           </nav>
         </header>
-        {sp.account === "deleted" && <div className={WRAP}><Alert intent="success" title="Account deleted">Your data has been removed. Thanks for using {BRAND.name}.</Alert></div>}
 
         <section className={`grid items-center gap-6 pt-16 pb-10 sm:pt-24 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:gap-4 lg:pt-20 lg:pb-12 ${WRAP}`}>
           <div className="max-w-[560px] lg:pb-10">

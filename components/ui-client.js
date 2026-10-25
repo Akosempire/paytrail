@@ -1,5 +1,5 @@
 "use client";
-import { createContext, isValidElement, useCallback, useContext, useEffect, useId, useRef, useState } from "react";
+import { createContext, isValidElement, useCallback, useContext, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Check, Copy, Loader2, Moon, Sun, X } from "lucide-react";
 import { Alert, INTENTS, intentOf } from "@/components/alert";
@@ -118,41 +118,135 @@ export function ThemeToggle() {
   );
 }
 
-const ToastContext = createContext(() => {});
+const noop = Object.assign(() => {}, { success() {}, error() {}, warning() {}, info() {}, loading() {}, update() {}, dismiss() {}, promise: (p) => p });
+const ToastContext = createContext(noop);
 export function useToast() { return useContext(ToastContext); }
 
-// Toasts use the same rules as <Alert>: neutral surface, colour on icon + title.
+// Toasts: every result and state change the person should know about.
+// Same rules as <Alert>: neutral surface, colour only on icon + title.
+//
 //   const toast = useToast();
-//   toast("Invoice sent")                                  // success, one line
-//   toast("Couldn't reach Paystack", "error")
-//   toast({ intent: "warning", title: "Trial ends soon", message: "Pick a plan to keep sending." })
+//   toast("Invoice sent")                                   // success
+//   toast.error("Couldn't reach Paystack")                  // also: success, warning, info
+//   toast.warning({ title: "Trial ends soon", message: "Pick a plan to keep sending." })
+//   toast.error("Payment failed", { action: { label: "Retry", onClick: retry } })
+//   const id = toast.loading("Sending invoice…"); … toast.update(id, { intent: "success", message: "Sent" })
+//   await toast.promise(sendInvoice(), { loading: "Sending…", success: "Sent", error: (e) => e.message })
+//
+// Errors and warnings stay longer; loading toasts stay until updated; hovering
+// pauses the timer. Also built in: going offline / back online, and a catch-all
+// for unexpected failures (e.g. the connection dropping mid-action).
+const DURATION = { success: 4200, info: 5000, warning: 7000, error: 8000, loading: 0 };
+const LOADING = { icon: Loader2, text: "text-ink-2", role: "status", label: "Working" };
+
 export function ToastProvider({ children }) {
-  const [toasts, setToasts] = useState([]);
-  const dismiss = useCallback((id) => setToasts((t) => t.filter((x) => x.id !== id)), []);
-  const push = useCallback((input, tone = "success") => {
-    const id = Math.random().toString(36).slice(2);
-    const t = typeof input === "object" && input !== null && !isValidElement(input) ? { ...input } : { message: input, intent: tone };
-    t.intent = intentOf(t.intent || tone);
-    setToasts((list) => [...list.slice(-3), { id, ...t }]);
-    setTimeout(() => dismiss(id), t.intent === "error" || t.intent === "warning" ? 7000 : 4200);
-  }, [dismiss]);
+  const [toasts, setToastState] = useState([]);
+  const list = useRef([]);
+  // keep a synchronous copy so de-duplication can return the existing id
+  const setToasts = useCallback((fn) => { list.current = typeof fn === "function" ? fn(list.current) : fn; setToastState(list.current); }, []);
+  const timers = useRef(new Map());
+
+  const clear = useCallback((id) => { clearTimeout(timers.current.get(id)); timers.current.delete(id); }, []);
+  const dismiss = useCallback((id) => { clear(id); setToasts((t) => t.filter((x) => x.id !== id)); }, [clear, setToasts]);
+  const arm = useCallback((id, intent, ms) => {
+    clear(id);
+    const time = ms ?? DURATION[intent];
+    if (time) timers.current.set(id, setTimeout(() => dismiss(id), time));
+  }, [clear, dismiss]);
+
+  const api = useMemo(() => {
+    const normalise = (input, intent, extra) => {
+      const t = typeof input === "object" && input !== null && !isValidElement(input) ? { ...input } : { message: input };
+      Object.assign(t, extra || {});
+      t.intent = t.intent === "loading" || intent === "loading" ? "loading" : intentOf(t.intent || intent);
+      return t;
+    };
+    const show = (input, intent = "success", extra) => {
+      const t = normalise(input, intent, extra);
+      if (!t.message && !t.title) return null;
+      // the same text already on screen: refresh it instead of stacking a copy
+      const same = list.current.find((x) => x.intent === t.intent && x.message === t.message && x.title === t.title);
+      if (same) { arm(same.id, t.intent, t.duration); return same.id; }
+      const id = t.id || Math.random().toString(36).slice(2);
+      setToasts((l) => [...l.filter((x) => x.id !== id).slice(-3), { ...t, id }]);
+      arm(id, t.intent, t.duration);
+      return id;
+    };
+    const fn = (input, tone) => show(input, tone || "success");
+    fn.success = (m, x) => show(m, "success", x);
+    fn.error = (m, x) => show(m, "error", x);
+    fn.warning = (m, x) => show(m, "warning", x);
+    fn.info = (m, x) => show(m, "info", x);
+    fn.loading = (m, x) => show(m, "loading", x);
+    fn.dismiss = dismiss;
+    fn.update = (id, patch) => {
+      if (!id) return;
+      setToasts((list) => list.map((x) => (x.id === id ? { ...x, ...patch, intent: patch.intent ? (patch.intent === "loading" ? "loading" : intentOf(patch.intent)) : x.intent } : x)));
+      if (patch.intent) arm(id, patch.intent === "loading" ? "loading" : intentOf(patch.intent), patch.duration);
+    };
+    fn.promise = async (promise, { loading = "Working…", success = "Done", error = "Something went wrong. Try again." } = {}) => {
+      const id = show(loading, "loading");
+      try {
+        const r = await promise;
+        // server actions report failure as { error }
+        if (r && r.error) fn.update(id, { intent: "error", title: undefined, message: typeof error === "function" ? error(r) : r.error });
+        else fn.update(id, { intent: "success", message: typeof success === "function" ? success(r) : (r && r.message) || success });
+        return r;
+      } catch (e) {
+        fn.update(id, { intent: "error", message: typeof error === "function" ? error(e) : error });
+        throw e;
+      }
+    };
+    return fn;
+  }, [arm, dismiss, setToasts]);
+
+  // connection state and unexpected failures
+  useEffect(() => {
+    let offlineId = null;
+    const offline = () => { offlineId = api.warning({ title: "You're offline", message: "Changes won't save until you're back online." }, { duration: 0 }); };
+    const online = () => { if (offlineId) api.dismiss(offlineId); offlineId = null; api.success("Back online"); };
+    let lastCrash = 0;
+    const crash = (e) => {
+      const reason = e?.reason || e?.error;
+      if (reason?.name === "AbortError" || /NEXT_REDIRECT|NEXT_NOT_FOUND/.test(String(reason?.digest || reason?.message || ""))) return;
+      if (Date.now() - lastCrash < 4000) return;
+      lastCrash = Date.now();
+      api.error(navigator.onLine === false
+        ? { title: "You're offline", message: "That didn't go through. Try again when you're connected." }
+        : { title: "Something went wrong", message: "That didn't go through. Please try again." });
+    };
+    if (navigator.onLine === false) offline();
+    window.addEventListener("offline", offline);
+    window.addEventListener("online", online);
+    window.addEventListener("unhandledrejection", crash);
+    return () => { window.removeEventListener("offline", offline); window.removeEventListener("online", online); window.removeEventListener("unhandledrejection", crash); };
+  }, [api]);
+
   return (
-    <ToastContext.Provider value={push}>
+    <ToastContext.Provider value={api}>
       {children}
-      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4">
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-[60] flex flex-col items-center gap-2 px-4 sm:bottom-6">
         {toasts.map((t) => {
-          const it = INTENTS[t.intent];
+          const it = t.intent === "loading" ? LOADING : INTENTS[t.intent];
           return (
-            <div key={t.id} role={it.role} className="pointer-events-auto flex w-full max-w-[420px] animate-rise items-start gap-3 rounded-xl border border-notice-line bg-notice px-4 py-3 shadow-[var(--shadow-pop)]">
-              <it.icon className={cx("mt-0.5 size-[18px] shrink-0", it.text)} aria-hidden="true" />
+            <div key={t.id} role={it.role} aria-live={it.role === "alert" ? "assertive" : "polite"}
+              onMouseEnter={() => clear(t.id)} onMouseLeave={() => arm(t.id, t.intent, t.duration)}
+              className="pointer-events-auto flex w-full max-w-[440px] animate-rise items-start gap-3 rounded-2xl border border-notice-line bg-notice px-4 py-3 shadow-[var(--shadow-pop)]">
+              <it.icon className={cx("mt-0.5 size-[18px] shrink-0", it.text, t.intent === "loading" && "animate-spin")} aria-hidden="true" />
               <div className="min-w-0 flex-1 leading-snug">
                 <span className="sr-only">{it.label}: </span>
-                {t.title && <p className={cx("text-sm font-medium", it.text)}>{t.title}</p>}
+                {t.title && <p className={cx("text-sm font-medium", t.intent === "loading" ? "text-ink" : it.text)}>{t.title}</p>}
                 {t.message && <p className={cx("text-[13.5px]", t.title ? "mt-0.5 text-notice-body" : "text-ink")}>{t.message}</p>}
+                {t.action && (
+                  <button type="button" onClick={() => { dismiss(t.id); t.action.onClick?.(); }}
+                    className="mt-2 rounded-md text-[13px] font-semibold text-brand-ink underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">{t.action.label}</button>
+                )}
               </div>
-              <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="-mr-1 rounded-md p-1 text-notice-body hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
-                <X className="size-4" />
-              </button>
+              {t.intent !== "loading" && (
+                <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss" className="-mr-1 rounded-md p-1 text-notice-body hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand">
+                  <X className="size-4" />
+                </button>
+              )}
             </div>
           );
         })}
@@ -161,20 +255,27 @@ export function ToastProvider({ children }) {
   );
 }
 
-// shows server-action results ({ ok, message } or { error }) as a toast
-export function useActionToast(state) {
+// shows a server action's result as a toast: { error } / { warning } / { info } / { message }
+// The same result object is never toasted twice, so forms can use this and
+// <FormMessage> together safely.
+const toasted = new WeakSet();
+export function useActionToast(state, { success = true } = {}) {
   const toast = useToast();
-  const last = useRef(null);
   useEffect(() => {
-    if (!state || state === last.current) return;
-    last.current = state;
-    if (state.error) toast(state.error, "error");
-    else if (state.message) toast(state.message);
-  }, [state, toast]);
+    if (!state || typeof state !== "object" || toasted.has(state)) return;
+    toasted.add(state);
+    if (state.error) toast.error(state.errorTitle ? { title: state.errorTitle, message: state.error } : state.error);
+    else if (state.warning) toast.warning(state.warning);
+    else if (state.info) toast.info(state.info);
+    else if (success && state.message) toast.success(state.messageTitle ? { title: state.messageTitle, message: state.message } : state.message);
+  }, [state, toast, success]);
 }
 
-// the error (or message) a server action returned, shown inline above a form
-export function FormMessage({ state, success = false }) {
+// A form's result. By default it's shown as a toast; pass `inline` to also
+// keep it on the page (useful for long explanations).
+export function FormMessage({ state, success = true, inline = false }) {
+  useActionToast(state, { success });
+  if (!inline) return null;
   if (state?.error) return <Alert intent="error" size="sm" title={state.errorTitle}>{state.error}</Alert>;
   if (success && state?.message) return <Alert intent="success" size="sm" title={state.messageTitle}>{state.message}</Alert>;
   return null;

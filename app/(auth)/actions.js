@@ -123,5 +123,5 @@ export async function updatePassword(_prev, form) {
 export async function signOut() {
   const supabase = await createSupabaseServer();
   await supabase.auth.signOut();
-  redirect("/login");
+  redirect("/login?signed_out=1");
 }

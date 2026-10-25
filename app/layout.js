@@ -1,6 +1,8 @@
 import Script from "next/script";
 import "./globals.css";
+import { Suspense } from "react";
 import { ToastProvider } from "@/components/ui-client";
+import { UrlToasts } from "@/components/url-toasts";
 import { ServiceWorker } from "@/components/pwa";
 
 export const metadata = {
@@ -29,7 +31,7 @@ export default function RootLayout({ children }) {
         <Script id="pt-theme" strategy="beforeInteractive">{themeScript}</Script>
       </head>
       <body>
-        <ToastProvider>{children}</ToastProvider>
+        <ToastProvider>{children}<Suspense fallback={null}><UrlToasts /></Suspense></ToastProvider>
         <ServiceWorker />
       </body>
     </html>

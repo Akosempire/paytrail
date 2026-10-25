@@ -3,7 +3,7 @@ import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import { Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
 import { Alert, Callout, Field, Input } from "@/components/ui";
-import { FormMessage, SubmitButton } from "@/components/ui-client";
+import { FormMessage, SubmitButton, useActionToast } from "@/components/ui-client";
 import { requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
 import { BRAND } from "@/lib/brand";
 
@@ -24,6 +24,7 @@ function PasswordInput({ name = "password", placeholder = "Enter your password",
 export function VerifyEmailForm({ email, next, intro }) {
   const [state, action] = useActionState(verifySignup, null);
   const [resend, setResend] = useState(null);
+  useActionToast(resend);
   const [sending, start] = useTransition();
   return (
     <form action={action} className="flex flex-col gap-5">
@@ -33,8 +34,6 @@ export function VerifyEmailForm({ email, next, intro }) {
         <p className="text-sm text-ink-2">{intro || "We sent a 6-digit code to"} <strong className="text-ink">{email}</strong>. Enter it to confirm your email.</p>
       </div>
       <FormMessage state={state} />
-      {resend?.message && <Alert intent="success" size="sm" title="New code sent">{resend.message}</Alert>}
-      {resend?.error && <Alert intent="error" size="sm">{resend.error}</Alert>}
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="next" value={next || ""} />
       <Field label="Confirmation code" htmlFor="code">
@@ -43,7 +42,7 @@ export function VerifyEmailForm({ email, next, intro }) {
       <SubmitButton size="lg" block pendingText="Checking…">Confirm email</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
-        <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendSignupCode(email, next)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
+        <button type="button" disabled={sending} onClick={() => start(async () => setResend({ messageTitle: "New code sent", ...(await resendSignupCode(email, next)) }))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
       </p>
       <p className="text-center text-xs text-ink-3">The email also has a button. Opening it works too.</p>
     </form>
@@ -117,6 +116,7 @@ export function ForgotForm() {
 function ResetCodeForm({ email }) {
   const [state, action] = useActionState(verifyResetCode, null);
   const [resend, setResend] = useState(null);
+  useActionToast(resend);
   const [sending, start] = useTransition();
   return (
     <form action={action} className="flex flex-col gap-5">
@@ -126,8 +126,6 @@ function ResetCodeForm({ email }) {
         <p className="text-sm text-ink-2">If an account exists for <strong className="text-ink">{email}</strong>, we sent a code to reset your password.</p>
       </div>
       <FormMessage state={state} />
-      {resend?.message && <Alert intent="success" size="sm" title="New code sent">{resend.message}</Alert>}
-      {resend?.error && <Alert intent="error" size="sm">{resend.error}</Alert>}
       <input type="hidden" name="email" value={email} />
       <Field label="Reset code" htmlFor="code">
         <input id="code" name="code" inputMode="numeric" autoComplete="one-time-code" placeholder="123456" required autoFocus maxLength={12} className={CODE_INPUT} />
@@ -135,7 +133,7 @@ function ResetCodeForm({ email }) {
       <SubmitButton size="lg" block pendingText="Checking…">Continue</SubmitButton>
       <p className="text-center text-sm text-ink-2">
         No email? Check spam, or{" "}
-        <button type="button" disabled={sending} onClick={() => start(async () => setResend(await resendResetCode(email)))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
+        <button type="button" disabled={sending} onClick={() => start(async () => setResend({ messageTitle: "New code sent", ...(await resendResetCode(email)) }))} className="font-medium text-brand-ink hover:underline disabled:opacity-50">send a new code</button>.
       </p>
       <Link href="/login" className="text-center text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
     </form>

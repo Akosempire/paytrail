@@ -1,8 +1,9 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CircleAlert, CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check } from "lucide-react";
 import { respondToQuote, payDocument } from "./actions";
+import { useToast } from "@/components/ui-client";
 
 const NAMES = { stripe: "Stripe", paystack: "Paystack", bachs: "Bachs", flutterwave: "Flutterwave" };
 
@@ -13,26 +14,26 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
   const [mode, setMode] = useState(null); // "accept" | "decline"
   const [name, setName] = useState(doc.customer_name || "");
   const [reason, setReason] = useState("");
-  const [error, setError] = useState(null);
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
   const quote = doc.kind === "quote";
   const awaitingReply = quote && ["sent", "viewed"].includes(doc.status) && !expired;
   const payable = !paid && !["void", "declined"].includes(doc.status) && (!quote || doc.status === "accepted");
 
   function respond(accept) {
-    setError(null);
     start(async () => {
       const r = await respondToQuote(token, { accept, name, reason });
-      if (r.error) return setError(r.error);
+      if (r.error) return toast.error(r.error);
       setMode(null);
+      toast.success(accept ? { title: "Quote accepted", message: `Thank you. ${brandName} has been told.` } : { title: "Quote declined", message: `${brandName} has been told.` });
       router.refresh();
     });
   }
   function pay(provider) {
-    setError(null);
     start(async () => {
+      const id = toast.loading(`Opening secure ${NAMES[provider] || ""} checkout…`);
       const r = await payDocument(token, provider);
-      if (r.error) return setError(r.error);
+      if (r.error) return toast.update(id, { intent: "error", message: r.error });
       window.location.href = r.url;
     });
   }
@@ -50,7 +51,6 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
         {expired && quote && doc.status !== "accepted" && <p className="mt-2 text-sm text-[#b54708]">This quote has expired. Ask {brandName} for an updated one.</p>}
       </div>
 
-      {error && <p role="alert" className="mx-5 mb-3 flex items-start gap-2.5 rounded-lg border border-[#e4e4e7] bg-[#f9f9f9] px-3 py-2.5 text-[13px] leading-snug text-[#18181b]"><CircleAlert className="mt-px size-4 shrink-0 text-[#be123c]" aria-hidden="true" /><span><span className="sr-only">Error: </span>{error}</span></p>}
 
       {awaitingReply && !mode && (
         <div className="flex flex-col gap-2 border-t border-[#eaecf0] p-5">
@@ -96,7 +96,7 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
               <p className="mt-2 font-medium">{bank.name}</p>
               <div className="flex items-center justify-between gap-2">
                 <p className="font-mono text-base font-semibold tracking-wide">{bank.number}</p>
-                <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(bank.number); } catch {} setCopied(true); setTimeout(() => setCopied(false), 1500); }}
+                <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(bank.number); toast.success("Account number copied"); } catch { toast.error("Couldn't copy. Select the number and copy it yourself."); } setCopied(true); setTimeout(() => setCopied(false), 1500); }}
                   className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#475467] ring-1 ring-[#d0d5dd]">{copied ? <Check className="size-3" /> : <Copy className="size-3" />}{copied ? "Copied" : "Copy"}</button>
               </div>
               <p className="text-[#475467]">{bank.account}</p>

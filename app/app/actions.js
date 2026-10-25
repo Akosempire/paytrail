@@ -10,5 +10,5 @@ export async function switchBusiness(form) {
   // the profile policy only accepts a business you are a member of
   await ctx.supabase.from("profiles").upsert({ user_id: ctx.user.id, active_business_id: id });
   revalidatePath("/app", "layout");
-  redirect("/app");
+  redirect("/app?switched=1");
 }

@@ -71,7 +71,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   function submit(intent) {
     setError(null);
     const bad = items.find((i) => i.description.trim() && !Number.isFinite(toMinor(i.price)));
-    if (bad) return setError(`Check the price for "${bad.description}".`);
+    if (bad) { const m = `Check the price for "${bad.description}".`; setError(m); return toast.error(m); }
     const input = {
       kind, title, issue_date: issueDate,
       ...(quote ? { valid_until: endDate } : { due_date: endDate }),
@@ -86,10 +86,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       const result = await saveDocument(doc?.id || null, input, intent);
       if (result?.error) {
         setError(result.error);
+        toast.error(result.error);
         if (result.id) router.push(`/app/documents/${result.id}`);
         return;
       }
-      toast(intent === "send" ? (emailCustomer && emailReady ? "Saved and emailed to your customer." : "Saved and marked as sent.") : intent === "submit" ? "Sent for approval." : "Draft saved.");
+      toast.success(intent === "send" ? (emailCustomer && emailReady ? "Saved and emailed to your customer." : "Saved and marked as sent.") : intent === "submit" ? "Sent for approval." : "Draft saved.");
       router.push(`/app/documents/${result.id}${intent === "send" ? "?sent=1" : ""}`);
     });
   }
