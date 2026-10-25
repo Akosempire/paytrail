@@ -11,7 +11,7 @@ import { useEffect, useRef, useState } from "react";
 //   and no video is downloaded.
 // - The film plays once, muted, and rests on its final frame.
 
-const V = "1";
+const V = "2";
 const DESKTOP = "(min-width: 1024px)";
 
 function useTheme() {
