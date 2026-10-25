@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { supabaseUrl } from "./lib/supabase/url";
 import { createServerClient } from "@supabase/ssr";
 
 const PROTECTED = ["/app", "/admin", "/onboarding", "/print"];
@@ -12,8 +13,8 @@ export async function proxy(request) {
     if (ms) await new Promise((r) => setTimeout(r, ms));
     return response;
   }
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return response;
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  if (!supabaseUrl() || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return response;
+  const supabase = createServerClient(supabaseUrl(), process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
     cookies: {
       getAll: () => request.cookies.getAll(),
       setAll: (list) => {

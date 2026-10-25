@@ -1,5 +1,6 @@
 import { googleCheckProblem, googleEnabled } from "@/lib/auth-providers";
 import { emailStatus, lastEmailFailure } from "@/lib/email";
+import { supabaseUrl } from "@/lib/supabase/url";
 
 // Public, non-secret health check: which deploy is live, whether the site can
 // talk to Supabase, how email is sent and the last email problem, and whether
@@ -7,10 +8,12 @@ import { emailStatus, lastEmailFailure } from "@/lib/email";
 export const dynamic = "force-dynamic";
 
 async function supabaseCheck() {
-  const raw = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "");
+  const typed = String(process.env.NEXT_PUBLIC_SUPABASE_URL || "");
+  const raw = supabaseUrl();
   let host = null, extraPath = null;
-  try { const u = new URL(raw); host = u.host; extraPath = u.pathname.replace(/\/+$/, "") || null; } catch {}
-  const out = { urlSet: Boolean(raw), host, extraPath, anonKeySet: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY), serviceKeySet: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) };
+  try { const u = new URL(raw); host = u.host; } catch {}
+  try { extraPath = new URL(typed.trim()).pathname.replace(/\/+$/, "") || null; } catch {}
+  const out = { urlSet: Boolean(raw), host, extraPath, extraPathIgnored: Boolean(extraPath), anonKeySet: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY), serviceKeySet: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY) };
   if (!host) return out;
   try {
     const res = await fetch(`${raw.replace(/\/+$/, "")}/auth/v1/settings`, { headers: { apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "" }, cache: "no-store", signal: AbortSignal.timeout(4000) });
