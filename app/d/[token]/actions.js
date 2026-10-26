@@ -4,13 +4,9 @@ import { createSupabaseService } from "@/lib/supabase/server";
 import { getPublicDocument } from "@/lib/documents";
 import { startCheckout, PROVIDERS } from "@/lib/payments";
 import { randomUUID } from "node:crypto";
-import { after } from "next/server";
 import { r2Delete, r2Put, r2Ready } from "@/lib/storage";
 import { MAX_FILE_BYTES, cleanFileName, fileTypeOf, formatSize } from "@/lib/file-types";
-import { emailConfigured, sendEmail } from "@/lib/email";
-import { paymentClaimEmail } from "@/lib/emails";
-import { formatMoney, toMinor } from "@/lib/money";
-import { siteUrl } from "@/lib/site";
+import { toMinor } from "@/lib/money";
 
 // tiny in-memory throttle per IP so a public link can't be hammered
 const hits = new Map();
@@ -75,8 +71,7 @@ export async function claimPayment(token, form) {
   const target = invoice || doc;
   const amount = toMinor(form.get("amount"));
   if (!Number.isFinite(amount) || amount <= 0) return { error: "Enter the amount you sent." };
-  const payer = String(form.get("payer") || "").trim().slice(0, 120);
-  if (!payer) return { error: "Enter the name on the account you paid from." };
+  const payer = (String(form.get("payer") || "").trim() || doc.customer_name || "Customer").slice(0, 120);
   const date = String(form.get("date") || "").slice(0, 10) || null;
   const note = String(form.get("note") || "").trim().slice(0, 500);
   const service = createSupabaseService();
@@ -110,13 +105,6 @@ export async function claimPayment(token, form) {
     return { error: error.message };
   }
 
-  // tell the team (owners, managers and finance) by email
-  after(async () => {
-    if (!(await emailConfigured())) return;
-    const { data: team } = await service.from("memberships").select("email, role").eq("business_id", doc.business_id).in("role", ["owner", "manager", "finance"]);
-    const to = [...new Set((team || []).map((m) => m.email).filter(Boolean))];
-    const msg = paymentClaimEmail({ business, doc: { number: target.number || doc.number }, amount: formatMoney(amount, doc.currency), payer, paidOn: date || new Date(), hasProof: Boolean(fileId), link: `${siteUrl()}/app/documents/${target.id}` });
-    for (const email of to) await sendEmail({ to: email, ...msg }).catch(() => {});
-  });
+  // the team sees it on their dashboard now, and in the next morning's email
   return { ok: true, proofSaved: Boolean(fileId) || !(file && typeof file !== "string" && file.size) };
 }

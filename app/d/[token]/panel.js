@@ -103,7 +103,7 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
               <p className="mt-1.5 text-xs text-[#98a2b3]">Put <strong className="font-semibold text-[#475467]">{bank.reference}</strong> in your transfer note so {brandName} can find it.</p>
             </div>
           )}
-          {hasBank && <TransferClaim token={token} brandName={brandName} balance={balance} currency={currency} claim={claim} proofUpload={proofUpload} defaultName={doc.customer_name} />}
+          {hasBank && <TransferClaim token={token} amountLabel={amount} brandName={brandName} balance={balance} currency={currency} claim={claim} proofUpload={proofUpload} defaultName={doc.customer_name} />}
         </div>
       )}
     </div>
@@ -112,7 +112,7 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
 
 // "I've sent it": after a bank transfer the customer tells the business, with
 // a screenshot if they have one. The business confirms and the receipt follows.
-function TransferClaim({ token, brandName, balance, currency, claim, proofUpload, defaultName }) {
+function TransferClaim({ token, amountLabel, brandName, balance, currency, claim, proofUpload, defaultName }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
@@ -130,17 +130,22 @@ function TransferClaim({ token, brandName, balance, currency, claim, proofUpload
     );
   }
 
-  const submit = (e) => {
-    e.preventDefault();
-    const form = new FormData(e.currentTarget);
-    start(async () => {
-      const r = await claimPayment(token, form);
-      if (r.error) return toast.error(r.error);
-      setOpen(false);
-      toast.success({ title: `${brandName} has been told`, message: r.proofSaved ? "You'll get your receipt once they confirm the money arrived." : "Your proof couldn't be saved, so keep it in case they ask. You'll get your receipt once they confirm." });
-      router.refresh();
-    });
+  const send = (form) => start(async () => {
+    const r = await claimPayment(token, form);
+    if (r.error) return toast.error(r.error);
+    setOpen(false);
+    toast.success({ title: `${brandName} has been told`, message: r.proofSaved ? "You'll get your receipt once they confirm the money arrived." : "Your proof couldn't be saved, so keep it in case they ask. You'll get your receipt once they confirm." });
+    router.refresh();
+  });
+  // one tap: the full balance, today, from the name on the invoice
+  const quick = () => {
+    const form = new FormData();
+    form.set("amount", (balance / 100).toFixed(2));
+    form.set("payer", defaultName || "");
+    form.set("date", new Date().toISOString().slice(0, 10));
+    send(form);
   };
+  const submit = (e) => { e.preventDefault(); send(new FormData(e.currentTarget)); };
 
   return (
     <div className="mt-2 flex flex-col gap-2">
@@ -151,9 +156,12 @@ function TransferClaim({ token, brandName, balance, currency, claim, proofUpload
         </div>
       )}
       {!open ? (
-        <button type="button" onClick={() => setOpen(true)} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-[15px] font-semibold text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]">
-          <Send className="size-4" />I've sent the money
-        </button>
+        <>
+          <button type="button" onClick={quick} disabled={pending || !balance} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-[15px] font-semibold text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb] disabled:opacity-50">
+            {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}I've sent {amountLabel}
+          </button>
+          <button type="button" onClick={() => setOpen(true)} className="text-[13px] font-medium text-[#475467] underline-offset-2 hover:underline">Paid a different amount or want to add proof?</button>
+        </>
       ) : (
         <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg p-3.5 ring-1 ring-[#eaecf0]">
           <p className="text-[14px] font-semibold">Tell {brandName} you've paid</p>

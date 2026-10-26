@@ -12,6 +12,7 @@ class Q {
   gt(c, v) { this.f.push((r) => r[c] > v); return this; }
   lt(c, v) { this.f.push((r) => r[c] < v); return this; }
   in(c, l) { this.f.push((r) => l.includes(r[c])); return this; }
+  is(c, v) { this.f.push((r) => (v === null ? r[c] == null : r[c] === v)); return this; }
   not(c, op, v) { if (op === "is" && v === null) this.f.push((r) => r[c] != null); return this; }
   order(c, { ascending = true } = {}) { this.ord = [c, ascending]; return this; }
   limit(n) { this.lim = n; return this; }
