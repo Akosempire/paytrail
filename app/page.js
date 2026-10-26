@@ -85,19 +85,23 @@ export default async function Home({ searchParams }) {
       <div className="relative z-[1]">
       {signedIn && <InstallPrompt delay={5000} />}
 
+      {/* stays at the top while you scroll, so the logo and sign-in are always there */}
+      <header className="sticky top-0 z-30 bg-hero/85 shadow-[0_1px_0_var(--color-hero-line)] backdrop-blur-md supports-[backdrop-filter]:bg-hero/70">
+          <div className={`flex items-center justify-between py-3 sm:py-4 ${WRAP}`}>
+            <Logo withWord wordClass="text-hero-ink" />
+            <nav className="flex items-center gap-1 sm:gap-2" aria-label="Main">
+              <a href="#how-it-works" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink md:block">How it works</a>
+              <a href="#pricing" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink sm:block">Pricing</a>
+              <ThemeSwitch />
+              {signedIn
+                ? <PrimaryCta href="/app" size="sm">Dashboard</PrimaryCta>
+                : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><PrimaryCta href="/signup" size="sm">Get started</PrimaryCta></>}
+            </nav>
+          </div>
+      </header>
+
       {/* ------------------------------------------------ hero */}
       <div className="relative overflow-hidden">
-        <header className={`relative z-10 flex items-center justify-between py-4 ${WRAP}`}>
-          <Logo withWord wordClass="text-hero-ink" />
-          <nav className="flex items-center gap-1 sm:gap-2" aria-label="Main">
-            <a href="#how-it-works" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink md:block">How it works</a>
-            <a href="#pricing" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink sm:block">Pricing</a>
-            <ThemeSwitch />
-            {signedIn
-              ? <PrimaryCta href="/app" size="sm">Dashboard</PrimaryCta>
-              : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><PrimaryCta href="/signup" size="sm">Get started</PrimaryCta></>}
-          </nav>
-        </header>
 
         {/* phones & tablets: film first, then the words, all fitted to one screen
             (sizes follow the screen height); desktop: words left, film right */}

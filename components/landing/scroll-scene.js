@@ -48,7 +48,7 @@ export function ScrollScene({ steps = 1, heightVh = 250, className = "", childre
   return (
     <section ref={outer} aria-label={label} className={`relative ${className}`} style={{ height: still ? "auto" : `${heightVh}vh`, ...(still ? { "--p": 1 } : {}) }} data-step={still ? steps - 1 : step}>
       {/* svh on phones: the pinned panel doesn't jump when the address bar hides */}
-      <div className={still ? "" : "sticky top-0 flex h-svh items-center overflow-hidden lg:h-dvh"}>
+      <div className={still ? "" : "sticky top-0 flex h-svh items-center overflow-hidden pt-14 sm:pt-16 lg:h-dvh"}>
         {typeof children === "function" ? children(still ? steps - 1 : step, still, compact) : children}
       </div>
     </section>

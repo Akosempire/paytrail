@@ -42,7 +42,7 @@ function Barcode({ seed }) {
 
 export function Pricing({ plans, currency, currencies, interval, yearly, trialText, link, wrap, kicker, h2 }) {
   return (
-    <section id="pricing" className={`scroll-mt-4 py-24 ${wrap}`} aria-labelledby="pricing-title">
+    <section id="pricing" className={`scroll-mt-16 py-24 ${wrap}`} aria-labelledby="pricing-title">
       <div className="text-center">
         <p className={kicker}>Pricing</p>
         <h2 id="pricing-title" className={`mt-4 ${h2}`}>Simple plans. Start free.</h2>
