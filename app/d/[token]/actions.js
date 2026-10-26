@@ -55,6 +55,7 @@ export async function payDocument(token, provider) {
     return { url };
   } catch (e) {
     console.error("checkout.start_failed", { provider, message: e.message });
+    await import("@/lib/monitor").then((m) => m.reportFailure("payments", `A customer couldn't start a ${PROVIDERS[provider].name} payment: ${e.message}`)).catch(() => {});
     return { error: `${PROVIDERS[provider].name} couldn't start the payment right now. Try again, or pay by bank transfer.` };
   }
 }

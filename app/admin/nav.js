@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Blocks, Building2, LayoutDashboard, Settings2, Tags } from "lucide-react";
+import { Activity, Blocks, Building2, LayoutDashboard, Settings2, Tags } from "lucide-react";
 import { cx } from "@/components/ui";
 
-const ICONS = { overview: LayoutDashboard, businesses: Building2, plans: Tags, integrations: Blocks, settings: Settings2 };
+const ICONS = { health: Activity, overview: LayoutDashboard, businesses: Building2, plans: Tags, integrations: Blocks, settings: Settings2 };
 
 export function AdminNav({ items, mobile = false }) {
   const path = usePathname();

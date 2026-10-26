@@ -354,3 +354,43 @@ export async function savePublicStats(on) {
   if (err) return /public_stats/.test(err.error) || err.error === NEEDS_SETTINGS_SQL ? { error: "Run supabase/RUN_NEW_2026-10-25i.sql in Supabase → SQL Editor first, then try again." } : err;
   return { message: on ? "The live numbers show on the website within 10 minutes." : "The live numbers are hidden from the website." };
 }
+
+// ---------------------------------------------------------------- monitoring
+export async function runHealthChecks() {
+  await requirePlatformAdmin();
+  const { runChecks } = await import("@/lib/monitor");
+  const out = await runChecks();
+  revalidatePath("/admin/health");
+  const down = out.results.filter((r) => r.status === "down").length, warn = out.results.filter((r) => r.status === "warn").length;
+  if (out.note) return { warning: true, message: out.note };
+  return down ? { error: `${down} check${down === 1 ? "" : "s"} failing. See the list.` } : warn ? { warning: true, message: `All working, ${warn} warning${warn === 1 ? "" : "s"}.` } : { message: "Everything is working." };
+}
+
+export async function saveAlertWebhook(raw) {
+  await requirePlatformAdmin();
+  const url = String(raw || "").trim();
+  const service = createSupabaseService();
+  if (!url) {
+    const { error } = await service.from("platform_settings").update({ alert_webhook_enc: null, alert_webhook_hint: "" }).eq("id", true);
+    revalidatePath("/admin/health");
+    return error ? { error: "Run RUN_NEW_2026-10-26e.sql in Supabase first." } : { message: "Alert webhook removed. Alerts go by email only." };
+  }
+  let u;
+  try { u = new URL(url); } catch { return { error: "That isn't a web address. Paste the whole webhook URL." }; }
+  if (u.protocol !== "https:") return { error: "The webhook address must start with https://" };
+  if (u.hostname === "api.telegram.org" && !u.searchParams.get("chat_id")) return { error: "For Telegram, add ?chat_id=YOUR_CHAT_ID to the end of the address." };
+  const { postToWebhook } = await import("@/lib/monitor");
+  try { await postToWebhook(url, "✅ Usetally alerts are connected. You'll get a message here when something breaks."); }
+  catch (e) { return { error: `The webhook didn't accept a test message: ${String(e?.message || e).slice(0, 200)}` }; }
+  const where = u.hostname === "api.telegram.org" ? "Telegram" : /slack\.com$/.test(u.hostname) ? "Slack" : /discord(app)?\.com$/.test(u.hostname) ? "Discord" : u.hostname;
+  const { error } = await service.from("platform_settings").update({ alert_webhook_enc: encryptSecret(url), alert_webhook_hint: where }).eq("id", true);
+  revalidatePath("/admin/health");
+  return error ? { error: "Run RUN_NEW_2026-10-26e.sql in Supabase first." } : { message: `Connected to ${where}. A test message was sent there.` };
+}
+
+export async function sendTestAlert() {
+  await requirePlatformAdmin();
+  const { sendAlert } = await import("@/lib/monitor");
+  const ok = await sendAlert(["🧪 Test alert: this is what you'll get when something breaks."]);
+  return ok ? { message: "Test alert sent to your webhook and/or alert email." } : { error: "The test alert couldn't be delivered anywhere. Add a webhook below, and check Admin → Integrations → Email." };
+}

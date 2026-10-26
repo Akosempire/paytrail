@@ -6,6 +6,9 @@ class Q {
   select() { if (this.op !== "select") this.ret = true; return this; }
   insert(v) { this.op = "insert"; this.val = v; return this; }
   update(v) { this.op = "update"; this.val = v; return this; }
+  upsert(v) { this.op = "upsert"; this.val = v; return this; }
+  like(c, pat) { const re = new RegExp("^" + pat.replace(/%/g, ".*") + "$"); this.f.push((r) => re.test(String(r[c]))); return this; }
+  gte(c, v) { this.f.push((r) => r[c] >= v); return this; }
   delete() { this.op = "delete"; return this; }
   eq(c, v) { this.f.push((r) => r[c] === v); return this; }
   neq(c, v) { this.f.push((r) => r[c] !== v); return this; }
@@ -25,6 +28,13 @@ class Q {
       if (this.db.unique?.[this.table]) for (const it of items) for (const k of this.db.unique[this.table]) if (all.some((r) => r[k] === it[k])) return { data: null, error: { message: "duplicate key" } };
       all.push(...items);
       return { data: this.one ? items[0] : items, error: null };
+    }
+    if (this.op === "upsert") {
+      for (const v of Array.isArray(this.val) ? this.val : [this.val]) {
+        const k = Object.keys(v)[0]; const i = all.findIndex((r) => r[k] === v[k]);
+        if (i >= 0) Object.assign(all[i], v); else all.push({ ...v });
+      }
+      return { data: null, error: null };
     }
     let hit = all.filter((r) => this.f.every((fn) => fn(r)));
     if (this.op === "update") { hit.forEach((r) => Object.assign(r, this.val)); return { data: this.ret ? hit : null, error: null }; }

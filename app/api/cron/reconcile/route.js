@@ -2,6 +2,7 @@ import { reconcilePending } from "@/lib/payments";
 import { safeEqual } from "@/lib/crypto";
 import { purgeDueBusinesses } from "@/lib/privacy";
 import { sendClaimDigests } from "@/lib/claims-digest";
+import { runChecks } from "@/lib/monitor";
 
 // Vercel Cron calls this daily (see vercel.json); pages also re-check in the
 // background when businesses or customers open them. On Vercel Pro you can
@@ -14,5 +15,6 @@ export async function GET(request) {
   const results = await reconcilePending();
   const purged = await purgeDueBusinesses();
   const digests = await sendClaimDigests().catch((e) => ({ error: String(e?.message || e) }));
-  return Response.json({ checked: results.length, results, purged, digests });
+  const health = await runChecks().then((h) => h.results.map((r) => `${r.key}:${r.status}`), (e) => ({ error: String(e?.message || e) }));
+  return Response.json({ checked: results.length, results, purged, digests, health });
 }
