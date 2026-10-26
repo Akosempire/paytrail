@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, Home, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp,
+  Plus, Menu, X, Home, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -15,7 +15,7 @@ import { InstallPrompt, clearOfflinePages } from "@/components/pwa";
 import { Tour, TourButton } from "@/components/tour";
 import { switchBusiness } from "@/app/app/actions";
 
-function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts }) {
+function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts, canTax }) {
   return [
     { items: [{ href: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true }] },
     { title: "Sell", items: [
@@ -25,6 +25,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts 
     ] },
     { title: "Money", items: [
       { href: "/app/payments", label: "Payments & receipts", icon: Wallet },
+      canTax && { href: "/app/tax", label: "Tax", icon: Landmark },
       canCosts && { href: "/app/settings/costs", label: "Cost presets", icon: Tags },
     ].filter(Boolean) },
     { title: "Settings", items: [

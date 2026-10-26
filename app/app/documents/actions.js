@@ -119,13 +119,16 @@ export async function duplicateDocument(id, asKind) {
 export async function recordPayment(id, form) {
   const ctx = await requireBusiness();
   const amount = toMinor(form.amount);
-  if (!Number.isFinite(amount) || amount <= 0) return { error: "Enter the amount you received." };
-  const { error } = await ctx.supabase.rpc("record_manual_payment", {
-    doc_id: id, pay_method: String(form.method || "bank_transfer"), pay_reference: String(form.reference || "").slice(0, 120),
-    pay_amount: amount, pay_note: String(form.note || "").slice(0, 500), pay_date: form.date || null,
-  });
+  const wht = form.wht ? toMinor(form.wht) : 0;
+  if (!Number.isFinite(wht) || wht < 0) return { error: "Check the WHT amount." };
+  if (!Number.isFinite(amount) || amount < 0 || (amount <= 0 && wht <= 0)) return { error: "Enter the amount you received." };
+  const common = { doc_id: id, pay_method: String(form.method || "bank_transfer"), pay_reference: String(form.reference || "").slice(0, 120), pay_note: String(form.note || "").slice(0, 500), pay_date: form.date || null };
+  const { error } = wht > 0
+    ? await ctx.supabase.rpc("record_payment_with_wht", { ...common, cash_amount: amount, wht_amount: wht })
+    : await ctx.supabase.rpc("record_manual_payment", { ...common, pay_amount: amount });
   refresh(id);
-  return error ? { error: friendlyError(error) } : { message: "Payment recorded and receipt issued." };
+  if (error && /record_payment_with_wht/.test(error.message || "")) return { error: "Recording WHT needs a database update. Run RUN_NEW_2026-10-26d.sql in Supabase, then try again." };
+  return error ? { error: friendlyError(error) } : { message: wht > 0 ? "Payment and WHT recorded. Receipt issued." : "Payment recorded and receipt issued." };
 }
 
 export async function emailReceipt(receiptId) {

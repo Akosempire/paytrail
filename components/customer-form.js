@@ -10,7 +10,7 @@ export function CustomerButton({ customer, variant = "primary", size = "md" }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState(customer || { name: "", company: "", email: "", phone: "", address: "", notes: "" });
+  const [form, setForm] = useState(customer || { name: "", company: "", email: "", phone: "", address: "", notes: "", tax_id: "" });
   const [pending, start] = useTransition();
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
   function save() {
@@ -19,7 +19,7 @@ export function CustomerButton({ customer, variant = "primary", size = "md" }) {
       if (r.error) return toast.error({ title: "Not saved", message: r.error });
       toast(r.message);
       setOpen(false);
-      if (!customer) setForm({ name: "", company: "", email: "", phone: "", address: "", notes: "" });
+      if (!customer) setForm({ name: "", company: "", email: "", phone: "", address: "", notes: "", tax_id: "" });
       router.refresh();
     });
   }
@@ -37,7 +37,10 @@ export function CustomerButton({ customer, variant = "primary", size = "md" }) {
           <Field label="Company" htmlFor="c-co" optional><Input id="c-co" value={form.company} onChange={set("company")} /></Field>
           <Field label="Email" htmlFor="c-em"><Input id="c-em" type="email" value={form.email} onChange={set("email")} /></Field>
           <Field label="Phone / WhatsApp" htmlFor="c-ph" optional><Input id="c-ph" value={form.phone} onChange={set("phone")} /></Field>
-          <Field label="Address" htmlFor="c-ad" optional className="sm:col-span-2"><Input id="c-ad" value={form.address} onChange={set("address")} /></Field>
+          <Field label="Tax ID (TIN)" htmlFor="c-tin" optional hint="Shown on their invoices. Business customers need it to claim VAT.">
+            <Input id="c-tin" value={form.tax_id || ""} onChange={set("tax_id")} placeholder="e.g. 12345678-0001" autoComplete="off" />
+          </Field>
+          <Field label="Address" htmlFor="c-ad" optional><Input id="c-ad" value={form.address} onChange={set("address")} /></Field>
           <Field label="Private notes" htmlFor="c-no" optional hint="Only your team sees these." className="sm:col-span-2"><Textarea id="c-no" rows={2} value={form.notes} onChange={set("notes")} /></Field>
         </div>
       </Modal>

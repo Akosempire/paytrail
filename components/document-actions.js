@@ -2,9 +2,9 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X } from "lucide-react";
-import { Button, buttonClass, Field, Input, Select, Textarea } from "@/components/ui";
+import { Button, buttonClass, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
-import { minorToInput } from "@/lib/money";
+import { formatMoney, minorToInput, toMinor } from "@/lib/money";
 import { convertToInvoice, deleteDraft, duplicateDocument, recordPayment, resendEmail, returnToDraft, sendDocument, submitForApproval, voidDocument } from "@/app/app/documents/actions";
 
 export function DocumentActions({ doc, perms, emailReady, balance, link, printHref, pdfHref }) {
@@ -122,17 +122,45 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
 }
 
 function PaymentModal({ open, onClose, doc, balance, onSubmit, pending }) {
-  const [form, setForm] = useState({ amount: minorToInput(balance), method: "bank_transfer", reference: "", date: new Date().toISOString().slice(0, 10), note: "" });
+  const [form, setForm] = useState({ amount: minorToInput(balance), method: "bank_transfer", reference: "", date: new Date().toISOString().slice(0, 10), note: "", wht: "" });
+  const [withheld, setWithheld] = useState(false);
+  const [rate, setRate] = useState("5");
+  // WHT is worked out on the amount before VAT: the share of this balance that isn't VAT
+  const preVatShare = Number(doc.total_minor) > 0 ? (Number(doc.subtotal_minor) - Number(doc.discount_minor || 0)) / Number(doc.total_minor) : 1;
+  const applyRate = (r, on = withheld) => {
+    const pct = Number(r);
+    if (!on || !Number.isFinite(pct)) return setForm((f) => ({ ...f, wht: on ? f.wht : "", amount: on ? f.amount : minorToInput(balance) }));
+    const wht = Math.round(balance * preVatShare * pct / 100);
+    setForm((f) => ({ ...f, wht: minorToInput(wht), amount: minorToInput(balance - wht) }));
+  };
+  const cash = toMinor(form.amount) || 0, whtMinor = withheld ? toMinor(form.wht) || 0 : 0;
   return (
     <Modal open={open} onClose={onClose} title="Record a payment" description={`Balance on ${doc.number}: ${doc.currency} ${minorToInput(balance)}`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={pending ? Loader2 : Wallet} loading={pending} onClick={() => onSubmit(form)}>Record & issue receipt</Button></>}>
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={pending ? Loader2 : Wallet} loading={pending} onClick={() => onSubmit({ ...form, wht: withheld ? form.wht : "" })}>Record & issue receipt</Button></>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Amount received" htmlFor="pa" hint="Less than the balance records a part payment."><Input id="pa" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
+        <Field label={withheld ? "Amount that reached you" : "Amount received"} htmlFor="pa" hint={withheld ? undefined : "Less than the balance records a part payment."}><Input id="pa" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
         <Field label="How they paid" htmlFor="pm">
           <Select id="pm" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value })}>
             <option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="pos">POS</option><option value="other">Other</option>
           </Select>
         </Field>
+        <div className="sm:col-span-2">
+          <Checkbox label="The customer deducted withholding tax (WHT)" description="Companies often keep back 5% or 10% and pay it to the tax office for you. It still counts towards the invoice."
+            checked={withheld} onChange={(e) => { setWithheld(e.target.checked); applyRate(rate, e.target.checked); }} />
+        </div>
+        {withheld && (
+          <>
+            <Field label="WHT rate" htmlFor="pwr">
+              <Select id="pwr" value={rate} onChange={(e) => { setRate(e.target.value); applyRate(e.target.value); }}>
+                <option value="2">2%</option><option value="5">5%</option><option value="10">10%</option><option value="custom">Other amount</option>
+              </Select>
+            </Field>
+            <Field label="WHT deducted" htmlFor="pw" hint="Worked out on the amount before VAT.">
+              <Input id="pw" inputMode="decimal" value={form.wht} onChange={(e) => { setRate("custom"); setForm({ ...form, wht: e.target.value }); }} />
+            </Field>
+            <p className="text-[13px] text-ink-2 sm:col-span-2">Settles <strong className="text-ink">{formatMoney(cash + whtMinor, doc.currency)}</strong> of the {formatMoney(balance, doc.currency)} balance. Ask your customer for the WHT credit note and attach it under Files: you claim it against your own tax.</p>
+          </>
+        )}
         <Field label="Date received" htmlFor="pd"><Input id="pd" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         <Field label="Reference" htmlFor="pr" optional><Input id="pr" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Bank narration / teller no." /></Field>
         <Field label="Note" htmlFor="pn" optional className="sm:col-span-2"><Textarea id="pn" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></Field>

@@ -64,7 +64,7 @@ export default async function CustomerPage({ params }) {
         </Card>
         <Card>
           <CardHeader title="Details" />
-          <DescriptionList items={[["Email", c.email || "—"], ["Phone", c.phone || "—"], ["Address", c.address || "—"], c.notes && ["Notes", c.notes]]} />
+          <DescriptionList items={[["Email", c.email || "—"], ["Phone", c.phone || "—"], ["Address", c.address || "—"], c.tax_id && ["Tax ID (TIN)", c.tax_id], c.notes && ["Notes", c.notes]]} />
         </Card>
       </div>
     </div>

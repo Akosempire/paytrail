@@ -26,6 +26,7 @@ export default async function Layout({ children }) {
         canTeam: can(member, "settings.team"),
         canBilling: can(member, "settings.billing"),
         canCosts: can(member, "costs.view"),
+        canTax: can(member, "payments.record"),
       }}
     >
       {children}

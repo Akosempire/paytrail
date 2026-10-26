@@ -140,7 +140,7 @@ export default async function DocumentPage({ params, searchParams }) {
                       <li key={p.id} className="flex items-center justify-between gap-3 px-5 py-3 text-[13px]">
                         <span className="min-w-0">
                           <span className="block font-medium text-ink tabular">{money(p.amount_minor)}</span>
-                          <span className="text-xs text-ink-3">{PAYMENT_METHODS[p.method]} · {formatDate(p.paid_at)}</span>
+                          <span className="text-xs text-ink-3">{PAYMENT_METHODS[p.method]} · {formatDate(p.paid_at)}{Number(p.wht_minor) > 0 ? ` · incl. ${money(p.wht_minor)} WHT` : ""}</span>
                         </span>
                         {r && <span className="flex shrink-0 gap-1">
                           <Button size="sm" variant="ghost" icon={Receipt} href={`/r/${r.access_token}`}>{r.number}</Button>
