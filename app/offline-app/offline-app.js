@@ -116,11 +116,11 @@ function BottomNav({ route }) {
   const at = "/" + (route[0] || "");
   if (route[0] === "new" || route[0] === "edit") return null; // the editor has its own save bar there
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface pb-[env(safe-area-inset-bottom)] print:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur pb-[env(safe-area-inset-bottom)] print:hidden">
       <div className="mx-auto grid max-w-xl grid-cols-5">
         {NAV.map(([href, label, Icon]) => (
-          <a key={href} href={`#${href}`} className={`flex flex-col items-center gap-0.5 py-2 text-[11px] font-medium ${at === href ? "text-primary" : "text-ink-3"}`}>
-            <Icon className="size-5" />{label}
+          <a key={href} href={`#${href}`} aria-current={at === href ? "page" : undefined} className={`flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium ${at === href ? "text-brand-ink" : "text-ink-3"}`}>
+            <span className={`inline-flex h-7 w-12 items-center justify-center rounded-full ${at === href ? "bg-brand-soft" : ""}`}><Icon className="size-5" /></span>{label}
           </a>
         ))}
       </div>

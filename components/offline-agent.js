@@ -27,7 +27,7 @@ export function OfflineAgent() {
   if (!s) return null;
   if (!s.online) {
     return (
-      <div className="fixed inset-x-0 bottom-0 z-50 p-3 pb-[max(12px,env(safe-area-inset-bottom))] print:hidden" role="status">
+      <div className="fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-50 p-3 lg:bottom-0 lg:pb-[max(12px,env(safe-area-inset-bottom))] print:hidden" role="status">
         <div className="mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-surface p-3 shadow-[var(--shadow-dialog)] ring-1 ring-line">
           <CloudOff className="size-5 shrink-0 text-warn" />
           <p className="min-w-0 flex-1 text-[13px] text-ink-2"><strong className="text-ink">You're offline.</strong> Keep working: changes sync when you're back.</p>
@@ -38,7 +38,7 @@ export function OfflineAgent() {
   }
   if (s.outbox.length) {
     return (
-      <div className="fixed bottom-4 right-4 z-50 print:hidden" role="status">
+      <div className="fixed bottom-[calc(76px+env(safe-area-inset-bottom))] right-4 z-50 lg:bottom-4 print:hidden" role="status">
         <a href="/offline-app" className="inline-flex items-center gap-2 rounded-full bg-surface px-3 py-2 text-[12.5px] font-medium text-ink-2 shadow-[var(--shadow-dialog)] ring-1 ring-line">
           <RefreshCw className={`size-3.5 ${s.syncing ? "animate-spin" : ""}`} />Syncing {s.outbox.length} offline change{s.outbox.length === 1 ? "" : "s"}
         </a>

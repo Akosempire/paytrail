@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp,
+  Plus, Menu, X, Home, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -47,6 +47,8 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   useEffect(() => { setOpen(false); setSwitcher(false); setGoingTo(null); }, [pathname]);
   const nav = navFor({ kind: business.kind, ...perms });
   const here = goingTo || pathname;
+  // screens with their own save bar at the bottom (editor, business settings) don't show the tabs
+  const tabs = !/\/(new|edit)$/.test(pathname) && pathname !== "/app/settings";
   const active = (item) => item.exact ? here === item.href : here === item.href || here.startsWith(item.href + "/");
 
   const sidebar = (
@@ -160,11 +162,37 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
           <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote"><span className="max-sm:hidden">New </span>Quote</Button>
         </header>
-        <main className="mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
+        <main className={cx("mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
       </div>
+      {tabs && (
+        <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
+          <div className="mx-auto grid max-w-xl grid-cols-5">
+            {TABS.map((t) => {
+              const on = active(t);
+              return (
+                <Link key={t.href} href={t.href} aria-current={on ? "page" : undefined}
+                  onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setGoingTo(t.href); }}
+                  className={cx("flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium transition-colors", on ? "text-brand-ink" : "text-ink-3 hover:text-ink")}>
+                  <span className={cx("inline-flex h-7 w-12 items-center justify-center rounded-full transition-colors", on && "bg-brand-soft")}><t.icon className="size-5" aria-hidden /></span>
+                  {t.label}
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      )}
     </div>
   );
 }
+
+// bottom tabs on phones and tablets: the five places people go most
+const TABS = [
+  { href: "/app", label: "Home", icon: Home, exact: true },
+  { href: "/app/quotes", label: "Quotes", icon: FileText },
+  { href: "/app/invoices", label: "Invoices", icon: Receipt },
+  { href: "/app/customers", label: "Customers", icon: Users },
+  { href: "/app/payments", label: "Payments", icon: Wallet },
+];
 
 function TrialMeter({ allowance, canBilling, status }) {
   if (!allowance) return null;
