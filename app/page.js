@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { preload } from "react-dom";
 import { ArrowDown, EyeOff, Landmark, Plus } from "lucide-react";
-import { Logo } from "@/components/ui";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
 import { TemplateThumb } from "@/components/layout-panel";
@@ -9,7 +8,7 @@ import { Chapters, PainStory } from "@/components/landing/story";
 import { DotField } from "@/components/landing/dot-field";
 import { ReceiptTape } from "@/components/landing/receipt-tape";
 import { PrimaryCta, SecondaryCta } from "@/components/landing/cta";
-import { ThemeSwitch } from "@/components/landing/theme-switch";
+import { SiteNav } from "@/components/landing/site-nav";
 import { Platforms } from "@/components/landing/platforms";
 import { Pricing } from "@/components/landing/pricing";
 import { Team } from "@/components/landing/team";
@@ -85,27 +84,15 @@ export default async function Home({ searchParams }) {
       <div className="relative z-[1]">
       {signedIn && <InstallPrompt delay={5000} />}
 
-      {/* stays at the top while you scroll, so the logo and sign-in are always there */}
-      <header className="sticky top-0 z-30 bg-hero/85 shadow-[0_1px_0_var(--color-hero-line)] backdrop-blur-md supports-[backdrop-filter]:bg-hero/70">
-          <div className={`flex items-center justify-between py-3 sm:py-4 ${WRAP}`}>
-            <Logo withWord wordClass="text-hero-ink" />
-            <nav className="flex items-center gap-1 sm:gap-2" aria-label="Main">
-              <a href="#how-it-works" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink md:block">How it works</a>
-              <a href="#pricing" className="hidden px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink sm:block">Pricing</a>
-              <ThemeSwitch />
-              {signedIn
-                ? <PrimaryCta href="/app" size="sm">Dashboard</PrimaryCta>
-                : <><Link href="/login" className="px-3 text-sm font-medium text-hero-ink-2 hover:text-hero-ink">Sign in</Link><PrimaryCta href="/signup" size="sm">Get started</PrimaryCta></>}
-            </nav>
-          </div>
-      </header>
+      {/* floating nav: stays at the top while you scroll */}
+      <SiteNav signedIn={signedIn} wrap={WRAP} />
 
       {/* ------------------------------------------------ hero */}
       <div className="relative overflow-hidden">
 
         {/* phones & tablets: film first, then the words, all fitted to one screen
             (sizes follow the screen height); desktop: words left, film right */}
-        <section className={`flex min-h-[calc(100svh-68px)] flex-col items-center justify-center gap-3 pt-1 pb-6 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-4 lg:pt-20 lg:pb-12 ${WRAP}`}>
+        <section className={`flex min-h-[calc(100svh-72px)] flex-col items-center justify-center gap-3 pt-1 pb-6 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] lg:items-center lg:gap-4 lg:pt-20 lg:pb-12 ${WRAP}`}>
           <div className="w-full max-w-[560px] self-start text-left lg:self-auto lg:pb-10">
             <h1 className="font-display text-[clamp(32px,6svh,60px)] leading-[0.98] font-semibold tracking-[-0.045em] lg:text-[clamp(46px,6.4vw,84px)]">
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
@@ -180,7 +167,7 @@ export default async function Home({ searchParams }) {
       <section className={`grid gap-12 py-24 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)] ${WRAP}`} aria-labelledby="faq-title">
         <div>
           <p className={KICKER}>Questions</p>
-          <h2 id="faq-title" className={`mt-4 ${H2}`}>Good to know.</h2>
+          <h2 id="faq-title" className={`mt-4 scroll-mt-28 ${H2}`}>Good to know.</h2>
           <p className="mt-5 max-w-[420px] text-[17px] leading-relaxed text-hero-ink-2">Something else? <Link href="/signup" className="font-semibold text-hero-ink underline decoration-hero-line underline-offset-4 hover:decoration-hero-ink">Start the free trial</Link> and ask us from inside the app.</p>
         </div>
         <div className="divide-y divide-hero-line border-y border-hero-line">
