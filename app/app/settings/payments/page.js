@@ -22,7 +22,7 @@ export default async function Page({ searchParams }) {
   const webhook = (provider) => `${siteUrl()}/api/webhooks/${provider}/${ctx.business.id}`;
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Payment setup" description="Let customers pay quotes and invoices online. Connect Stripe, Paystack, Flutterwave or Bachs. Money goes straight into your own account. Usetally never holds it." />
+      <PageHeader title="Payment setup" description="Let customers pay quotes and invoices online. Connect Bachs (recommended), Paystack, Flutterwave or Stripe. Money goes straight into your own account. Usetally never holds it." />
       {sp.welcome && <ShowToast intent="info" title="Welcome to Usetally! Let's get you paid." message="Connect one provider now, or skip this. Customers can always pay by bank transfer and you record it." clear={["welcome"]} duration={9000} />}
       {supportLink && (
         <Callout tone="neutral" icon={LifeBuoy} title="Need help to integrate your payment?">

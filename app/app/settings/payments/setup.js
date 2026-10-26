@@ -89,10 +89,11 @@ function statusOf(c) {
   return { key: "partial", label: "Setup in progress", tone: "warn" };
 }
 
-// providers in the order that suits the business's currency
+// providers in the order that suits the business's currency; the first one is
+// shown as "Recommended for you" (Bachs for African currencies)
 const AFRICAN = ["NGN", "GHS", "KES", "ZAR", "XOF"];
 export function providerOrder(currency) {
-  return AFRICAN.includes(currency) ? ["paystack", "flutterwave", "bachs", "stripe"] : ["stripe", "paystack", "flutterwave", "bachs"];
+  return AFRICAN.includes(currency) ? ["bachs", "paystack", "flutterwave", "stripe"] : ["stripe", "bachs", "paystack", "flutterwave"];
 }
 
 export function PaymentSetup({ connections, webhooks, testAmount, focus, testResult, currency }) {
