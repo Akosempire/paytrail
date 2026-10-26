@@ -4,6 +4,7 @@ import { reconcileSoon } from "@/lib/payments";
 import { requireBusiness } from "@/lib/context";
 import { can, ROLES } from "@/lib/permissions";
 import { logoUrl } from "@/lib/site";
+import { OfflineAgent } from "@/components/offline-agent";
 
 export default async function Layout({ children }) {
   const ctx = await requireBusiness();
@@ -28,6 +29,7 @@ export default async function Layout({ children }) {
       }}
     >
       {children}
+      <OfflineAgent />
     </AppShell>
   );
 }

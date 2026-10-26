@@ -13,7 +13,8 @@ import { saveDocument } from "@/app/app/documents/actions";
 const blankItem = () => ({ key: Math.random().toString(36).slice(2), description: "", details: "", quantity: "1", price: "" });
 const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label: c.label || "", category: c.category || "other", amount: c.amount_minor ? minorToInput(c.amount_minor) : "" });
 
-export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady }) {
+// onSave/onSaved: used by offline mode, which saves to the device instead of the server
+export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -83,13 +84,14 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     else input.customer = customer;
     if (costsVisible) input.costs = costs.filter((c) => c.label.trim()).map((c) => ({ label: c.label.trim(), category: c.category, amount_minor: toMinor(c.amount) || 0 }));
     start(async () => {
-      const result = await saveDocument(doc?.id || null, input, intent);
+      const result = onSave ? await onSave(input, intent) : await saveDocument(doc?.id || null, input, intent);
       if (result?.error) {
         setError(result.error);
         toast.error(result.error);
-        if (result.id) router.push(`/app/documents/${result.id}`);
+        if (result.id && !onSaved) router.push(`/app/documents/${result.id}`);
         return;
       }
+      if (onSaved) return onSaved(result.id, intent);
       toast.success(intent === "send" ? (emailCustomer && emailReady ? "Saved and emailed to your customer." : "Saved and marked as sent.") : intent === "submit" ? "Sent for approval." : "Draft saved.");
       router.push(`/app/documents/${result.id}${intent === "send" ? "?sent=1" : ""}`);
     });

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Download, Share, SquarePlus, X } from "lucide-react";
 import { Logo } from "@/components/ui";
+import { clearOffline } from "@/lib/offline/engine";
 
 // Registers the service worker (offline access). Skipped in development so
 // cached files never hide code changes.
@@ -14,8 +15,10 @@ export function ServiceWorker() {
   return null;
 }
 
-// call before signing out: removes cached pages from this device
+// call before signing out: removes cached pages and the offline copy of the
+// business from this device
 export function clearOfflinePages() {
+  try { clearOffline(); } catch { /* no indexeddb */ }
   try { navigator.serviceWorker?.controller?.postMessage({ type: "clear-pages" }); } catch { /* no worker */ }
   try { caches?.keys?.().then((keys) => keys.filter((k) => k.endsWith("-pages")).forEach((k) => caches.delete(k))); } catch { /* no cache api */ }
 }
