@@ -5,7 +5,8 @@ import { requireBusiness } from "@/lib/context";
 import { can } from "@/lib/permissions";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
-import { loadTaxMonth, recentMonths } from "@/lib/tax";
+import { loadTaxMonth, vatByMonth } from "@/lib/tax";
+import { PeriodPicker } from "./period-picker";
 import { Badge, buttonClass, Callout, Card, CardHeader, EmptyState, PageHeader, StatCard, StatGroup, cx } from "@/components/ui";
 
 export const metadata = { title: "Tax" };
@@ -15,28 +16,25 @@ export const metadata = { title: "Tax" };
 export default async function TaxPage({ searchParams }) {
   const [sp, ctx] = await Promise.all([searchParams, requireBusiness()]);
   if (!can(ctx.member, "payments.record")) notFound();
-  const { month, invoices, wht, totals, tinReady, whtReady } = await loadTaxMonth(ctx, sp.month);
+  const { month, invoices, wht, totals, tinReady, whtReady } = await loadTaxMonth(ctx, sp.period || sp.month);
+  const now = new Date(), today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  const vat = await vatByMonth(ctx, [month.year - 3, month.year, now.getFullYear()]);
   const b = ctx.business, cur = b.currency;
   const t = totals[cur] || { taxable: 0, vat: 0, gross: 0, wht: 0, invoices: 0, standard: 0, zero: 0, exempt: 0 };
   const others = Object.entries(totals).filter(([c]) => c !== cur);
   const money = (v, c = cur) => formatMoney(v, c);
   const missingTin = invoices.filter((d) => !d.customer_tax_id).length;
-  const overdue = new Date(`${month.due}T23:59:59`) < new Date();
+  const overdue = month.type === "month" && new Date(`${month.due}T23:59:59`) < new Date();
+  // returns are monthly: in a quarter or year, the next one still to come
+  const upcoming = month.months.map((m) => m.due).find((d) => new Date(`${d}T23:59:59`) >= new Date());
   const label = b.tax_label || "VAT";
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Tax" description={`${label} you charged and withholding tax your customers deducted, month by month. Share the export with your accountant.`}
-        actions={<a href={`/app/tax/export?month=${month.key}`} className={buttonClass({ variant: "primary" })}><Download className="size-4 shrink-0" aria-hidden />Export {month.label}</a>} />
+      <PageHeader title="Tax" description={`${label} you charged and withholding tax your customers deducted, for any month, quarter or year. Share the export with your accountant.`}
+        actions={<a href={`/app/tax/export?period=${month.key}`} className={buttonClass({ variant: "primary" })}><Download className="size-4 shrink-0" aria-hidden />Export {month.label}</a>} />
 
-      <nav aria-label="Month" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 scroll-thin sm:mx-0 sm:px-0">
-        {recentMonths(12).map((m) => (
-          <Link key={m.key} href={`/app/tax?month=${m.key}`} aria-current={m.key === month.key ? "page" : undefined}
-            className={cx("shrink-0 rounded-full px-3.5 py-1.5 text-[13px] font-medium ring-1 ring-inset", m.key === month.key ? "bg-brand text-white ring-brand" : "bg-surface text-ink-2 ring-line hover:text-ink")}>
-            {m.label}
-          </Link>
-        ))}
-      </nav>
+      <PeriodPicker period={{ type: month.type, key: month.key, label: month.label, long: month.long, year: month.year, quarter: month.quarter || null }} vat={vat} currency={cur} today={today} />
 
       {!tinReady && <Callout tone="warn" icon={AlertTriangle} title="One step left">Run <strong>RUN_NEW_2026-10-26d.sql</strong> in Supabase to add customer TINs and withholding tax.</Callout>}
       {Number(b.tax_rate) === 0 && <Callout tone="info" title={`You're not charging ${label}`}>Your default tax rate is 0%. If your sales pass the VAT threshold, set your rate in Settings → Business & branding.</Callout>}
@@ -44,13 +42,13 @@ export default async function TaxPage({ searchParams }) {
       <StatGroup cols={4}>
         <StatCard label={`${label} charged`} value={money(t.vat)} hint={`On ${t.invoices} invoice${t.invoices === 1 ? "" : "s"} issued in ${month.label}`} icon={Landmark} tone="brand" />
         <StatCard label={`Sales before ${label}`} value={money(t.taxable)} hint={t.zero || t.exempt ? `Standard ${money(t.standard)} · zero-rated ${money(t.zero)} · exempt ${money(t.exempt)}` : `${money(t.gross)} including ${label}`} icon={FileText} />
-        <StatCard label="Return due" value={formatDate(month.due)} hint={overdue ? "This date has passed" : "21st of the following month"} icon={CalendarClock} tone={overdue ? "warn" : "neutral"} />
+        <StatCard label={month.type === "month" ? "Return due" : upcoming ? "Next return due" : "Returns"} value={month.type === "month" ? formatDate(month.due) : upcoming ? formatDate(upcoming) : `${month.months.length} monthly`} hint={month.type === "month" ? (overdue ? "This date has passed" : "21st of the following month") : `${month.months.length} monthly returns, each due on the 21st`} icon={CalendarClock} tone={overdue ? "warn" : "neutral"} />
         <StatCard label="WHT deducted by customers" value={money(t.wht)} hint="Credits you can claim against your own tax" icon={ReceiptText} tone="violet" />
       </StatGroup>
       {others.length > 0 && <p className="-mt-3 text-[13px] text-ink-3">Also in other currencies: {others.map(([c, v]) => `${formatMoney(v.vat, c)} ${label} on ${v.invoices} invoice${v.invoices === 1 ? "" : "s"}`).join(" · ")}</p>}
 
       <Card>
-        <CardHeader title={`Invoices issued in ${month.label}`} description={`Sent invoices dated this month, not including cancelled ones.${missingTin && tinReady ? ` ${missingTin} without a customer TIN.` : ""}`} />
+        <CardHeader title={`Invoices issued in ${month.label}`} description={`Sent invoices dated in this period, not including cancelled ones.${missingTin && tinReady ? ` ${missingTin} without a customer TIN.` : ""}`} />
         {invoices.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-[13.5px]">
@@ -92,7 +90,7 @@ export default async function TaxPage({ searchParams }) {
                 </li>
               ))}
             </ul>
-          ) : <EmptyState compact icon={ReceiptText} title="No WHT deducted this month" description="When a customer pays less because they withheld tax, tick the WHT box when you record the payment." />}
+          ) : <EmptyState compact icon={ReceiptText} title={`No WHT deducted in ${month.label}`} description="When a customer pays less because they withheld tax, tick the WHT box when you record the payment." />}
         </Card>
       )}
 
@@ -114,7 +112,7 @@ function EInvoicing({ invoices }) {
       <div className="flex flex-col gap-3 p-5 text-[13.5px] text-ink-2">
         {top.length ? (
           <ul className="space-y-1.5">{top.map(([m, n]) => <li key={m} className="flex justify-between gap-3"><span>{m}</span><span className="shrink-0 text-ink-3">{n} invoice{n === 1 ? "" : "s"}</span></li>)}</ul>
-        ) : invoices.length ? <p>Every invoice this month has what e-invoicing needs.</p> : <p>No invoices this month.</p>}
+        ) : invoices.length ? <p>Every invoice in this period has what e-invoicing needs.</p> : <p>No invoices in this period.</p>}
         <p className="text-[12.5px] text-ink-3">Each invoice has a <strong>Download e-invoice (XML)</strong> button: the UBL file e-invoicing providers accept. Sending to NRS (with the IRN and QR code) comes when Usetally connects to an approved provider.</p>
       </div>
     </Card>
