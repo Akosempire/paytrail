@@ -39,9 +39,10 @@ export function SiteNav({ signedIn, wrap }) {
           <Link href="/" aria-label="Usetally home" className="flex shrink-0 rounded-[12px] drop-shadow-[0_6px_14px_rgba(23,92,211,.28)] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5a9dff] focus-visible:ring-offset-2 focus-visible:ring-offset-hero">
             <Logo className="size-11 sm:size-12" />
           </Link>
-          <Link href={signedIn ? "/app" : "/signup"} className={cx(PILL, "hidden bg-[#175cd3] text-white hover:bg-[#1765e6] sm:inline-flex dark:bg-[#2563eb]")}>
-            {signedIn ? "Open dashboard" : "Get started free"}
-          </Link>
+          {/* signed in: the dashboard is in the account menu, so no pill for it here */}
+          {!signedIn && (
+            <Link href="/signup" className={cx(PILL, "hidden bg-[#175cd3] text-white hover:bg-[#1765e6] sm:inline-flex dark:bg-[#2563eb]")}>Get started free</Link>
+          )}
           <a href="#pricing" className={cx(PILL, "hidden bg-[#dbeafe] text-[#175cd3] hover:bg-[#cfe2fd] md:inline-flex dark:bg-[#5a9dff]/20 dark:text-[#9cc3ff]")}>See pricing</a>
         </div>
 
