@@ -169,3 +169,34 @@ export async function saveDocumentLayout(id, input, { asDefault = false } = {}) 
   refresh(id);
   return { message: asDefault ? "Saved, and set as your default." : "Layout saved." };
 }
+
+// "I've sent it" from the customer: the money arrived (records the payment and
+// issues the receipt), or it didn't (the customer sees why on their link)
+export async function confirmPaymentClaim(claimId, amount) {
+  const ctx = await requireBusiness();
+  if (!can(ctx.member, "payments.record")) return { error: "Only owners, managers and finance officers can confirm payments." };
+  const minor = amount == null || amount === "" ? null : toMinor(amount);
+  if (minor !== null && (!Number.isFinite(minor) || minor <= 0)) return { error: "Enter the amount that arrived." };
+  const { data: claim } = await ctx.supabase.from("payment_claims").select("id, document_id").eq("id", claimId).eq("business_id", ctx.business.id).maybeSingle();
+  if (!claim) return { error: "That payment wasn't found." };
+  const { error } = await ctx.supabase.rpc("confirm_payment_claim", { claim_id: claimId, confirm_amount: minor });
+  refresh(claim.document_id);
+  if (error) return { error: friendlyError(error) };
+  // email the receipt when we can
+  const { data: receipt } = await ctx.supabase.from("receipts").select("id, payment_id").eq("document_id", claim.document_id).order("issued_at", { ascending: false }).limit(1).maybeSingle();
+  if (receipt && (await emailConfigured())) {
+    const r = await emailReceipt(receipt.id).catch(() => null);
+    if (r?.message) return { message: "Payment confirmed. The receipt was emailed to your customer." };
+  }
+  return { message: "Payment confirmed and receipt issued." };
+}
+
+export async function rejectPaymentClaim(claimId, reason) {
+  const ctx = await requireBusiness();
+  if (!can(ctx.member, "payments.record")) return { error: "Only owners, managers and finance officers can do this." };
+  const { data: claim } = await ctx.supabase.from("payment_claims").select("id, document_id").eq("id", claimId).eq("business_id", ctx.business.id).maybeSingle();
+  if (!claim) return { error: "That payment wasn't found." };
+  const { error } = await ctx.supabase.rpc("reject_payment_claim", { claim_id: claimId, why: String(reason || "").slice(0, 500) });
+  refresh(claim.document_id);
+  return error ? { error: friendlyError(error) } : { message: "Marked as not received. Your customer can see your note on their link." };
+}

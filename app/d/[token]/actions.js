@@ -3,6 +3,14 @@ import { headers } from "next/headers";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { getPublicDocument } from "@/lib/documents";
 import { startCheckout, PROVIDERS } from "@/lib/payments";
+import { randomUUID } from "node:crypto";
+import { after } from "next/server";
+import { r2Delete, r2Put, r2Ready } from "@/lib/storage";
+import { MAX_FILE_BYTES, cleanFileName, fileTypeOf, formatSize } from "@/lib/file-types";
+import { emailConfigured, sendEmail } from "@/lib/email";
+import { paymentClaimEmail } from "@/lib/emails";
+import { formatMoney, toMinor } from "@/lib/money";
+import { siteUrl } from "@/lib/site";
 
 // tiny in-memory throttle per IP so a public link can't be hammered
 const hits = new Map();
@@ -53,4 +61,62 @@ export async function payDocument(token, provider) {
     console.error("checkout.start_failed", { provider, message: e.message });
     return { error: `${PROVIDERS[provider].name} couldn't start the payment right now. Try again, or pay by bank transfer.` };
   }
+}
+
+// "I've sent it": the customer paid by bank transfer and tells the business,
+// with an optional screenshot or PDF of the transfer. Nothing is recorded until
+// someone on the team confirms the money arrived.
+const PROOF = ["pdf", "png", "jpg", "jpeg", "webp", "heic"];
+export async function claimPayment(token, form) {
+  if (await throttle("claim", 5)) return { error: "Too many attempts. Wait a minute and try again." };
+  const found = await getPublicDocument(token);
+  if (!found) return { error: "This document could not be found." };
+  const { doc, business, invoice } = found;
+  const target = invoice || doc;
+  const amount = toMinor(form.get("amount"));
+  if (!Number.isFinite(amount) || amount <= 0) return { error: "Enter the amount you sent." };
+  const payer = String(form.get("payer") || "").trim().slice(0, 120);
+  if (!payer) return { error: "Enter the name on the account you paid from." };
+  const date = String(form.get("date") || "").slice(0, 10) || null;
+  const note = String(form.get("note") || "").trim().slice(0, 500);
+  const service = createSupabaseService();
+
+  // the proof, kept privately with the document (only the team can open it)
+  let fileId = null, key = null;
+  const file = form.get("proof");
+  if (file && typeof file !== "string" && file.size) {
+    const type = fileTypeOf(file.name);
+    if (!type || !PROOF.includes(file.name.split(".").pop().toLowerCase())) return { error: "Add a screenshot (photo) or a PDF of the transfer." };
+    if (file.size > MAX_FILE_BYTES) return { error: `That file is ${formatSize(file.size)}. It can be up to 4 MB.` };
+    if (await r2Ready()) {
+      fileId = randomUUID(); key = `${doc.business_id}/docs/${target.id}/${fileId}.${type.ext}`;
+      try {
+        await r2Put(key, new Uint8Array(await file.arrayBuffer()), type.mime);
+        const { error } = await service.from("document_files").insert({ id: fileId, business_id: doc.business_id, document_id: target.id, name: cleanFileName(`Transfer proof - ${file.name}`),
+          content_type: type.mime, size_bytes: file.size, storage_key: key, uploaded_by: null, uploaded_by_name: `${payer} (customer)` });
+        if (error) throw error;
+      } catch (e) {
+        console.error("claim.proof_failed", { message: e?.message });
+        if (key) await r2Delete(key).catch(() => {});
+        fileId = null; key = null;
+      }
+    }
+  }
+
+  const { error } = await service.rpc("submit_payment_claim", { raw_token: token, claim_amount: amount, claim_payer: payer, claim_date: date, claim_note: note, claim_file: fileId });
+  if (error) {
+    if (fileId) { await service.from("document_files").delete().eq("id", fileId); await r2Delete(key).catch(() => {}); }
+    if (/payment_claims|submit_payment_claim/.test(error.message)) return { error: `${business.name} can't receive this yet. Send them your proof of payment directly.` };
+    return { error: error.message };
+  }
+
+  // tell the team (owners, managers and finance) by email
+  after(async () => {
+    if (!(await emailConfigured())) return;
+    const { data: team } = await service.from("memberships").select("email, role").eq("business_id", doc.business_id).in("role", ["owner", "manager", "finance"]);
+    const to = [...new Set((team || []).map((m) => m.email).filter(Boolean))];
+    const msg = paymentClaimEmail({ business, doc: { number: target.number || doc.number }, amount: formatMoney(amount, doc.currency), payer, paidOn: date || new Date(), hasProof: Boolean(fileId), link: `${siteUrl()}/app/documents/${target.id}` });
+    for (const email of to) await sendEmail({ to: email, ...msg }).catch(() => {});
+  });
+  return { ok: true, proofSaved: Boolean(fileId) || !(file && typeof file !== "string" && file.size) };
 }

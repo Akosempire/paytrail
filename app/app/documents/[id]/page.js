@@ -15,6 +15,7 @@ import { payLinkFor } from "@/lib/pdf-response";
 import { DocumentActions } from "@/components/document-actions";
 import { StatusBadge, activityText } from "@/components/doc-bits";
 import { DocumentFiles } from "@/components/document-files";
+import { PaymentClaims } from "@/components/payment-claims";
 import { r2Ready } from "@/lib/storage";
 import { readyTemplates } from "@/lib/templates-ready";
 
@@ -49,6 +50,10 @@ export default async function DocumentPage({ params, searchParams }) {
   const payLink = await payLinkFor(ctx.supabase, doc, full.connections);
   const canEditLayout = draft || can(ctx.member, "documents.send");
   const files = await filesFor(ctx, doc.id);
+  // customers who said "I've sent it" (empty until the payment claims SQL is run)
+  const { data: claimRows } = await ctx.supabase.from("payment_claims").select("id, amount_minor, payer_name, paid_on, note, file_id, created_at")
+    .eq("document_id", doc.id).eq("status", "pending").order("created_at");
+  const claims = (claimRows || []).map((c) => ({ ...c, amountLabel: money(c.amount_minor), paidLabel: formatDate(c.paid_on, { day: "numeric", month: "short" }), when: timeAgo(c.created_at) }));
   const storageOn = await r2Ready();
   const extraTemplates = await readyTemplates(ctx.supabase);
 
@@ -72,6 +77,7 @@ export default async function DocumentPage({ params, searchParams }) {
 
       {sp.converted && <ShowToast title="Invoice created from the quote" message="Items and hidden costs were copied across. It's ready to share with your customer." clear={["converted"]} />}
       {sp.sent && <ShowToast title={`${quote ? "Quote" : "Invoice"} sent`} message={`Your customer can open it from the link, ${quote ? "accept it and pay" : "and pay online"}.`} clear={["sent"]} />}
+      <PaymentClaims claims={claims} documentId={doc.id} currency={doc.currency} canConfirm={can(ctx.member, "payments.record")} />
       {doc.status === "pending_approval" && <Callout tone="violet" icon={ShieldCheck} title="Waiting for approval">{can(ctx.member, "documents.approve") ? "Check it, then approve & send, or return it with a note." : "A manager or finance officer will review it before it goes to the customer."}</Callout>}
       {doc.status === "draft" && lastReturn && <Callout tone="warn" title="Returned for changes">{lastReturn.actor_label}: "{lastReturn.detail?.reason || "Please review."}"</Callout>}
       {doc.status === "declined" && <Callout tone="danger" title="Your customer declined this quote">{doc.decline_reason ? `"${doc.decline_reason}"` : "No reason given."}</Callout>}

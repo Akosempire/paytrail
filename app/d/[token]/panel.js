@@ -1,14 +1,14 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check } from "lucide-react";
-import { respondToQuote, payDocument } from "./actions";
+import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check, Send, Clock, AlertCircle, Paperclip } from "lucide-react";
+import { respondToQuote, payDocument, claimPayment } from "./actions";
 import { useToast } from "@/components/ui-client";
 
 const NAMES = { stripe: "Stripe", paystack: "Paystack", bachs: "Bachs", flutterwave: "Flutterwave" };
 
 // Light-only by design: this page is the business's branded document, not Usetally's app.
-export function CustomerPanel({ token, doc, amount, paid, expired, providers, hasBank, bank, brandName, invoiceNumber }) {
+export function CustomerPanel({ token, doc, amount, paid, expired, providers, hasBank, bank, brandName, invoiceNumber, balance = 0, currency, claim, proofUpload }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [mode, setMode] = useState(null); // "accept" | "decline"
@@ -100,10 +100,93 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
                   className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#475467] ring-1 ring-[#d0d5dd]">{copied ? <Check className="size-3" /> : <Copy className="size-3" />}{copied ? "Copied" : "Copy"}</button>
               </div>
               <p className="text-[#475467]">{bank.account}</p>
-              <p className="mt-1.5 text-xs text-[#98a2b3]">Reference: {bank.reference}. {brandName} will confirm and send your receipt.</p>
+              <p className="mt-1.5 text-xs text-[#98a2b3]">Put <strong className="font-semibold text-[#475467]">{bank.reference}</strong> in your transfer note so {brandName} can find it.</p>
             </div>
           )}
+          {hasBank && <TransferClaim token={token} brandName={brandName} balance={balance} currency={currency} claim={claim} proofUpload={proofUpload} defaultName={doc.customer_name} />}
         </div>
+      )}
+    </div>
+  );
+}
+
+// "I've sent it": after a bank transfer the customer tells the business, with
+// a screenshot if they have one. The business confirms and the receipt follows.
+function TransferClaim({ token, brandName, balance, currency, claim, proofUpload, defaultName }) {
+  const router = useRouter();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  const [pending, start] = useTransition();
+  const [file, setFile] = useState(null);
+  const field = "h-11 w-full rounded-lg bg-white px-3 text-[15px] ring-1 ring-[#d0d5dd] focus:outline-none focus:ring-2 focus:ring-[var(--doc-brand)]";
+  const label = "text-[13px] font-medium text-[#475467]";
+
+  if (claim?.status === "pending" && !open) {
+    return (
+      <div className="mt-2 flex gap-3 rounded-lg bg-[#eff8ff] p-3.5 text-sm text-[#175cd3] ring-1 ring-[#b2ddff]">
+        <Clock className="mt-0.5 size-4 shrink-0" />
+        <p><strong className="font-semibold">{brandName} has been told</strong> you sent {claim.amount} on {claim.date}. You'll get your receipt as soon as they confirm it arrived.</p>
+      </div>
+    );
+  }
+
+  const submit = (e) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    start(async () => {
+      const r = await claimPayment(token, form);
+      if (r.error) return toast.error(r.error);
+      setOpen(false);
+      toast.success({ title: `${brandName} has been told`, message: r.proofSaved ? "You'll get your receipt once they confirm the money arrived." : "Your proof couldn't be saved, so keep it in case they ask. You'll get your receipt once they confirm." });
+      router.refresh();
+    });
+  };
+
+  return (
+    <div className="mt-2 flex flex-col gap-2">
+      {claim?.status === "rejected" && !open && (
+        <div className="flex gap-3 rounded-lg bg-[#fffaeb] p-3.5 text-sm text-[#93370d] ring-1 ring-[#fedf89]">
+          <AlertCircle className="mt-0.5 size-4 shrink-0" />
+          <p><strong className="font-semibold">{brandName} couldn't find your transfer of {claim.amount}.</strong>{claim.reply ? ` "${claim.reply}"` : ""} Check the details and tell them again, or contact them.</p>
+        </div>
+      )}
+      {!open ? (
+        <button type="button" onClick={() => setOpen(true)} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-white px-4 text-[15px] font-semibold text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]">
+          <Send className="size-4" />I've sent the money
+        </button>
+      ) : (
+        <form onSubmit={submit} className="flex flex-col gap-3 rounded-lg p-3.5 ring-1 ring-[#eaecf0]">
+          <p className="text-[14px] font-semibold">Tell {brandName} you've paid</p>
+          <div className="flex flex-col gap-1.5">
+            <label className={label} htmlFor="claim-amount">Amount you sent ({currency})</label>
+            <input id="claim-amount" name="amount" inputMode="decimal" required defaultValue={balance ? (balance / 100).toFixed(2).replace(/\.00$/, "") : ""} className={field} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={label} htmlFor="claim-payer">Name on the account you paid from</label>
+            <input id="claim-payer" name="payer" required maxLength={120} defaultValue={defaultName || ""} className={field} />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <label className={label} htmlFor="claim-date">Date you paid</label>
+            <input id="claim-date" name="date" type="date" defaultValue={new Date().toISOString().slice(0, 10)} className={field} />
+          </div>
+          {proofUpload && (
+            <div className="flex flex-col gap-1.5">
+              <span className={label}>Screenshot or PDF of the transfer <span className="font-normal text-[#98a2b3]">(optional, helps them find it)</span></span>
+              <label className="flex h-11 cursor-pointer items-center gap-2 rounded-lg bg-white px-3 text-[14px] text-[#475467] border border-dashed border-[#d0d5dd] hover:bg-[#f8f9fb]">
+                <Paperclip className="size-4 shrink-0" /><span className="truncate">{file ? file : "Choose a file"}</span>
+                <input name="proof" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.heic,image/*,application/pdf" className="sr-only" onChange={(e) => setFile(e.target.files?.[0]?.name || null)} />
+              </label>
+            </div>
+          )}
+          <div className="flex flex-col gap-1.5">
+            <label className={label} htmlFor="claim-note">Note <span className="font-normal text-[#98a2b3]">(optional)</span></label>
+            <input id="claim-note" name="note" maxLength={500} placeholder="e.g. Paid from GTBank" className={field} />
+          </div>
+          <button type="submit" disabled={pending} className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg px-4 text-[15px] font-semibold text-white doc-brand-bg disabled:opacity-50">
+            {pending ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}Send to {brandName}
+          </button>
+          <button type="button" onClick={() => setOpen(false)} className="text-sm font-medium text-[#475467]">Cancel</button>
+        </form>
       )}
     </div>
   );

@@ -24,6 +24,8 @@ const ACTIONS = {
   "quote.declined": "declined the quote",
   "quote.converted": "converted the quote to this invoice",
   "payment.recorded": "payment recorded",
+  "payment.claimed": "said they paid by bank transfer",
+  "payment.claim_rejected": "marked a transfer as not received",
   "payment.needs_review": "sent a payment that needs checking (document was already paid or cancelled)",
   "team.joined": "joined the team",
   "team.invited": "invited a teammate",

@@ -28,6 +28,9 @@ export default async function Dashboard({ searchParams }) {
     supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("business_id", business.id),
   ]);
   const money = (v) => formatMoney(v, business.currency);
+  // bank transfers customers say they've sent, waiting for someone to check
+  const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
+    .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
   const sum = s || {};
   const trend = sum.collected_last_month_minor > 0 ? Math.round(((sum.collected_month_minor - sum.collected_last_month_minor) / sum.collected_last_month_minor) * 100) : null;
   const profit = sum.paid_month_costs_minor == null ? null : sum.paid_month_revenue_minor - sum.paid_month_costs_minor;
@@ -56,6 +59,13 @@ export default async function Dashboard({ searchParams }) {
         action={can(member, "settings.billing") && <Button href="/app/settings/billing" size="sm" variant="primary">Choose a plan</Button>}>
         You can still create drafts and record payments. {can(member, "settings.billing") ? "Choose a plan to keep sending quotes and invoices. Your drafts, customers and records are all kept." : "Ask the account owner to choose a plan."}
       </Callout>}
+
+      {claims?.length > 0 && (
+        <Callout tone="info" icon={Banknote} title={claims.length === 1 ? `${claims[0].payer_name || "A customer"} says they've paid ${formatMoney(claims[0].amount_minor, claims[0].currency)}` : `${claims.length} bank transfers to confirm`}
+          action={<Button href={`/app/documents/${claims[0].document_id}`} size="sm" variant="primary">Check and confirm</Button>}>
+          {claims.length === 1 ? `For ${claims[0].documents?.number || "an invoice"}. Check your bank account, then confirm it to send their receipt.` : claims.map((c) => `${c.documents?.number}: ${formatMoney(c.amount_minor, c.currency)}`).join(" · ")}
+        </Callout>
+      )}
 
       {remaining > 0 && (
         <Card data-tour="setup">

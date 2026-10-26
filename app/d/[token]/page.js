@@ -13,6 +13,7 @@ import { Button, Logo } from "@/components/ui";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { CustomerPanel } from "./panel";
+import { r2Ready } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +50,11 @@ export default async function PublicDocument({ params, searchParams }) {
 
   const quote = doc.kind === "quote";
   const target = invoice || doc;
+  // the customer's latest "I've sent it", so they can see where it stands
+  const { data: lastClaim } = await createSupabaseService().from("payment_claims").select("status, amount_minor, paid_on, reply, created_at")
+    .eq("document_id", target.id || doc.id).order("created_at", { ascending: false }).limit(1).maybeSingle()
+    ;
+  const storageOn = await r2Ready().catch(() => false);
   const balance = Number(target.total_minor) - Number(target.amount_paid_minor);
   const paid = target.status === "paid" || (quote && invoice?.status === "paid");
   const expired = isExpired(doc);
@@ -98,6 +104,10 @@ export default async function PublicDocument({ params, searchParams }) {
             hasBank={Boolean(business.bank_account_number)}
             bank={{ name: business.bank_name, number: business.bank_account_number, account: business.bank_account_name || business.name, reference: target.number || doc.number }}
             brandName={business.name}
+            balance={paid ? 0 : balance}
+            currency={doc.currency}
+            claim={lastClaim && lastClaim.status !== "confirmed" && !paid ? { status: lastClaim.status, amount: money(lastClaim.amount_minor), date: formatDate(lastClaim.paid_on, { day: "numeric", month: "short" }), reply: lastClaim.reply } : null}
+            proofUpload={storageOn}
             invoiceNumber={invoice?.number}
           />
           {receipts.length > 0 && (
