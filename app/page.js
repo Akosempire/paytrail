@@ -109,7 +109,7 @@ export default async function Home({ searchParams }) {
           <HeroFilm className="hero-film-mask order-first aspect-[826/778] h-[36svh] max-h-[420px] w-auto shrink-0 lg:order-none lg:mr-[-40px] lg:ml-0 lg:h-auto lg:max-h-none lg:w-full lg:aspect-[10/9] [@media(max-height:700px)]:h-[29svh]" />
         </section>
 
-        {/* trust facts on receipt tape */}
+        {/* trust facts, printed as a receipt */}
         <div className="pb-4"><ReceiptTape /></div>
         <Platforms wrap={WRAP} kicker={KICKER} />
         <LiveStats wrap={WRAP} kicker={KICKER} />
