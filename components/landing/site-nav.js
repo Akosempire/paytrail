@@ -35,8 +35,9 @@ export function SiteNav({ signedIn, wrap }) {
     <header className="pointer-events-none sticky top-0 z-30">
       <div className={cx("flex items-center justify-between gap-3 py-3 sm:py-4", wrap)}>
         <div className="pointer-events-auto flex items-center gap-2.5">
-          <Link href="/" aria-label="Usetally home" className={cx("flex size-12 items-center justify-center rounded-full sm:size-14", CARD)}>
-            <Logo className="size-7 sm:size-8" />
+          {/* the logo mark on its own, as tall as the pills and the Menu card */}
+          <Link href="/" aria-label="Usetally home" className="flex shrink-0 rounded-[12px] drop-shadow-[0_6px_14px_rgba(23,92,211,.28)] transition-transform hover:-translate-y-px focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5a9dff] focus-visible:ring-offset-2 focus-visible:ring-offset-hero">
+            <Logo className="size-11 sm:size-12" />
           </Link>
           <Link href={signedIn ? "/app" : "/signup"} className={cx(PILL, "hidden bg-[#175cd3] text-white hover:bg-[#1765e6] sm:inline-flex dark:bg-[#2563eb]")}>
             {signedIn ? "Open dashboard" : "Get started free"}
