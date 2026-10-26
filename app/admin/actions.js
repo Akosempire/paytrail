@@ -190,6 +190,13 @@ async function sendTestEmailInner(ctx) {
   if (!status.ready) return { error: "Email isn't set up yet. Paste your Brevo API key above and save." };
   const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Email is working", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email."] }) });
   if (r.sent) return { message: `Sent to ${ctx.user.email}. Check your inbox (and spam).` };
+  const who0 = status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo";
+  if (r.reason === "unreachable") return { error: r.detail, hints: [
+    `${who0} didn't answer, so nothing was sent. Usetally retried once.`,
+    "Open https://api.sendhiiv.com/api/v1/messages in your browser: if it doesn't load, Sendhiiv is down or has moved. Check their dashboard or contact them.",
+    "If SENDHIIV_API_URL is set in Vercel → Settings → Environment Variables, delete it unless Sendhiiv gave you that address.",
+    "Backup: a Brevo API key, or SMTP settings in Vercel, is used automatically when Sendhiiv can't be reached.",
+  ] };
   const login = /535|auth/i.test(r.detail || "");
   const who = status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo";
   return { error: `${who} refused the email: ${r.detail || "no reason given"}`, hints: status.env.hints.length ? status.env.hints : status.source === "vercel" && login ? ["Easiest fix: paste a Brevo API key in the form above instead. It replaces the SMTP settings in Vercel."] : [] };
