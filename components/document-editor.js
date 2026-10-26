@@ -10,7 +10,7 @@ import { computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/l
 import { COST_CATEGORIES } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
 
-const blankItem = () => ({ key: Math.random().toString(36).slice(2), description: "", details: "", quantity: "1", price: "" });
+const blankItem = () => ({ key: Math.random().toString(36).slice(2), description: "", details: "", quantity: "1", price: "", vat: "standard" });
 const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label: c.label || "", category: c.category || "other", amount: c.amount_minor ? minorToInput(c.amount_minor) : "" });
 
 // onSave/onSaved: used by offline mode, which saves to the device instead of the server
@@ -28,7 +28,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const [title, setTitle] = useState(doc?.title || "");
   const [issueDate, setIssueDate] = useState(doc?.issue_date || new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState((quote ? doc?.valid_until : doc?.due_date) || addDays(quote ? business.quote_validity_days : business.invoice_due_days));
-  const [items, setItems] = useState(initialItems?.length ? initialItems.map((i) => ({ key: i.id, description: i.description, details: i.details || "", quantity: String(Number(i.quantity)), price: minorToInput(i.unit_price_minor) })) : [blankItem()]);
+  const [items, setItems] = useState(initialItems?.length ? initialItems.map((i) => ({ key: i.id, description: i.description, details: i.details || "", quantity: String(Number(i.quantity)), price: minorToInput(i.unit_price_minor), vat: i.vat_category || "standard" })) : [blankItem()]);
+  const [inclusive, setInclusive] = useState(Boolean(doc?.prices_include_vat));
   const [costs, setCosts] = useState(initialCosts?.length ? initialCosts.map((c) => blankCost(c)) : []);
   const [discount, setDiscount] = useState(doc?.discount_minor ? minorToInput(doc.discount_minor) : "");
   const [taxRate, setTaxRate] = useState(String(doc?.tax_rate ?? business.tax_rate ?? 0));
@@ -40,10 +41,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const [presetOpen, setPresetOpen] = useState(false);
   const [error, setError] = useState(null);
 
-  const parsedItems = items.map((i) => ({ quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0 }));
-  const totals = computeTotals(parsedItems, toMinor(discount) || 0, Number(taxRate) || 0);
+  const parsedItems = items.map((i) => ({ quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat }));
+  const totals = computeTotals(parsedItems, toMinor(discount) || 0, Number(taxRate) || 0, { inclusive });
+  const mixedVat = items.some((i) => i.vat !== "standard");
   const costTotal = costs.reduce((s, c) => s + (toMinor(c.amount) || 0), 0);
-  const revenue = totals.subtotal - totals.discount; // what you earn before tax
+  const revenue = totals.net; // what you earn before tax
   const { profit, pct } = marginOf(revenue, costTotal);
   const target = Math.min(95, Math.max(0, Number(targetMargin) || 0));
   const suggested = costTotal > 0 ? Math.ceil(costTotal / (1 - target / 100) / 100) * 100 : 0;
@@ -59,10 +61,10 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     ...(doc || {}), kind, number: doc?.number || (quote ? "New quotation" : "New invoice"), title, currency, status: doc?.status || "draft",
     issue_date: issueDate, due_date: quote ? null : endDate, valid_until: quote ? endDate : null,
     customer_name: who.name || "", customer_company: who.company || "", customer_email: who.email || "", customer_phone: who.phone || "", customer_address: who.address || "",
-    subtotal_minor: totals.subtotal, discount_minor: totals.discount, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax_minor: totals.tax, total_minor: totals.total,
+    subtotal_minor: totals.subtotal, discount_minor: totals.discount, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax_minor: totals.tax, total_minor: totals.total, prices_include_vat: inclusive,
     amount_paid_minor: doc?.amount_paid_minor || 0, notes, terms, snapshot: null,
   };
-  const draftItems = items.filter((i) => i.description.trim()).map((i) => ({ description: i.description, details: i.details, quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0 }));
+  const draftItems = items.filter((i) => i.description.trim()).map((i) => ({ description: i.description, details: i.details, quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat }));
   const deferred = useDeferredValue(JSON.stringify([draftDoc, draftItems]));
   const previewModel = useMemo(() => { const [d, its] = JSON.parse(deferred); return buildModel({ doc: d, items: its, business }); }, [deferred, business]);
 
@@ -77,7 +79,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       kind, title, issue_date: issueDate,
       ...(quote ? { valid_until: endDate } : { due_date: endDate }),
       discount_minor: toMinor(discount) || 0, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, notes, terms,
-      items: items.filter((i) => i.description.trim()).map((i) => ({ description: i.description.trim(), details: i.details.trim(), quantity: Number(i.quantity) || 1, unit_price_minor: toMinor(i.price) || 0 })),
+      items: items.filter((i) => i.description.trim()).map((i) => ({ description: i.description.trim(), details: i.details.trim(), quantity: Number(i.quantity) || 1, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat })),
+      prices_include_vat: inclusive,
       email_customer: emailCustomer,
     };
     if (customerMode === "existing") input.customer_id = customerId;
@@ -171,6 +174,13 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                   <div className="flex flex-col gap-2">
                     <Input aria-label={`Item ${idx + 1} description`} value={item.description} onChange={(e) => setItem(item.key, { description: e.target.value })} placeholder="e.g. Brand identity design" />
                     <Textarea aria-label={`Item ${idx + 1} details`} rows={1} value={item.details} onChange={(e) => setItem(item.key, { details: e.target.value })} placeholder="Details (optional)" className="min-h-9 text-[13px]" />
+                    <label className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ink-3">
+                      {taxLabel || "VAT"}
+                      <select aria-label={`Item ${idx + 1} ${taxLabel || "VAT"}`} value={item.vat} onChange={(e) => setItem(item.key, { vat: e.target.value })}
+                        className={`h-7 rounded-md bg-surface px-1.5 text-[12.5px] ring-1 ring-line-strong ${item.vat === "standard" ? "text-ink-2" : "font-medium text-brand-ink"}`}>
+                        <option value="standard">Standard ({Number(taxRate) || 0}%)</option><option value="zero">Zero-rated (0%)</option><option value="exempt">Exempt</option>
+                      </select>
+                    </label>
                   </div>
                   <div className="grid grid-cols-[80px_1fr] gap-2.5 md:contents">
                     <Input aria-label="Quantity" inputMode="decimal" value={item.quantity} onChange={(e) => setItem(item.key, { quantity: e.target.value.replace(/[^\d.]/g, "") })} className="text-right tabular" />
@@ -203,6 +213,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                 </dt>
                 <dd className="tabular text-ink">{money(totals.tax)}</dd>
               </div>
+              <label className="flex items-center gap-2 text-[13px] text-ink-2">
+                <input type="checkbox" checked={inclusive} onChange={(e) => setInclusive(e.target.checked)} className="size-4 accent-[var(--color-brand)]" />
+                Prices already include {taxLabel || "VAT"}
+              </label>
+              {(inclusive || mixedVat) && <p className="text-[12px] text-ink-3">{inclusive ? `${money(totals.tax)} of the total is ${taxLabel || "VAT"}. ` : ""}{mixedVat ? `${taxLabel || "VAT"} only on standard-rated items.` : ""}</p>}
               <div className="flex items-center justify-between border-t border-line pt-3">
                 <dt className="font-semibold text-ink">Total</dt>
                 <dd className="text-title-2 text-ink tabular">{money(totals.total)}</dd>

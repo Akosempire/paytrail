@@ -16,6 +16,8 @@ import { DocumentActions } from "@/components/document-actions";
 import { StatusBadge, activityText } from "@/components/doc-bits";
 import { DocumentFiles } from "@/components/document-files";
 import { PaymentClaims } from "@/components/payment-claims";
+import { EInvoiceCard } from "@/components/einvoice-card";
+import { readiness } from "@/lib/einvoice";
 import { r2Ready } from "@/lib/storage";
 import { readyTemplates } from "@/lib/templates-ready";
 
@@ -41,7 +43,7 @@ export default async function DocumentPage({ params, searchParams }) {
   const draft = ["draft", "pending_approval"].includes(doc.status);
   const showCosts = costs !== null;
   const costTotal = (costs || []).reduce((s, c) => s + Number(c.amount_minor), 0);
-  const revenue = doc.subtotal_minor - doc.discount_minor;
+  const revenue = doc.total_minor - doc.tax_minor; // before tax (also right for VAT-inclusive prices)
   const { profit, pct } = marginOf(revenue, costTotal);
   const source = related.find((r) => r.id === doc.source_quote_id);
   const converted = related.find((r) => r.id === doc.converted_invoice_id);
@@ -90,6 +92,7 @@ export default async function DocumentPage({ params, searchParams }) {
         </div>
 
         <aside className="flex flex-col gap-4">
+          {doc.kind === "invoice" && doc.status !== "void" && <EInvoiceCard docId={doc.id} check={readiness(doc, items, ctx.business)} />}
           {!draft && doc.status !== "void" && (
             <Card>
               <CardHeader title="Customer link" icon={Link2} description={doc.viewed_at ? `Opened ${timeAgo(doc.viewed_at)}` : "Not opened yet"} />

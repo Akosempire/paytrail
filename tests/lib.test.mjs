@@ -20,7 +20,11 @@ test("amounts parse to minor units exactly", () => {
 test("editor totals match the database formula", () => {
   // same numbers as the SQL test: 45,000,000 subtotal, 1,000,000 discount, 7.5% VAT
   const t = money.computeTotals([{ quantity: 1, unit_price_minor: 25000000 }, { quantity: 2, unit_price_minor: 10000000 }], 1000000, 7.5);
-  assert.deepEqual(t, { subtotal: 45000000, discount: 1000000, tax: 3300000, total: 47300000 });
+  assert.deepEqual(t, { subtotal: 45000000, discount: 1000000, tax: 3300000, total: 47300000, net: 44000000 });
+  // per-line VAT and VAT-inclusive prices, as in supabase/tests/line-vat.test.mjs
+  const lines = [{ quantity: 1, unit_price_minor: 100000 }, { quantity: 1, unit_price_minor: 50000, vat_category: "zero" }, { quantity: 1, unit_price_minor: 50000, vat_category: "exempt" }];
+  assert.deepEqual(money.computeTotals(lines, 20000, 7.5), { subtotal: 200000, discount: 20000, tax: 6750, total: 186750, net: 180000 });
+  assert.deepEqual(money.computeTotals([{ quantity: 1, unit_price_minor: 107500 }], 0, 7.5, { inclusive: true }), { subtotal: 107500, discount: 0, tax: 7500, total: 107500, net: 100000 });
   assert.equal(money.computeTotals([{ quantity: 1, unit_price_minor: 100 }], 500, 0).total, 0, "discount can't exceed subtotal");
 });
 

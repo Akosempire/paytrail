@@ -106,7 +106,7 @@ export async function duplicateDocument(id, asKind) {
   const payload = cleanPayload({
     kind: asKind || doc.kind, title: doc.title, customer_id: doc.customer_id || undefined,
     customer: doc.customer_id ? undefined : { name: doc.customer_name, company: doc.customer_company, email: doc.customer_email, phone: doc.customer_phone, address: doc.customer_address },
-    discount_minor: doc.discount_minor, tax_rate: doc.tax_rate, tax_label: doc.tax_label, notes: doc.notes, terms: doc.terms,
+    discount_minor: doc.discount_minor, tax_rate: doc.tax_rate, tax_label: doc.tax_label, prices_include_vat: Boolean(doc.prices_include_vat), notes: doc.notes, terms: doc.terms,
     items, costs: costs || undefined,
   });
   delete payload.issue_date; delete payload.due_date; delete payload.valid_until;

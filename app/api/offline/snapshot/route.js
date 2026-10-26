@@ -20,7 +20,7 @@ export async function GET() {
   const chunks = (arr, n) => Array.from({ length: Math.ceil(arr.length / n) }, (_, i) => arr.slice(i * n, i * n + n));
   const byDocs = async (table, select, order) => (await Promise.all(chunks(ids, 200).map((c) => sb.from(table).select(select).in("document_id", c).order(order)))).flatMap((r) => r.data || []);
   const [items, costs, customers, payments, receipts, presets] = await Promise.all([
-    byDocs("document_items", "id, document_id, description, details, quantity, unit_price_minor, sort_order", "sort_order"),
+    byDocs("document_items", "*", "sort_order"),
     showCosts ? byDocs("document_costs", "id, document_id, label, category, amount_minor, note, sort_order", "sort_order") : Promise.resolve([]),
     sb.from("customers").select("id, name, company, email, phone, address, notes, archived_at, created_at, updated_at").eq("business_id", b.id).order("name").limit(3000),
     sb.from("payments").select("id, document_id, method, reference, amount_minor, currency, paid_at, note, created_at").eq("business_id", b.id).order("paid_at", { ascending: false }).limit(3000),

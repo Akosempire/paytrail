@@ -126,7 +126,7 @@ function PaymentModal({ open, onClose, doc, balance, onSubmit, pending }) {
   const [withheld, setWithheld] = useState(false);
   const [rate, setRate] = useState("5");
   // WHT is worked out on the amount before VAT: the share of this balance that isn't VAT
-  const preVatShare = Number(doc.total_minor) > 0 ? (Number(doc.subtotal_minor) - Number(doc.discount_minor || 0)) / Number(doc.total_minor) : 1;
+  const preVatShare = Number(doc.total_minor) > 0 ? (Number(doc.total_minor) - Number(doc.tax_minor || 0)) / Number(doc.total_minor) : 1;
   const applyRate = (r, on = withheld) => {
     const pct = Number(r);
     if (!on || !Number.isFinite(pct)) return setForm((f) => ({ ...f, wht: on ? f.wht : "", amount: on ? f.amount : minorToInput(balance) }));

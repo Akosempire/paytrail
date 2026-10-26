@@ -17,7 +17,7 @@ export default async function TaxPage({ searchParams }) {
   if (!can(ctx.member, "payments.record")) notFound();
   const { month, invoices, wht, totals, tinReady, whtReady } = await loadTaxMonth(ctx, sp.month);
   const b = ctx.business, cur = b.currency;
-  const t = totals[cur] || { taxable: 0, vat: 0, gross: 0, wht: 0, invoices: 0 };
+  const t = totals[cur] || { taxable: 0, vat: 0, gross: 0, wht: 0, invoices: 0, standard: 0, zero: 0, exempt: 0 };
   const others = Object.entries(totals).filter(([c]) => c !== cur);
   const money = (v, c = cur) => formatMoney(v, c);
   const missingTin = invoices.filter((d) => !d.customer_tax_id).length;
@@ -43,7 +43,7 @@ export default async function TaxPage({ searchParams }) {
 
       <StatGroup cols={4}>
         <StatCard label={`${label} charged`} value={money(t.vat)} hint={`On ${t.invoices} invoice${t.invoices === 1 ? "" : "s"} issued in ${month.label}`} icon={Landmark} tone="brand" />
-        <StatCard label={`Sales before ${label}`} value={money(t.taxable)} hint={`${money(t.gross)} including ${label}`} icon={FileText} />
+        <StatCard label={`Sales before ${label}`} value={money(t.taxable)} hint={t.zero || t.exempt ? `Standard ${money(t.standard)} · zero-rated ${money(t.zero)} · exempt ${money(t.exempt)}` : `${money(t.gross)} including ${label}`} icon={FileText} />
         <StatCard label="Return due" value={formatDate(month.due)} hint={overdue ? "This date has passed" : "21st of the following month"} icon={CalendarClock} tone={overdue ? "warn" : "neutral"} />
         <StatCard label="WHT deducted by customers" value={money(t.wht)} hint="Credits you can claim against your own tax" icon={ReceiptText} tone="violet" />
       </StatGroup>
@@ -64,7 +64,7 @@ export default async function TaxPage({ searchParams }) {
                     <td className="px-5 py-2.5 whitespace-nowrap"><Link href={`/app/documents/${d.id}`} className="font-medium text-ink hover:underline">{d.number}</Link><div className="text-[12px] text-ink-3">{formatDate(d.issue_date)}</div></td>
                     <td className="max-w-[220px] truncate px-3 py-2.5 text-ink-2">{[d.customer_name, d.customer_company].filter(Boolean).join(", ")}</td>
                     <td className="px-3 py-2.5">{d.customer_tax_id ? <span className="font-mono text-[12.5px] text-ink-2">{d.customer_tax_id}</span> : <Badge size="sm" tone="neutral">None</Badge>}</td>
-                    <td className="px-3 py-2.5 text-right tabular-nums">{money(Number(d.subtotal_minor) - Number(d.discount_minor || 0), d.currency)}</td>
+                    <td className="px-3 py-2.5 text-right tabular-nums">{money(Number(d.total_minor) - Number(d.tax_minor || 0), d.currency)}</td>
                     <td className="px-3 py-2.5 text-right tabular-nums">{money(d.tax_minor, d.currency)}</td>
                     <td className="px-5 py-2.5 text-right font-medium tabular-nums">{money(d.total_minor, d.currency)}</td>
                   </tr>
@@ -74,6 +74,8 @@ export default async function TaxPage({ searchParams }) {
           </div>
         ) : <EmptyState compact icon={FileText} title={`No invoices issued in ${month.label}`} description="You may still need to file a nil return." />}
       </Card>
+
+      <EInvoicing invoices={invoices} />
 
       {whtReady && (
         <Card>
@@ -96,5 +98,25 @@ export default async function TaxPage({ searchParams }) {
 
       <p className="text-[12.5px] text-ink-3">Counts invoices by the date they were issued. Check with your accountant how you should file. Usetally is a record-keeping tool, not tax advice.</p>
     </div>
+  );
+}
+
+// Nigeria's e-invoicing: how many of this month's invoices have what it needs
+function EInvoicing({ invoices }) {
+  const ready = invoices.filter((d) => d.einvoice?.ready).length;
+  const issues = {};
+  for (const d of invoices) for (const m of [...(d.einvoice?.missing || []), ...(d.einvoice?.advice || [])]) issues[m] = (issues[m] || 0) + 1;
+  const top = Object.entries(issues).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  return (
+    <Card>
+      <CardHeader title="E-invoicing readiness" description="NRS e-invoicing: businesses with ₦1bn–₦5bn turnover from 1 July 2026, under ₦1bn from 1 July 2027 (check with NRS)."
+        actions={invoices.length ? <Badge tone={ready === invoices.length ? "success" : "warn"} size="sm">{ready} of {invoices.length} ready</Badge> : null} />
+      <div className="flex flex-col gap-3 p-5 text-[13.5px] text-ink-2">
+        {top.length ? (
+          <ul className="space-y-1.5">{top.map(([m, n]) => <li key={m} className="flex justify-between gap-3"><span>{m}</span><span className="shrink-0 text-ink-3">{n} invoice{n === 1 ? "" : "s"}</span></li>)}</ul>
+        ) : invoices.length ? <p>Every invoice this month has what e-invoicing needs.</p> : <p>No invoices this month.</p>}
+        <p className="text-[12.5px] text-ink-3">Each invoice has a <strong>Download e-invoice (XML)</strong> button: the UBL file e-invoicing providers accept. Sending to NRS (with the IRN and QR code) comes when Usetally connects to an approved provider.</p>
+      </div>
+    </Card>
   );
 }
