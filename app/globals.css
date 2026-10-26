@@ -314,23 +314,24 @@
   mask-composite: intersect;
 }
 
-/* Display font for landing headings: Chintzy CPU by Brian Kent (freeware,
-   commercial use allowed; see public/fonts/licenses/chintzy-cpu.txt).
-   It has one weight and no ₦ sign; ₦ falls back to the body font.
+/* Display font for landing headings and numbers: Orbitron Bold (SIL Open Font
+   License, see public/fonts/licenses/orbitron-OFL.txt). Digital, number-like
+   shapes. It has no ₦ sign; ₦ falls back to the body font.
    Unlayered on purpose so it wins over weight/tracking utilities. */
 @font-face {
-  font-family: "Chintzy CPU";
-  src: url("/fonts/chintzy-cpu.woff2") format("woff2");
-  font-weight: 400;
+  font-family: "Orbitron";
+  src: url("/fonts/orbitron-700.woff2") format("woff2");
+  font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 .font-display {
-  font-family: "Chintzy CPU", var(--font-sans);
-  font-weight: 400;
+  font-family: "Orbitron", var(--font-sans);
+  font-weight: 700;
   font-synthesis: none;
-  letter-spacing: 0;
-  word-spacing: -0.12em;
+  letter-spacing: -0.02em;
+  word-spacing: 0;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Landing: receipt tape (trust facts) */
@@ -390,12 +391,12 @@
   --shadow-focus: 0 0 0 4px rgb(23 92 211 / 0.16);
 }
 .auth-skin h1 {
-  font-family: "Chintzy CPU", var(--font-sans);
-  font-weight: 400;
+  font-family: "Orbitron", var(--font-sans);
+  font-weight: 700;
   font-synthesis: none;
-  letter-spacing: 0;
-  word-spacing: -0.12em;
-  font-size: 34px;
+  letter-spacing: -0.02em;
+  word-spacing: 0;
+  font-size: 28px;
   line-height: 1.05;
 }
 .auth-skin :is(input:not([type="checkbox"]):not([type="radio"]), select, textarea) {

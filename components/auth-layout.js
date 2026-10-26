@@ -45,7 +45,7 @@ function WelcomeReceipt() {
 }
 
 export function AuthLayout({ children }) {
-  preload("/fonts/chintzy-cpu.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
+  preload("/fonts/orbitron-700.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
   return (
     <div className="auth-skin relative min-h-dvh bg-hero text-hero-ink">
       <div aria-hidden="true" className="pointer-events-none fixed inset-0 z-0"><DotField /></div>
