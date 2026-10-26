@@ -1,6 +1,6 @@
 "use client";
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
-import { Download, Loader2, Printer, SlidersHorizontal, X } from "lucide-react";
+import { Loader2, SlidersHorizontal, X } from "lucide-react";
 import { Alert, Button, Card, cx } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { DocPreview } from "@/components/doc-preview";
@@ -40,10 +40,6 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
             {open ? "Close" : "Customise"}
           </Button>
         )}
-        <Button size="sm" variant="secondary" icon={Printer} href={printHref}>Print</Button>
-        <a href={pdfHref} className="inline-flex h-8 items-center gap-2 rounded-sm bg-surface px-3 text-[13px] font-medium text-ink shadow-[var(--shadow-xs)] ring-1 ring-inset ring-line-strong hover:bg-subtle focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]">
-          <Download className="size-3.5" />Download PDF
-        </a>
       </div>
 
       <div className={cx("grid grid-cols-[minmax(0,1fr)] gap-4", open && "xl:grid-cols-[minmax(0,1fr)_340px]")}>

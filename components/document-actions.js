@@ -1,13 +1,13 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2 } from "lucide-react";
-import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X } from "lucide-react";
+import { Button, buttonClass, Field, Input, Select, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { minorToInput } from "@/lib/money";
 import { convertToInvoice, deleteDraft, duplicateDocument, recordPayment, resendEmail, returnToDraft, sendDocument, submitForApproval, voidDocument } from "@/app/app/documents/actions";
 
-export function DocumentActions({ doc, perms, emailReady, balance }) {
+export function DocumentActions({ doc, perms, emailReady, balance, link, printHref, pdfHref }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -51,25 +51,55 @@ export function DocumentActions({ doc, perms, emailReady, balance }) {
     if (emailReady && doc.customer_email && doc.status !== "paid") secondary.push({ key: "resend", label: "Email again", icon: Mail, onClick: () => run("resend", () => resendEmail(doc.id)) });
     if (perms.canVoid && Number(doc.amount_paid_minor) === 0 && !["paid", "accepted"].includes(doc.status)) secondary.push({ key: "void", label: "Void", icon: Ban, danger: true, onClick: () => setModal("void") });
   }
+  const live = !draft && doc.status !== "void";
+  if (live && link) primary.push(<Button key="share" variant={primary.length ? "secondary" : "primary"} icon={Share2} onClick={() => share()}>Share</Button>);
+  const tools = [
+    { key: "print", label: "Print", icon: Printer, href: printHref },
+    { key: "open", label: "Open PDF in a new tab", icon: ExternalLink, href: `/app/documents/${doc.id}/pdf`, blank: true },
+  ];
+  if (live && link) tools.push({ key: "copy", label: "Copy customer link", icon: Copy, onClick: () => copy() });
+
+  async function copy() {
+    setMore(false);
+    try { await navigator.clipboard.writeText(link); toast("Link copied."); } catch { toast("Couldn't copy the link.", "error"); }
+  }
+  async function share() {
+    const text = `${quote ? "Quotation" : "Invoice"} ${doc.number}`;
+    if (navigator.share) { try { await navigator.share({ title: text, text, url: link }); } catch { /* closed */ } return; }
+    copy();
+  }
+
   secondary.push({ key: "dup", label: `Duplicate as ${quote ? "quote" : "invoice"}`, icon: Copy, onClick: () => run("dup", () => duplicateDocument(doc.id)) });
   if (quote) secondary.push({ key: "dupi", label: "Copy into a new invoice", icon: Copy, onClick: () => run("dupi", () => duplicateDocument(doc.id, "invoice")) });
 
+  const Item = ({ s: it }) => {
+    const cls = `flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-[14px] font-medium hover:bg-hover sm:gap-2.5 sm:rounded-md sm:px-2.5 sm:py-2 sm:text-[13px] ${it.danger ? "text-danger-ink" : "text-ink"}`;
+    const body = <><it.icon className="size-4 shrink-0" />{it.label}</>;
+    return it.href
+      ? <a href={it.href} target={it.blank ? "_blank" : undefined} rel={it.blank ? "noopener" : undefined} onClick={() => setMore(false)} className={cls}>{body}</a>
+      : <button type="button" onClick={it.onClick} className={cls}>{body}</button>;
+  };
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Button href={`/app/documents/${doc.id}/pdf`} icon={Download} variant="secondary" target="_blank">PDF</Button>
-      {primary}
+    <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
+      {/* on phones the main actions share the full width; PDF and More wrap below when there's no room */}
+      {primary.length > 0 && <div className="flex flex-1 gap-2 sm:flex-none [&>*]:flex-1 sm:[&>*]:flex-none">{primary}</div>}
+      <a href={pdfHref || `/app/documents/${doc.id}/pdf?download`} className={buttonClass()}><Download className="size-4 shrink-0" aria-hidden />PDF</a>
       <div className="relative">
-        <Button variant="secondary" icon={MoreHorizontal} aria-label="More actions" onClick={() => setMore(!more)} className="!px-2.5" />
+        <Button icon={MoreHorizontal} aria-label="More actions" aria-expanded={more} onClick={() => setMore(!more)} className="!px-2.5" />
         {more && (
           <>
-            <div className="fixed inset-0 z-20" onClick={() => setMore(false)} />
-            <div className="absolute right-0 z-30 mt-1 w-56 animate-rise rounded-xl bg-surface p-1.5 shadow-[var(--shadow-pop)] ring-1 ring-line">
-              {secondary.map((s) => (
-                <button key={s.key} type="button" onClick={s.onClick}
-                  className={`flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-left text-[13px] font-medium hover:bg-hover ${s.danger ? "text-danger-ink" : "text-ink"}`}>
-                  <s.icon className="size-4" />{s.label}
-                </button>
-              ))}
+            <div className="fixed inset-0 z-40 bg-black/40 sm:bg-transparent" onClick={() => setMore(false)} />
+            {/* phones: a sheet from the bottom; larger screens: a menu under the button */}
+            <div role="menu" className="fixed inset-x-0 bottom-0 z-50 animate-rise rounded-t-2xl bg-surface p-2 pb-[max(12px,env(safe-area-inset-bottom))] shadow-[var(--shadow-pop)] ring-1 ring-line
+              sm:absolute sm:inset-x-auto sm:bottom-auto sm:left-0 sm:mt-1 sm:w-60 sm:rounded-xl sm:p-1.5 sm:pb-1.5 xl:left-auto xl:right-0">
+              <div className="flex items-center justify-between px-3 pb-1 pt-1 sm:hidden">
+                <p className="text-[13px] font-semibold text-ink-2">{doc.number}</p>
+                <button type="button" onClick={() => setMore(false)} aria-label="Close" className="inline-flex size-8 items-center justify-center rounded-full text-ink-3 hover:bg-hover"><X className="size-4" /></button>
+              </div>
+              {tools.map((t) => <Item key={t.key} s={t} />)}
+              <div className="my-1 h-px bg-line" />
+              {secondary.map((t) => <Item key={t.key} s={t} />)}
             </div>
           </>
         )}
