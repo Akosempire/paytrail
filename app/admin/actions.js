@@ -135,12 +135,13 @@ function serverProblem(e) {
 }
 
 async function saveEmailSettingsInner(ctx, form) {
-  const { checkBrevo, checkBrevoSmtp, checkSendhiiv, forgetEmailConfig } = await import("@/lib/email");
+  const { checkBrevo, checkBrevoSmtp, checkSendhiiv, checkSendbyte, forgetEmailConfig } = await import("@/lib/email");
   const smtpLogin = String(form.smtpLogin || "").trim().toLowerCase();
   // works with either kind of Brevo key: an API key (xkeysib-) or an SMTP key (xsmtpsib-) plus its login
   // the key's prefix says which service it belongs to
-  const verify = (secret, address) => !/^(sh_|xkeysib-|[^\n]*\n)/.test(secret)
-    ? { ok: false, error: "That doesn't look like a Sendhiiv key (starts sh_live_) or a Brevo key (starts xkeysib- or xsmtpsib-). Copy the whole key from your dashboard." }
+  const verify = (secret, address) => !/^(sh_|sk_|xkeysib-|[^\n]*\n)/.test(secret)
+    ? { ok: false, error: "That doesn't look like a Sendbyte key (starts sk_live_), a Sendhiiv key (starts sh_live_) or a Brevo key (starts xkeysib- or xsmtpsib-). Copy the whole key from your dashboard." }
+    : /^sk_(live|test)_/.test(secret) ? checkSendbyte(secret, address)
     : /^sh_(live|test)_/.test(secret) ? checkSendhiiv(secret)
     : secret.includes("\n") ? checkBrevoSmtp(...secret.split("\n"))
     : checkBrevo(secret, address);
@@ -153,7 +154,7 @@ async function saveEmailSettingsInner(ctx, form) {
   // Sendhiiv can send from its shared address, so the sender may be left empty there
   const sendhiiv = /^sh_(live|test)_/.test(key) || (!key && current?.email_api_key_enc && /^sh_/.test(decryptSecret(current.email_api_key_enc)));
   if (!(sendhiiv && !fromAddress) && !/^[^\s@<>]+@[^\s@<>]+\.[a-z]{2,}$/i.test(fromAddress)) return { error: "Enter the address emails should come from, like hello@usetally.cc." };
-  if (!key && !current?.email_api_key_enc) return { error: "Paste your Sendhiiv or Brevo API key." };
+  if (!key && !current?.email_api_key_enc) return { error: "Paste your Sendbyte, Sendhiiv or Brevo API key." };
   // the saved key still works: changing it needs a code. If it no longer
   // works, a code couldn't be delivered anyway, so let the admin replace it.
   const savedWorks = current?.email_api_key_enc ? (await verify(decryptSecret(current.email_api_key_enc), current.email_from_address || fromAddress)).ok : false;
@@ -169,11 +170,11 @@ async function saveEmailSettingsInner(ctx, form) {
   const { error } = await service.from("platform_settings").update(update).eq("id", true);
   if (error) return { error: error.message };
   forgetEmailConfig();
-  if (key && current?.email_api_key_enc) await notifyAdmins({ subject: "Usetally email key changed", lines: [`${ctx.user.email} replaced the Brevo API key at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace it straight away."], link: "/admin/integrations" });
+  if (key && current?.email_api_key_enc) await notifyAdmins({ subject: "Usetally email key changed", lines: [`${ctx.user.email} replaced the email API key at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace it straight away."], link: "/admin/integrations" });
   revalidatePath("/admin", "layout");
   return check.senderNote
     ? { warning: true, messageTitle: "Key saved, one step left", message: check.senderNote }
-    : { message: /^sh_/.test(secret) ? "Connected to Sendhiiv. Send a test email to be sure." : `Connected to Brevo${check.account ? ` (${check.account})` : ""}. Send a test email to be sure.` };
+    : { message: /^sk_/.test(secret) ? "Connected to Sendbyte. Send a test email to be sure." : /^sh_/.test(secret) ? "Connected to Sendhiiv. Send a test email to be sure." : `Connected to Brevo${check.account ? ` (${check.account})` : ""}. Send a test email to be sure.` };
 }
 
 // sends a test email to the signed-in admin and reports the mail server's answer
@@ -190,15 +191,15 @@ async function sendTestEmailInner(ctx) {
   if (!status.ready) return { error: "Email isn't set up yet. Paste your Brevo API key above and save." };
   const r = await sendEmail({ to: ctx.user.email, ...adminAlertEmail({ subject: "Test email", heading: "Email is working", lines: ["If you can read this, Usetally can send sign-up codes, password resets and every other email."] }) });
   if (r.sent) return { message: `Sent to ${ctx.user.email}. Check your inbox (and spam).` };
-  const who0 = status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo";
+  const who0 = { sendhiiv: "Sendhiiv", sendbyte: "Sendbyte" }[status.provider] || "Brevo";
   if (r.reason === "unreachable") return { error: r.detail, hints: [
     `${who0} didn't answer, so nothing was sent. Usetally retried once.`,
-    "Open https://api.sendhiiv.com/api/v1/messages in your browser: if it doesn't load, Sendhiiv is down or has moved. Check their dashboard or contact them.",
-    "If SENDHIIV_API_URL is set in Vercel → Settings → Environment Variables, delete it unless Sendhiiv gave you that address.",
-    "Backup: a Brevo API key, or SMTP settings in Vercel, is used automatically when Sendhiiv can't be reached.",
+    `${who0} may be down. Check their status or contact them, or paste another provider's key above (Sendbyte, Sendhiiv or Brevo).`,
+    "If SENDBYTE_API_URL or SENDHIIV_API_URL is set in Vercel → Settings → Environment Variables, delete it unless the provider gave you that address.",
+    "Backup: SENDBYTE_API_KEY, SENDHIIV_API_KEY or SMTP settings in Vercel are used automatically when the main provider can't be reached.",
   ] };
   const login = /535|auth/i.test(r.detail || "");
-  const who = status.provider === "sendhiiv" ? "Sendhiiv" : "Brevo";
+  const who = { sendhiiv: "Sendhiiv", sendbyte: "Sendbyte" }[status.provider] || "Brevo";
   return { error: `${who} refused the email: ${r.detail || "no reason given"}`, hints: status.env.hints.length ? status.env.hints : status.source === "vercel" && login ? ["Easiest fix: paste a Brevo API key in the form above instead. It replaces the SMTP settings in Vercel."] : [] };
 }
 
