@@ -51,6 +51,15 @@ export function DocView({ model: m, screen = true }) {
           </div>
         </section>
 
+        {m.delivery && (
+          <section className="pt-delivery">
+            <p className="pt-label">Deliver to</p>
+            {m.delivery.address && <p className="pt-strong">{m.delivery.address}</p>}
+            {m.delivery.postcode && <p><span className="pt-postcode">{m.delivery.postcode}</span>{m.delivery.area ? ` · ${m.delivery.area}` : ""}</p>}
+            {m.delivery.contact && <p>Receiver: {m.delivery.contact}</p>}
+          </section>
+        )}
+
         {m.docTitle && m.kind !== "receipt" && <h2 className="pt-doctitle">{m.docTitle}</h2>}
 
         {m.receipt && (

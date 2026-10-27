@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { Archive, Loader2, Pencil, Plus } from "lucide-react";
 import { Button, Field, Input, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
+import { PostcodeField } from "@/components/postcode-field";
 import { archiveCustomer, saveCustomer } from "@/app/app/customers/actions";
 
 export function CustomerButton({ customer, variant = "primary", size = "md", autoOpen = false }) {
@@ -43,6 +44,7 @@ export function CustomerButton({ customer, variant = "primary", size = "md", aut
             <Input id="c-tin" value={form.tax_id || ""} onChange={set("tax_id")} placeholder="e.g. 12345678-0001" autoComplete="off" />
           </Field>
           <Field label="Address" htmlFor="c-ad" optional><Input id="c-ad" value={form.address} onChange={set("address")} /></Field>
+          <PostcodeField id="c-pc" value={form.postcode || ""} area={customer?.postcode_area || ""} verified={Boolean(customer?.postcode_verified_at)} onChange={(code) => setForm((f) => ({ ...f, postcode: code }))} />
           <Field label="Private notes" htmlFor="c-no" optional hint="Only your team sees these." className="sm:col-span-2"><Textarea id="c-no" rows={2} value={form.notes} onChange={set("notes")} /></Field>
         </div>
       </Modal>

@@ -1,15 +1,16 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardPaste, EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
+import { ClipboardPaste, Truck, EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
-import { useToast } from "@/components/ui-client";
+import { Switch, useToast } from "@/components/ui-client";
 import { computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
 import { COST_CATEGORIES } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
 import { PasteList } from "@/components/paste-list";
+import { PostcodeField } from "@/components/postcode-field";
 
 const blankItem = () => ({ key: Math.random().toString(36).slice(2), description: "", details: "", quantity: "1", price: "", vat: "standard" });
 const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label: c.label || "", category: c.category || "other", amount: c.amount_minor ? minorToInput(c.amount_minor) : "" });
@@ -25,7 +26,10 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
 
   const [customerMode, setCustomerMode] = useState(doc?.customer_id || customers.length ? "existing" : "new");
   const [customerId, setCustomerId] = useState(doc?.customer_id || "");
-  const [customer, setCustomer] = useState({ name: "", company: "", email: "", phone: "", address: "" });
+  const [customer, setCustomer] = useState({ name: "", company: "", email: "", phone: "", address: "", postcode: "", postcode_area: "", postcode_verified: false });
+  // where the goods go (e.g. a WhatsApp order): address, postcode for the rider, who receives it
+  const [delivery, setDelivery] = useState({ address: doc?.delivery_address || "", postcode: doc?.delivery_postcode || "", postcode_area: doc?.delivery_postcode_area || "", contact: doc?.delivery_contact || "" });
+  const [deliveryOn, setDeliveryOn] = useState(Boolean(doc?.delivery_address || doc?.delivery_postcode));
   const [title, setTitle] = useState(doc?.title || "");
   const [issueDate, setIssueDate] = useState(doc?.issue_date || new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState((quote ? doc?.valid_until : doc?.due_date) || addDays(quote ? business.quote_validity_days : business.invoice_due_days));
@@ -60,7 +64,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const draftDoc = {
     ...(doc || {}), kind, number: doc?.number || (quote ? "New quotation" : "New invoice"), title, currency, status: doc?.status || "draft",
     issue_date: issueDate, due_date: quote ? null : endDate, valid_until: quote ? endDate : null,
-    customer_name: who.name || "", customer_company: who.company || "", customer_email: who.email || "", customer_phone: who.phone || "", customer_address: who.address || "",
+    customer_name: who.name || "", customer_company: who.company || "", customer_email: who.email || "", customer_phone: who.phone || "", customer_address: who.address || "", customer_postcode: who.postcode || "",
+    delivery_address: deliveryOn ? delivery.address : "", delivery_postcode: deliveryOn ? delivery.postcode : "", delivery_contact: deliveryOn ? delivery.contact : "",
     subtotal_minor: totals.subtotal, discount_minor: totals.discount, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax_minor: totals.tax, total_minor: totals.total, prices_include_vat: inclusive,
     amount_paid_minor: doc?.amount_paid_minor || 0, notes, terms, snapshot: null,
   };
@@ -97,6 +102,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       prices_include_vat: inclusive,
       email_customer: emailCustomer,
     };
+    input.delivery = deliveryOn ? { address: delivery.address, postcode: delivery.postcode, contact: delivery.contact } : { address: "", postcode: "", contact: "" };
     if (customerMode === "existing") input.customer_id = customerId;
     else input.customer = customer;
     if (costsVisible) input.costs = costs.filter((c) => c.label.trim()).map((c) => ({ label: c.label.trim(), category: c.category, amount_minor: toMinor(c.amount) || 0 }));
@@ -158,10 +164,28 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                 <Field label="Company" htmlFor="cc" optional><Input id="cc" value={customer.company} onChange={(e) => setCustomer({ ...customer, company: e.target.value })} placeholder="Obi Foods Ltd" /></Field>
                 <Field label="Email" htmlFor="ce" hint="Needed to email the document."><Input id="ce" type="email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} /></Field>
                 <Field label="Phone / WhatsApp" htmlFor="cp" optional><Input id="cp" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} /></Field>
-                <Field label="Address" htmlFor="ca" optional className="sm:col-span-2"><Input id="ca" value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} /></Field>
+                <Field label="Address" htmlFor="ca" optional><Input id="ca" value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} /></Field>
+                <PostcodeField id="cpc" value={customer.postcode} onChange={(code, v) => setCustomer((c) => ({ ...c, postcode: code, postcode_area: v.area, postcode_verified: v.verified }))} />
               </div>
             )}
           </div>
+        </Card>
+
+        <Card>
+          <div className="flex items-center justify-between gap-3 px-5 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-subtle text-ink-2 ring-1 ring-line"><Truck className="size-4" /></span>
+              <div className="min-w-0"><p className="text-[15px] font-semibold text-ink">Delivery</p><p className="text-[13px] text-ink-3">{deliveryOn ? "Shown on the document for the dispatch rider." : "Add a delivery address with a checked postcode."}</p></div>
+            </div>
+            <Switch checked={deliveryOn} onChange={setDeliveryOn} label={<span className="sr-only">Add delivery address</span>} />
+          </div>
+          {deliveryOn && (
+            <div className="grid gap-4 border-t border-line p-5 sm:grid-cols-2">
+              <Field label="Deliver to" htmlFor="da" className="sm:col-span-2"><Textarea id="da" rows={2} value={delivery.address} onChange={(e) => setDelivery({ ...delivery, address: e.target.value })} placeholder="Plot 4, Admiralty Way, Lekki" /></Field>
+              <PostcodeField id="dpc" value={delivery.postcode} area={delivery.postcode_area} verified={Boolean(doc?.delivery_postcode && doc?.delivery_postcode_area)} onChange={(code, v) => setDelivery((d) => ({ ...d, postcode: code, postcode_area: v.area }))} />
+              <Field label="Receiver" htmlFor="dc" optional hint="Name and phone for the rider."><Input id="dc" value={delivery.contact} onChange={(e) => setDelivery({ ...delivery, contact: e.target.value })} placeholder="Tunde · 0803 000 0000" /></Field>
+            </div>
+          )}
         </Card>
 
         <Card>

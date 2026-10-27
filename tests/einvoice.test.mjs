@@ -76,3 +76,18 @@ test("paying vs not: brand in the app and 'Powered by Usetally' on documents", a
   assert.equal(showsPoweredBy({ subscription_status: "active", plans: { price_minor: 1000000 }, current_period_end: "2026-10-01T00:00:00Z" }, now), true);
   assert.equal(showsPoweredBy({ name: "no status known" }, now), false);
 });
+
+test("postcodes go into the UBL address, and the delivery address into cac:Delivery", async () => {
+  const { ubl } = await import("../lib/einvoice.js");
+  const xml = ubl({
+    doc: { number: "INV-1", issue_date: "2026-10-27", currency: "NGN", customer_name: "Chioma", customer_address: "1 Allen Ave", customer_postcode: "LA-01-B22-KT-05", total_minor: 10000, tax_minor: 0, tax_rate: 0, discount_minor: 0,
+      delivery_address: "Plot 4, Admiralty Way", delivery_postcode: "LA-02-C11-LK-09", delivery_postcode_area: "Lekki, Lagos", delivery_contact: "Tunde" },
+    items: [{ description: "Rice", quantity: 1, unit_price_minor: 10000 }],
+    business: { name: "Ade Foods", address: "2 Broad St", city: "Lagos", country: "Nigeria", postcode: "LA-03-A01-BC-02" },
+  });
+  assert.match(xml, /<cbc:CityName>Lagos<\/cbc:CityName><cbc:PostalZone>LA-03-A01-BC-02<\/cbc:PostalZone>/);
+  assert.match(xml, /<cbc:StreetName>1 Allen Ave<\/cbc:StreetName><cbc:PostalZone>LA-01-B22-KT-05<\/cbc:PostalZone>/);
+  assert.match(xml, /<cac:Delivery><cac:DeliveryLocation><cac:Address><cbc:StreetName>Plot 4, Admiralty Way<\/cbc:StreetName><cbc:CityName>Lekki, Lagos<\/cbc:CityName><cbc:PostalZone>LA-02-C11-LK-09<\/cbc:PostalZone>/);
+  // Delivery sits after the customer party (UBL order)
+  assert.ok(xml.indexOf("</cac:AccountingCustomerParty>") < xml.indexOf("<cac:Delivery>"));
+});

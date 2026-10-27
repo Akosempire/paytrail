@@ -23,6 +23,18 @@ export async function saveDocument(docId, input, intent = "draft") {
   if (!payload.customer_id && !payload.customer?.name) return { error: "Choose a customer or add a new one." };
   if (!payload.items.length) return { error: "Add at least one item." };
   if (payload.items.some((i) => !i.description)) return { error: "Every item needs a description." };
+  // postcodes are checked with NIPOST here (the key stays on the server)
+  const { postcodeFields } = await import("@/lib/postcode-server");
+  if (payload.customer?.postcode) {
+    const pc = await postcodeFields(payload.customer.postcode);
+    if (pc.error) return { error: `Customer postcode: ${pc.error}` };
+    Object.assign(payload.customer, { postcode: pc.fields.postcode, postcode_area: pc.fields.postcode_area, postcode_verified: Boolean(pc.verified) });
+  }
+  if (payload.delivery?.postcode) {
+    const pc = await postcodeFields(payload.delivery.postcode);
+    if (pc.error) return { error: `Delivery postcode: ${pc.error}` };
+    Object.assign(payload.delivery, { postcode: pc.fields.postcode, postcode_area: pc.fields.postcode_area });
+  }
   const { data: id, error } = await ctx.supabase.rpc("save_document", { target: ctx.business.id, doc_id: docId || null, payload });
   if (error) return { error: friendlyError(error) };
   if (intent === "submit") {

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/context";
 import { businessFieldsFrom, uploadLogo, uploadSignature } from "@/lib/business";
 import { requireStepUp } from "@/lib/step-up";
+import { postcodeFields } from "@/lib/postcode-server";
 
 export async function updateBusiness(_prev, form) {
   const ctx = await requirePermission("settings.business");
@@ -12,6 +13,12 @@ export async function updateBusiness(_prev, form) {
     "signatory_name", "signatory_title",
     ...(ctx.business.kind === "company" ? ["require_approval"] : [])]);
   if (fields.name === "") return { error: "Business name can't be empty." };
+  // Nigeria's postcode, checked with NIPOST (needs the postcode SQL: the column shows on the business)
+  if (form.has("postcode") && "postcode" in ctx.business) {
+    const pc = await postcodeFields(form.get("postcode"));
+    if (pc.error) return { error: pc.error };
+    if (pc.fields.postcode !== ctx.business.postcode || !ctx.business.postcode_verified_at) Object.assign(fields, pc.fields);
+  }
   const bankChanged = ["bank_name", "bank_account_name", "bank_account_number"].some((k) => k in fields && String(fields[k] ?? "") !== String(ctx.business[k] ?? ""));
   if (bankChanged) {
     const gate = await requireStepUp(ctx, "bank_details", ctx.business.id);
