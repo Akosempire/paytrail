@@ -64,3 +64,15 @@ test("free tier: Free plan, or a trial or paid plan that has run out", async () 
   assert.equal(onFreeTier({ subscription_status: "trialing", trial_ends_at: "2026-10-01T00:00:00Z" }, now), true);
   assert.equal(onFreeTier({ subscription_status: "suspended" }, now), false);
 });
+
+test("paying vs not: brand in the app and 'Powered by Usetally' on documents", async () => {
+  const { isPaying, showsPoweredBy } = await import("../lib/plans.js");
+  const now = Date.parse("2026-10-27T12:00:00Z");
+  const team = { subscription_status: "active", plans: { price_minor: 1000000 }, current_period_end: "2026-11-20T00:00:00Z" };
+  assert.equal(isPaying(team, now), true);
+  assert.equal(showsPoweredBy(team, now), false);
+  assert.equal(showsPoweredBy({ subscription_status: "trialing", trial_ends_at: "2026-11-01T00:00:00Z" }, now), true);
+  assert.equal(showsPoweredBy({ subscription_status: "active", plans: { price_minor: 0 } }, now), true);
+  assert.equal(showsPoweredBy({ subscription_status: "active", plans: { price_minor: 1000000 }, current_period_end: "2026-10-01T00:00:00Z" }, now), true);
+  assert.equal(showsPoweredBy({ name: "no status known" }, now), false);
+});

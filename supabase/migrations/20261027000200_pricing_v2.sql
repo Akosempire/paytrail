@@ -18,11 +18,11 @@ alter table public.plans add column if not exists spots integer check (spots is 
 
 -- 2. Free plan, one per currency
 update public.plans set tagline = 'To get started', document_limit = 5, seat_limit = 1, allow_company = true,
-  features = array['Quotes, invoices & receipts', 'Online payments', '“Made with Usetally” on documents'], active = true,
+  features = array['Quotes, invoices & receipts', 'Online payments', '“Powered by Usetally” on documents'], active = true,
   sort_order = case currency when 'NGN' then 10 else 50 end, updated_at = now()
   where price_minor = 0 and name = 'Free';
 insert into public.plans (name, tagline, price_minor, currency, billing_interval, document_limit, seat_limit, allow_company, features, active, sort_order)
-select 'Free', 'To get started', 0, c.currency, 'month', 5, 1, true, array['Quotes, invoices & receipts', 'Online payments', '“Made with Usetally” on documents'], true, c.sort
+select 'Free', 'To get started', 0, c.currency, 'month', 5, 1, true, array['Quotes, invoices & receipts', 'Online payments', '“Powered by Usetally” on documents'], true, c.sort
 from (values ('NGN', 10), ('USD', 50)) as c(currency, sort)
 where not exists (select 1 from public.plans p where p.price_minor = 0 and p.currency = c.currency and p.name = 'Free');
 

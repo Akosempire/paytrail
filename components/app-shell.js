@@ -157,11 +157,17 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu" data-tour="menu">
             {open ? <X className="size-5" /> : <Menu className="size-5" />}
           </button>
-          <Link href="/app" className="lg:hidden"><Logo className="size-8" /></Link>
+          {/* paying businesses see their own brand; trial and Free see Usetally's */}
+          <Link href="/app" className="flex min-w-0 items-center gap-2.5 lg:hidden" aria-label={business.paying ? business.name : "Usetally home"}>
+            {business.paying ? <><Avatar name={business.name} src={logo} color={logo ? null : business.brand_color} /><span className="truncate text-[15px] font-semibold text-ink">{business.name}</span></> : <Logo className="size-8" />}
+          </Link>
           <div className="flex-1" />
           <ThemeToggle className="max-lg:hidden" />
-          <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
-          <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote"><span className="max-sm:hidden">New </span>Quote</Button>
+          {/* quick create lives on Home only: every list page has its own button */}
+          {pathname === "/app" && <>
+            <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
+            <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote"><span className="max-sm:hidden">New </span>Quote</Button>
+          </>}
         </header>
         <main className={cx("mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
       </div>

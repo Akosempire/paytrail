@@ -4,6 +4,7 @@ import { reconcileSoon } from "@/lib/payments";
 import { requireBusiness } from "@/lib/context";
 import { can, ROLES } from "@/lib/permissions";
 import { logoUrl } from "@/lib/site";
+import { isPaying } from "@/lib/plans";
 import { OfflineAgent } from "@/components/offline-agent";
 
 export default async function Layout({ children }) {
@@ -13,7 +14,7 @@ export default async function Layout({ children }) {
   after(() => reconcileSoon(`b:${business.id}`, { businessId: business.id }));
   return (
     <AppShell
-      business={{ id: business.id, name: business.name, kind: business.kind, brand_color: business.brand_color, subscription_status: business.subscription_status }}
+      business={{ id: business.id, name: business.name, kind: business.kind, brand_color: business.brand_color, subscription_status: business.subscription_status, paying: isPaying(business) }}
       member={{ ...member, roleLabel: ROLES[member.role].label }}
       memberships={ctx.memberships.map((m) => ({ business_id: m.business_id, name: m.businesses?.name || "Business" }))}
       isPlatformAdmin={ctx.isPlatformAdmin}
