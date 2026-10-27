@@ -160,12 +160,17 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               </div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Contact name" htmlFor="cn"><Input id="cn" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} placeholder="Chioma Obi" /></Field>
-                <Field label="Company" htmlFor="cc" optional><Input id="cc" value={customer.company} onChange={(e) => setCustomer({ ...customer, company: e.target.value })} placeholder="Obi Foods Ltd" /></Field>
-                <Field label="Email" htmlFor="ce" hint="Needed to email the document."><Input id="ce" type="email" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} /></Field>
-                <Field label="Phone / WhatsApp" htmlFor="cp" optional><Input id="cp" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} /></Field>
-                <Field label="Address" htmlFor="ca" optional><Input id="ca" value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} /></Field>
-                <PostcodeField id="cpc" value={customer.postcode} onChange={(code, v) => setCustomer((c) => ({ ...c, postcode: code, postcode_area: v.area, postcode_verified: v.verified }))} />
+                <Field label="Name" htmlFor="cn"><Input id="cn" value={customer.name} onChange={(e) => setCustomer({ ...customer, name: e.target.value })} autoComplete="name" autoCapitalize="words" placeholder="Chioma Obi" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
+                <Field label="WhatsApp / phone" htmlFor="cp" optional><Input id="cp" type="tel" inputMode="tel" value={customer.phone} onChange={(e) => setCustomer({ ...customer, phone: e.target.value })} autoComplete="tel" placeholder="0803 123 4567" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
+                <Field label="Email" htmlFor="ce" optional hint="To email them the document." className="sm:col-span-2"><Input id="ce" type="email" inputMode="email" autoCapitalize="none" value={customer.email} onChange={(e) => setCustomer({ ...customer, email: e.target.value })} autoComplete="email" placeholder="chioma@obifoods.ng" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
+                <details className="group sm:col-span-2">
+                  <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between rounded-xl px-3.5 text-[14px] font-medium text-ink-2 ring-1 ring-line hover:bg-hover [&::-webkit-details-marker]:hidden">More details<span className="text-[12px] font-normal text-ink-3 group-open:hidden">Company, address, postcode</span></summary>
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <Field label="Company" htmlFor="cc" optional><Input id="cc" value={customer.company} onChange={(e) => setCustomer({ ...customer, company: e.target.value })} placeholder="Obi Foods Ltd" /></Field>
+                    <Field label="Address" htmlFor="ca" optional><Input id="ca" value={customer.address} onChange={(e) => setCustomer({ ...customer, address: e.target.value })} /></Field>
+                    <PostcodeField id="cpc" value={customer.postcode} onChange={(code, v) => setCustomer((c) => ({ ...c, postcode: code, postcode_area: v.area, postcode_verified: v.verified }))} />
+                  </div>
+                </details>
               </div>
             )}
           </div>

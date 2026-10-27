@@ -147,6 +147,9 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   );
 
   // phones: Menu is a full page (big rows in thumb reach), not a drawer
+  const inBar = new Set(TABS.map((t) => t.href).filter(Boolean));
+  const shortcuts = nav.filter((g) => g.title !== "Settings").flatMap((g) => g.items).filter((x) => !inBar.has(x.href));
+  const settingsItems = nav.find((g) => g.title === "Settings")?.items || [];
   const row = "flex min-h-[52px] items-center gap-3.5 px-4 py-2.5 text-[15px] font-medium text-ink active:bg-hover hover:bg-hover";
   const menuPage = (
     <div className="mx-auto flex max-w-xl flex-col gap-5 pb-4">
@@ -173,14 +176,26 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
         <Link href="/onboarding?new=1" className={cx(row, "border-t border-line text-ink-2")}><span className="inline-flex size-8 items-center justify-center rounded-lg bg-subtle"><Plus className="size-4" /></span>Add another business</Link>
       </div>
 
-      {nav.map((group, i) => (
-        <section key={i}>
-          {group.title && <p className="px-1 pb-2 text-overline text-ink-3">{group.title}</p>}
+      {/* what isn't in the bottom bar: shortcuts, then settings (no repeats of Home, Quotes, Invoices) */}
+      {shortcuts.length > 0 && (
+        <div className="grid grid-cols-2 gap-2.5">
+          {shortcuts.map((item) => (
+            <Link key={item.href} href={item.href} data-tour={`nav:${item.href}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey && e.button === 0) setGoingTo(item.href); }}
+              className="flex min-h-[84px] flex-col justify-between rounded-2xl bg-surface p-3.5 ring-1 ring-line active:bg-hover hover:bg-hover">
+              <span className="inline-flex size-9 items-center justify-center rounded-xl bg-brand-soft text-brand-ink"><item.icon className="size-[18px]" /></span>
+              <span className="text-[14.5px] font-semibold text-ink">{item.label}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+      {settingsItems.length > 0 && (
+        <section>
+          <p className="px-1 pb-2 text-overline text-ink-3">Settings</p>
           <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-surface ring-1 ring-line">
-            {group.items.map((item) => (
+            {settingsItems.map((item) => (
               <li key={item.href}>
                 <Link href={item.href} data-tour={`nav:${item.href}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey && e.button === 0) setGoingTo(item.href); }} className={row}>
-                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-ink"><item.icon className="size-[18px]" /></span>
+                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-subtle text-ink-2"><item.icon className="size-[18px]" /></span>
                   <span className="min-w-0 flex-1 truncate">{item.label}</span>
                   <ChevronRight className="size-4 shrink-0 text-ink-3" />
                 </Link>
@@ -188,7 +203,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
             ))}
           </ul>
         </section>
-      ))}
+      )}
       {isPlatformAdmin && (
         <section>
           <p className="px-1 pb-2 text-overline text-ink-3">{BRAND.name}</p>
