@@ -207,19 +207,21 @@ function TrialMeter({ allowance, canBilling, status }) {
   if (status === "active" && allowance.limit == null) return null;
   const used = allowance.used ?? 0;
   const limit = allowance.limit;
-  const trial = status === "trialing";
+  const free = Boolean(allowance.free);
+  const trial = status === "trialing" && !free;
   let text;
   if (trial && allowance.mode === "documents") text = `${Math.max(limit - used, 0)} of ${limit} free documents left`;
   else if (trial && allowance.mode === "days") text = allowance.ends_at ? `Trial ends ${new Date(allowance.ends_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "Trial";
+  else if (free) text = `${used} of ${limit} free documents this month`;
   else if (limit != null) text = `${used} of ${limit} documents this month`;
   else text = "Subscription needed";
   const pct = limit ? Math.min(100, (used / limit) * 100) : allowance.allowed ? 30 : 100;
   return (
     <div className="mx-3 mb-3 rounded-xl bg-tray p-3.5">
-      <div className="flex items-center gap-2 text-[13px] font-medium text-ink"><Sparkles className="size-4 text-brand" />{trial ? "Free trial" : "Your plan"}</div>
+      <div className="flex items-center gap-2 text-[13px] font-medium text-ink"><Sparkles className="size-4 text-brand" />{trial ? "Free trial" : free ? "Free plan" : "Your plan"}</div>
       <p className="mt-1 text-xs text-ink-3">{text}</p>
       <div className="mt-2.5 h-1.5 overflow-hidden rounded-full bg-line"><div className={cx("h-full rounded-full", allowance.allowed ? "bg-brand" : "bg-danger")} style={{ width: `${pct}%` }} /></div>
-      {canBilling && <Link href="/app/settings/billing" className="mt-2.5 inline-block text-xs font-semibold text-brand-ink hover:underline">{trial ? "See plans" : "Manage plan"} →</Link>}
+      {canBilling && <Link href="/app/settings/billing" className="mt-2.5 inline-block text-xs font-semibold text-brand-ink hover:underline">{trial ? "See plans" : free ? "Upgrade" : "Manage plan"} →</Link>}
     </div>
   );
 }

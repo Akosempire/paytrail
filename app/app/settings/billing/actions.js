@@ -11,7 +11,9 @@ export async function choosePlan(planId) {
     service.from("plans").select("*").eq("id", planId).maybeSingle(),
     service.from("platform_settings").select("billing_provider, support_email").eq("id", true).single(),
   ]);
-  if (!plan || (!plan.active && !(ctx.business.plan_id === plan.id && ctx.business.subscription_status === "active"))) return { error: "That plan is no longer available." };
+  // a hidden offer with spots (e.g. Founding) can be chosen while spots are left
+  const spotsLeft = plan && !plan.active && plan.spots != null ? (await service.rpc("plan_spots_left", { plan: plan.id })).data : null;
+  if (!plan || (!plan.active && !(ctx.business.plan_id === plan.id && ctx.business.subscription_status === "active") && !(spotsLeft > 0))) return { error: plan?.spots != null ? "All the founding spots are taken." : "That plan is no longer available." };
   if (ctx.business.kind === "company" && !plan.allow_company) return { error: "This plan is for freelancers. Choose a team plan." };
   if (plan.price_minor === 0) {
     const { error } = await service.rpc("extend_subscription", { target: ctx.business.id, new_plan: plan.id, pay_method: "free", pay_reference: "", pay_amount: 0, pay_currency: plan.currency, recorder: ctx.user.id });

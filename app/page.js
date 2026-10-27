@@ -71,7 +71,7 @@ function structuredData(plans) {
 export default async function Home({ searchParams }) {
   preload("/fonts/orbitron-700.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
   const sp = await searchParams;
-  const [{ plans: allPlans, trial }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
+  const [{ plans: allPlans, trial, offer }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
   const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Free trial";
   const signedIn = Boolean(ctx.user);
   const jsonLd = structuredData(allPlans);
@@ -197,6 +197,13 @@ export default async function Home({ searchParams }) {
               <p className="text-[13px] font-semibold tracking-[0.14em] text-[#5a9dff] uppercase">Early access</p>
               <h2 className="font-display mt-4 text-[clamp(34px,4.8vw,64px)] leading-[1.02] font-semibold tracking-[-0.035em]">Good deals deserve a better <span className="text-[#5a9dff]">ending.</span></h2>
               <p className="mt-5 max-w-[560px] text-[17px] leading-relaxed text-[#a29e93]">{BRAND.name} is new, and built for freelancers and small businesses. Join early, tell us what you need, and help shape what we build next.</p>
+              {offer && (
+                <p className="mt-6 inline-flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border border-dashed border-[#5a9dff]/50 px-4 py-2.5 font-mono text-[12px] tracking-[0.08em] text-[#f2efe7] uppercase">
+                  <span className="text-[#5a9dff]">{offer.name} price</span>
+                  <span>Team for {formatMoney(offer.price_minor, offer.currency)} / {offer.billing_interval}, locked for life</span>
+                  <span className="text-[#a29e93]">{offer.left} spots left</span>
+                </p>
+              )}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
               <PrimaryCta href="/signup" block>Get started free</PrimaryCta>

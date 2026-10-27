@@ -157,6 +157,8 @@
 .pt-t-pos .pt-blocks { order: 10; }
 .pt-t-pos .pt-sign { order: 10; }
 .pt-t-pos .pt-foot { order: 11; }
+.pt-made { margin-top: 3mm; text-align: center; color: var(--pt-ink-3); font-size: 0.72em; letter-spacing: 0.02em; }
+.pt-t-pos .pt-made { order: 12; }
 .pt-t-pos .pt-doctitle { font-size: 1.05em; margin-top: 2mm; }
 .pt-t-pos .pt-received { margin-top: 2mm; padding: 2mm 0 0; background: none; text-align: center; }
 .pt-t-pos .pt-received-amount { font-size: 1.9em; }

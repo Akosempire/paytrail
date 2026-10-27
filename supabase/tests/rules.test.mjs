@@ -123,7 +123,8 @@ test("a junior edit cannot wipe hidden costs it cannot see", async () => {
   assert.equal(d.approved_by, finance);
 });
 
-test("the trial allows two documents, then asks for a plan", async () => {
+test("the trial allows two documents, then asks for a plan (with no Free plan offered)", async () => {
+  await pool.query("update public.plans set active=false where price_minor=0 and name='Free'");
   await as(owner, ({ q }) => q("select public.mark_document_sent($1)", [quoteId]));
   const third = await as(owner, ({ one }) => one("select public.save_document($1,null,$2::jsonb) id", [biz, JSON.stringify({ kind: "quote", customer: { name: "Ken" }, items: [{ description: "x", quantity: 1, unit_price_minor: 100 }] })])).then(r => r.id);
   await assert.rejects(as(owner, ({ q }) => q("select public.mark_document_sent($1)", [third])), /ALLOWANCE:trial_used/);
@@ -137,6 +138,7 @@ test("the trial allows two documents, then asks for a plan", async () => {
   const plan = await as(admin, ({ one }) => one("insert into public.plans(name, price_minor, document_limit, seat_limit) values ('Starter', 500000, 4, 5) returning id")).then(r => r.id);
   await as(admin, ({ q }) => q("update public.businesses set plan_id=$2, subscription_status='active', current_period_end=now()+interval '30 days' where id=$1", [biz, plan]));
   await as(owner, ({ q }) => q("select public.mark_document_sent($1)", [third]));
+  await pool.query("update public.plans set active=true where price_minor=0 and name='Free'");
 });
 
 test("customer accepts; payment settles once and issues a receipt on an invoice", async () => {
@@ -259,7 +261,7 @@ test("Stripe and Paystack payments settle like the others", async () => {
 test("default pricing: paid plans only, founding plan hidden, zero-priced plans never expire", async () => {
   const plans = (await pool.query("select name, currency, billing_interval, price_minor, active from public.plans where name <> 'Starter' order by sort_order")).rows;
   assert.ok(plans.filter((p) => p.active).length >= 12, "default naira and dollar plans are seeded");
-  assert.ok(!plans.some((p) => p.active && Number(p.price_minor) === 0), "no free-forever plan is offered");
+  assert.deepEqual(plans.filter((p) => p.active && Number(p.price_minor) === 0).map((p) => p.name), ["Free", "Free"], "the only free plan is Free (naira and dollars)");
   assert.ok(plans.some((p) => p.name === "Founding" && p.active === false && Number(p.price_minor) === 6000000));
   const free = (await one("insert into public.plans(name, price_minor, currency, document_limit) values ('Free test', 0, 'NGN', 5) returning id")).id;
   const ends = await as("service", ({ one }) => one("select public.extend_subscription($1,$2,'free','',0,'NGN',null) t", [otherBiz, free]));

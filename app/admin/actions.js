@@ -24,8 +24,11 @@ export async function savePlan(id, form) {
     features: String(form.features || "").split("\n").map((f) => f.trim()).filter(Boolean).slice(0, 12),
     active: Boolean(form.active),
     sort_order: parseInt(form.sort_order || 0, 10) || 0,
+    tax_filing_fee_minor: String(form.filing_fee ?? "").trim() === "" ? null : toMinor(form.filing_fee),
+    spots: intOrNull(form.spots),
     updated_at: new Date().toISOString(),
   };
+  if (row.tax_filing_fee_minor != null && !Number.isFinite(row.tax_filing_fee_minor)) return { error: "Check the “File & pay for me” price." };
   if (!row.name) return { error: "Give the plan a name." };
   if (!Number.isFinite(price)) return { error: "Check the price." };
   const { error } = id ? await ctx.supabase.from("plans").update(row).eq("id", id) : await ctx.supabase.from("plans").insert(row);

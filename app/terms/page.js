@@ -39,7 +39,7 @@ export default async function Terms() {
 
       <Section title="3. Free trial, plans and payment">
         <List items={[
-          "New businesses get a free trial (currently 14 days). After it ends you need a paid plan to send new quotations and invoices. Your existing records stay available.",
+          "New businesses get a free trial (currently 14 days). After it ends, or if a paid plan runs out, you move to the Free plan, which allows a small number of sent quotations and invoices each month and adds “Made with Usetally” to documents. Your existing records stay available.",
           "Paid plans are billed monthly or yearly in advance, at the price shown when you pay. Plans do not renew automatically: you renew from Plan & billing before your period ends.",
           "Each plan has limits, such as documents per month and team members. If you reach a limit, you can upgrade or wait for the next month.",
           "We may change public prices. Changes apply from your next renewal, and we'll show the new price before you pay. Founding-customer prices stay as agreed.",

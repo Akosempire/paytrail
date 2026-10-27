@@ -46,17 +46,18 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
       <div className="text-center">
         <p className={kicker}>Pricing</p>
         <h2 id="pricing-title" className={`mt-4 ${h2}`}>Simple plans. Start free.</h2>
-        <p className="mt-4 text-[17px] text-hero-ink-2">{trialText}, no card needed. Then pick a plan that fits.</p>
+        <p className="mt-4 text-[17px] text-hero-ink-2">{trialText} of everything, no card needed. Then stay on Free or pick a plan.</p>
       </div>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         {currencies.length > 1 && <Segmented label="Currency" options={currencies.map((c) => [c === "NGN" ? "₦ Naira" : c === "USD" ? "$ Dollar" : c, link(c, interval), c === currency])} />}
         {yearly && <Segmented label="Billing period" options={[["Monthly", link(currency, "month"), interval === "month"], ["Yearly · 2 months free", link(currency, "year"), interval === "year"]]} />}
       </div>
 
-      <div className={cx("mx-auto mt-12 grid max-w-5xl items-start gap-6 md:grid-cols-2", plans.length >= 3 && "lg:grid-cols-3")}>
+      <div className={cx("mx-auto mt-12 grid items-start gap-6 md:grid-cols-2", plans.length >= 4 ? "max-w-6xl lg:grid-cols-4 lg:gap-5" : "max-w-5xl", plans.length === 3 && "lg:grid-cols-3")}>
         {plans.map((p, i) => {
           const featured = p.name === "Team";
           const month = monthlyEquivalent(p);
+          const free = p.price_minor === 0;
           return (
             <div key={p.id} className={cx("receipt-shadow relative", featured && "lg:-mt-3")}>
               <article className="receipt-edge flex flex-col bg-hero-paper px-7 pt-7 pb-11 text-hero-ink" aria-label={`${p.name} plan`}>
@@ -70,9 +71,9 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
                 {p.tagline && <p className="mt-2 text-[14px] text-hero-ink-2">{p.tagline}</p>}
 
                 <div className="my-5 border-t border-dashed border-hero-ink/25" />
-                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span className="font-display text-[40px] lg:text-[36px] leading-none tabular-nums">{formatMoney(p.price_minor, p.currency)}</span>
-                  <span className="font-mono text-[11.5px] tracking-[0.12em] whitespace-nowrap text-hero-ink-2 uppercase">/ {p.billing_interval}</span>
+                <p className="flex flex-col gap-2">
+                  <span className="font-display text-[40px] leading-none tabular-nums lg:text-[36px]">{formatMoney(p.price_minor, p.currency)}</span>
+                  <span className="font-mono text-[11.5px] tracking-[0.12em] whitespace-nowrap text-hero-ink-2 uppercase">{free ? "Forever" : `Per ${p.billing_interval}`}</span>
                 </p>
                 <p className="mt-2 h-4 font-mono text-[11.5px] tracking-[0.06em] text-hero-ink-2">{month ? `= ${formatMoney(month, p.currency)} a month` : ""}</p>
                 <div className="my-5 border-t border-dashed border-hero-ink/25" />
@@ -84,7 +85,7 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
                   <Line>Tax summary &amp; export</Line>
                 </ul>
 
-                <div className="mt-8">{featured ? <PrimaryCta href="/signup" block>Start free trial</PrimaryCta> : <SecondaryCta href="/signup" block>Start free trial</SecondaryCta>}</div>
+                <div className="mt-8">{featured ? <PrimaryCta href="/signup" block>Start free trial</PrimaryCta> : <SecondaryCta href="/signup" block>{free ? "Start free" : "Start free trial"}</SecondaryCta>}</div>
                 <div className="mt-7 flex items-end justify-between gap-4">
                   <Barcode seed={p.name} />
                   <span className="font-mono text-[10.5px] tracking-[0.14em] text-hero-ink-2/70 uppercase">Thank you</span>

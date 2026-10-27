@@ -44,7 +44,7 @@ export default async function TaxPage({ searchParams }) {
   const [{ data: retFiles }, consultant, fee] = await Promise.all([
     ret ? ctx.supabase.from("vat_return_files").select("id, kind, name, created_at").eq("return_id", ret.id).order("created_at") : Promise.resolve({ data: [] }),
     ret?.consultant_id ? service.from("tax_consultants").select("name").eq("id", ret.consultant_id).maybeSingle().then((r) => r.data?.name || null) : Promise.resolve(null),
-    ng ? import("@/lib/vat-returns").then((m) => m.filingFee(service)).catch(() => 0) : 0,
+    ng ? import("@/lib/vat-returns").then((m) => m.filingFee(service, b)).catch(() => 0) : 0,
   ]);
   const monthsList = past.slice().reverse().map((m) => ({ key: m.key, label: m.label, vat: retOf(m.key)?.vat_minor ?? vat[m.key] ?? 0, status: retOf(m.key)?.status || "to_file", overdue: new Date(`${m.due}T23:59:59`) < now }));
 

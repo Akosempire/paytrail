@@ -131,6 +131,7 @@ export function DocView({ model: m, screen = true }) {
         )}
 
         {(m.business.footer || thermal) && <footer className="pt-foot">{m.business.footer || "Thank you"}</footer>}
+        {m.madeWith && <p className="pt-made">Made with Usetally · usetally.cc</p>}
       </div>
     </article>
   );

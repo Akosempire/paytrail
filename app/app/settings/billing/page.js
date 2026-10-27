@@ -19,7 +19,7 @@ export default async function Billing({ searchParams }) {
   const service = createSupabaseService();
   const [{ data: plans }, { data: history }, { data: settings }] = await Promise.all([
     // plans aren't secret; the service client also returns a hidden plan this business is on
-    service.from("plans").select("*").or(`active.eq.true,id.eq.${b.plan_id || "00000000-0000-0000-0000-000000000000"}`).order("sort_order").order("price_minor"),
+    service.from("plans").select("*").or(`active.eq.true,id.eq.${b.plan_id || "00000000-0000-0000-0000-000000000000"},spots.gt.0`).order("sort_order").order("price_minor"),
     ctx.supabase.from("subscription_payments").select("*, plans(name)").eq("business_id", b.id).order("created_at", { ascending: false }).limit(24),
     service.from("platform_settings").select("trial_mode, trial_documents, trial_days, billing_provider, support_email").eq("id", true).single(),
   ]);
@@ -28,9 +28,17 @@ export default async function Billing({ searchParams }) {
   const { currency: planCurrency, plans: visible } = plansFor(plans, { currency: b.currency, interval, kind: b.kind, currentPlanId: b.subscription_status === "active" ? b.plan_id : null });
   const yearly = hasYearly(plans, planCurrency);
   const a = ctx.allowance || {};
-  const active = b.subscription_status === "active";
+  const onFree = Boolean(a.free);
+  const active = b.subscription_status === "active" && !(onFree && a.ended);
+  // hidden offers with spots left (Founding), in this business's currency
+  const offers = [];
+  for (const p of (plans || []).filter((p) => !p.active && p.spots > 0 && p.currency === planCurrency && p.id !== b.plan_id && (b.kind !== "company" || p.allow_company))) {
+    const { data: left } = await service.rpc("plan_spots_left", { plan: p.id });
+    if (left > 0) offers.push({ ...p, left });
+  }
   let status;
-  if (b.subscription_status === "trialing") status = settings.trial_mode === "documents" ? `Free trial: ${Math.max(0, (a.limit ?? 0) - (a.used ?? 0))} of ${a.limit ?? 0} free documents left` : settings.trial_mode === "days" ? `Free trial until ${formatDate(b.trial_ends_at)}` : "No free trial";
+  if (onFree) status = `Free plan · ${a.used} of ${a.limit} documents sent this month${a.ended === "trial_used" ? " · your trial has ended" : a.ended ? " · your paid plan has ended" : ""}`;
+  else if (b.subscription_status === "trialing") status = settings.trial_mode === "documents" ? `Free trial: ${Math.max(0, (a.limit ?? 0) - (a.used ?? 0))} of ${a.limit ?? 0} free documents left` : settings.trial_mode === "days" ? `Free trial until ${formatDate(b.trial_ends_at)}` : "No free trial";
   else if (active) status = `${b.plans?.name || "Plan"}${b.current_period_end ? ` · paid until ${formatDate(b.current_period_end)}` : ""}${a.limit != null ? ` · ${a.used} of ${a.limit} documents used this month` : ""}`;
   else status = b.subscription_status === "suspended" ? "Suspended. Contact Usetally support." : "Your subscription has ended";
   return (
@@ -41,10 +49,19 @@ export default async function Billing({ searchParams }) {
       {payment === "failed" && <ShowToast intent="error" title="Payment didn't go through" message="Nothing was charged. Try again." clear={["payment"]} />}
       <Card className="p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3"><Sparkles className="size-5 text-brand" /><div><p className="text-title-3 text-ink">{active ? "Current plan" : b.subscription_status === "trialing" ? "Trial" : "No active plan"}</p><p className="text-[13px] text-ink-2">{status}</p></div></div>
-          <Badge tone={active ? "success" : b.subscription_status === "trialing" ? "brand" : "danger"}>{b.subscription_status.replace("_", " ")}</Badge>
+          <div className="flex items-center gap-3"><Sparkles className="size-5 text-brand" /><div><p className="text-title-3 text-ink">{onFree ? "Free plan" : active ? "Current plan" : b.subscription_status === "trialing" ? "Trial" : "No active plan"}</p><p className="text-[13px] text-ink-2">{status}</p></div></div>
+          <Badge tone={onFree ? "neutral" : active ? "success" : b.subscription_status === "trialing" ? "brand" : "danger"}>{onFree ? "free" : b.subscription_status.replace("_", " ")}</Badge>
         </div>
       </Card>
+      {offers.map((p) => (
+        <Card key={p.id} className="flex flex-col gap-4 p-5 ring-2 ring-brand/40 sm:flex-row sm:items-center">
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2"><p className="text-title-3 text-ink">{p.name} offer</p><Badge tone="brand" size="sm">{p.left} of {p.spots} spots left</Badge></div>
+            <p className="mt-1 text-[13px] text-ink-2">{p.tagline || "Early-customer price"} · <strong className="text-ink">{formatMoney(p.price_minor, p.currency)} / {p.billing_interval}</strong>{p.document_limit != null ? ` · ${p.document_limit} documents a month` : ""}{p.seat_limit ? ` · up to ${p.seat_limit} team members` : ""}</p>
+          </div>
+          <div className="sm:w-56"><PlanButton planId={p.id} label="Claim this price" primary /></div>
+        </Card>
+      ))}
       {yearly && (
         <nav className="inline-flex items-center gap-0.5 self-start rounded-lg bg-tray p-1" aria-label="Billing period">
           {[["month", "Monthly"], ["year", "Yearly · 2 months free"]].map(([v, l]) => (
@@ -57,7 +74,7 @@ export default async function Billing({ searchParams }) {
       ) : (
         <div className={cx("grid gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2", visible.length >= 4 ? "xl:grid-cols-4" : visible.length === 3 ? "xl:grid-cols-3" : "")}>
           {visible.map((p) => {
-            const current = active && b.plan_id === p.id;
+            const current = (active && b.plan_id === p.id) || (onFree && a.ended && p.price_minor === 0);
             const perMonth = monthlyEquivalent(p);
             const free = p.price_minor === 0;
             return (
