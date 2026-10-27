@@ -29,6 +29,16 @@ export async function respondToQuote(token, { accept, name, reason }) {
   return { ok: true };
 }
 
+// One step for the customer: accept the quote with their name, then go
+// straight to the payment page. If the payment can't start, the quote stays
+// accepted and the page shows the other ways to pay.
+export async function acceptAndPay(token, { name, provider }) {
+  const accepted = await respondToQuote(token, { accept: true, name, reason: "" });
+  if (accepted.error) return accepted;
+  const r = await payDocument(token, provider);
+  return r.error ? { accepted: true, error: r.error } : r;
+}
+
 export async function payDocument(token, provider) {
   if (await throttle("pay", 8)) return { error: "Too many attempts. Wait a minute and try again." };
   if (!PROVIDERS[provider]) return { error: "Choose a payment method." };

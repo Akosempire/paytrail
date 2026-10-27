@@ -1,8 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsDown, ThumbsUp, Copy, Check, Send, Clock, AlertCircle, Paperclip } from "lucide-react";
-import { respondToQuote, payDocument, claimPayment } from "./actions";
+import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsUp, Copy, Check, Send, Clock, AlertCircle, Paperclip } from "lucide-react";
+import { respondToQuote, payDocument, claimPayment, acceptAndPay } from "./actions";
 import { useToast } from "@/components/ui-client";
 
 const NAMES = { stripe: "Stripe", paystack: "Paystack", bachs: "Bachs", flutterwave: "Flutterwave" };
@@ -29,6 +29,17 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
       router.refresh();
     });
   }
+  // the fast path: name (already filled in) + one tap → accepted and on the payment page
+  function acceptPay(provider) {
+    if (!name.trim()) return toast.error("Type your name to accept.");
+    start(async () => {
+      const id = toast.loading(`Accepting and opening secure ${NAMES[provider] || ""} checkout…`);
+      const r = await acceptAndPay(token, { name, provider });
+      if (r.url) { window.location.href = r.url; return; }
+      toast.update(id, { intent: "error", message: r.error || "Something went wrong. Try again." });
+      if (r.accepted) router.refresh();
+    });
+  }
   function pay(provider) {
     start(async () => {
       const id = toast.loading(`Opening secure ${NAMES[provider] || ""} checkout…`);
@@ -52,19 +63,22 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
       </div>
 
 
-      {awaitingReply && !mode && (
-        <div className="flex flex-col gap-2 border-t border-[#eaecf0] p-5">
-          <button type="button" className={`${btn} text-white doc-brand-bg`} onClick={() => setMode("accept")}><ThumbsUp className="size-4" />Accept quote</button>
-          <button type="button" className={`${btn} bg-white text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]`} onClick={() => setMode("decline")}><ThumbsDown className="size-4" />Decline</button>
-        </div>
-      )}
-      {mode === "accept" && (
-        <div className="flex flex-col gap-3 border-t border-[#eaecf0] p-5">
-          <label className="text-[13px] font-medium text-[#475467]" htmlFor="sig">Type your full name to accept</label>
-          <input id="sig" value={name} onChange={(e) => setName(e.target.value)} className="h-11 rounded-lg px-3 text-[15px] ring-1 ring-[#d0d5dd] focus:outline-none focus:ring-2 focus:ring-[var(--doc-brand)]" />
-          <p className="text-xs text-[#98a2b3]">By accepting, you agree to the items, price and terms in this quotation.</p>
-          <button type="button" disabled={pending} className={`${btn} text-white doc-brand-bg`} onClick={() => respond(true)}>{pending ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}Accept & continue</button>
-          <button type="button" className="text-sm font-medium text-[#475467]" onClick={() => setMode(null)}>Back</button>
+      {/* one step: name is filled in, one tap accepts (and pays, when online payment is on) */}
+      {awaitingReply && mode !== "decline" && (
+        <div className="flex flex-col gap-2.5 border-t border-[#eaecf0] p-5">
+          <label className="text-[13px] font-medium text-[#475467]" htmlFor="sig">Your name</label>
+          <input id="sig" value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" className="h-11 rounded-lg px-3 text-[15px] ring-1 ring-[#d0d5dd] focus:outline-none focus:ring-2 focus:ring-[var(--doc-brand)]" />
+          {providers.length > 0 ? providers.map((p, i) => (
+            <button key={p.provider} type="button" disabled={pending} onClick={() => acceptPay(p.provider)}
+              className={`${btn} ${i === 0 ? "h-12 text-white doc-brand-bg" : "bg-white text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]"}`}>
+              {pending ? <Loader2 className="size-4 animate-spin" /> : <CreditCard className="size-4" />}Accept & pay {amount}{providers.length > 1 ? ` with ${NAMES[p.provider]}` : ""}
+            </button>
+          )) : (
+            <button type="button" disabled={pending} className={`${btn} h-12 text-white doc-brand-bg`} onClick={() => respond(true)}>{pending ? <Loader2 className="size-4 animate-spin" /> : <ThumbsUp className="size-4" />}Accept quote</button>
+          )}
+          {providers.length > 0 && <button type="button" disabled={pending} className={`${btn} bg-white text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]`} onClick={() => respond(true)}>{hasBank ? "Accept, pay by transfer" : "Accept, pay later"}</button>}
+          <p className="text-xs text-[#98a2b3]">{providers.length > 0 ? `Paying accepts this quotation: its items, price and terms. You pay on ${providers.map((p) => NAMES[p.provider]).join(" or ")}'s secure page.` : "By accepting, you agree to the items, price and terms in this quotation."}</p>
+          <button type="button" className="mt-1 text-sm font-medium text-[#475467] underline-offset-2 hover:underline" onClick={() => setMode("decline")}>Decline this quote</button>
         </div>
       )}
       {mode === "decline" && (

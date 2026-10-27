@@ -146,7 +146,7 @@ export default async function PublicDocument({ params, searchParams }) {
       {(!paid && !["void", "declined"].includes(doc.status) && !(quote && expired && doc.status !== "accepted")) && (
         <div className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-[#eaecf0] bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
           <a href="#respond" className="flex h-12 items-center justify-center gap-2 rounded-lg text-[15px] font-semibold text-white doc-brand-bg">
-            {quote && doc.status !== "accepted" ? `Review & accept · ${money(doc.total_minor)}` : `Pay ${money(balance)}`}
+            {quote && doc.status !== "accepted" ? (providers.length ? `Accept & pay ${money(doc.total_minor)}` : `Accept · ${money(doc.total_minor)}`) : `Pay ${money(balance)}`}
           </a>
         </div>
       )}
