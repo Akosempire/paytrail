@@ -1,15 +1,17 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Loader2, Pencil, Plus } from "lucide-react";
 import { Button, Field, Input, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { archiveCustomer, saveCustomer } from "@/app/app/customers/actions";
 
-export function CustomerButton({ customer, variant = "primary", size = "md" }) {
+export function CustomerButton({ customer, variant = "primary", size = "md", autoOpen = false }) {
   const router = useRouter();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  // "New customer" from the ➕ opens the form straight away
+  useEffect(() => { if (autoOpen && !customer) setOpen(true); }, [autoOpen, customer]);
   const [form, setForm] = useState(customer || { name: "", company: "", email: "", phone: "", address: "", notes: "", tax_id: "" });
   const [pending, start] = useTransition();
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });

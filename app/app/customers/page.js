@@ -8,7 +8,7 @@ import { CustomerButton } from "@/components/customer-form";
 export const metadata = { title: "Customers" };
 
 export default async function Customers({ searchParams }) {
-  const { q = "", archived } = await searchParams;
+  const { q = "", archived, new: wantsNew } = await searchParams;
   const ctx = await requireBusiness();
   let query = ctx.supabase.from("customers").select("*").eq("business_id", ctx.business.id).order("name").limit(500);
   query = archived ? query.not("archived_at", "is", null) : query.is("archived_at", null);
@@ -28,7 +28,7 @@ export default async function Customers({ searchParams }) {
   const money = (v) => formatMoney(v, ctx.business.currency);
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Customers" description="Everyone you've quoted or invoiced, and what they owe." actions={<CustomerButton />} />
+      <PageHeader title="Customers" description="Everyone you've quoted or invoiced, and what they owe." actions={<CustomerButton autoOpen={wantsNew === "1"} />} />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <form className="w-full sm:w-80"><Input icon={Search} name="q" defaultValue={q} placeholder="Search customers…" aria-label="Search customers" /></form>
         <Link href={archived ? "/app/customers" : "/app/customers?archived=1"} className="text-[13px] font-medium text-ink-2 hover:text-ink">{archived ? "Show active" : "Show archived"}</Link>

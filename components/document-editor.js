@@ -1,5 +1,5 @@
 "use client";
-import { useDeferredValue, useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardPaste, EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, CircleAlert, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
@@ -72,6 +72,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   function setItem(key, patch) { setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i))); }
   // a list pasted from WhatsApp etc.: replaces empty rows, adds after the rest
   const [paste, setPaste] = useState(null); // null = closed, else the starting text
+  // "Paste a WhatsApp order" from the ➕ opens straight into the list reader
+  useEffect(() => { if (!doc?.id && new URLSearchParams(window.location.search).get("paste") === "1") setPaste(""); }, [doc?.id]);
   function addPasted(parsed) {
     const fresh = parsed.map((p) => ({ ...blankItem(), description: p.description.slice(0, 300), quantity: String(p.quantity), price: p.price == null ? "" : String(p.price) }));
     setItems((list) => [...list.filter((i) => i.description.trim() || i.price), ...fresh]);

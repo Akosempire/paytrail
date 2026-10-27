@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, Home, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp,
+  Plus, Menu, X, Home, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -43,9 +43,10 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [switcher, setSwitcher] = useState(false);
+  const [create, setCreate] = useState(false); // the ➕ sheet on phones
   // the link you click lights up at once, before the server answers
   const [goingTo, setGoingTo] = useState(null);
-  useEffect(() => { setOpen(false); setSwitcher(false); setGoingTo(null); }, [pathname]);
+  useEffect(() => { setOpen(false); setSwitcher(false); setCreate(false); setGoingTo(null); }, [pathname]);
   const nav = navFor({ kind: business.kind, ...perms });
   const here = goingTo || pathname;
   // screens with their own save bar at the bottom (editor, business settings) don't show the tabs
@@ -148,8 +149,31 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-line bg-surface lg:block">{sidebar}</aside>
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 bg-[#101828]/45" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 right-0 w-[284px] max-w-[85vw] animate-rise bg-surface shadow-[var(--shadow-dialog)]">{sidebar}</aside>
+          <div className="absolute inset-0 animate-fade-in bg-[#101828]/45" onClick={() => setOpen(false)} />
+          {/* phones: the menu rises from the bottom, within thumb reach */}
+          <aside aria-label="Menu" className="absolute inset-x-0 bottom-0 max-h-[88dvh] animate-rise overflow-y-auto rounded-t-3xl bg-surface pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-dialog)]">
+            <div className="sticky top-0 z-10 flex justify-center bg-surface pt-2.5 pb-1"><span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-line-strong" /></div>
+            {sidebar}
+          </aside>
+        </div>
+      )}
+      {create && (
+        <div className="fixed inset-0 z-40 lg:hidden">
+          <div className="absolute inset-0 animate-fade-in bg-[#101828]/45" onClick={() => setCreate(false)} />
+          <div role="dialog" aria-modal="true" aria-label="Create" className="absolute inset-x-0 bottom-0 animate-rise rounded-t-3xl bg-surface px-3 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+12px)] shadow-[var(--shadow-dialog)]">
+            <div className="flex justify-center pb-2"><span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-line-strong" /></div>
+            <ul className="flex flex-col">
+              {CREATE.filter((c) => !c.perm || perms[c.perm]).map((c) => (
+                <li key={c.href}>
+                  <Link href={c.href} onClick={() => setCreate(false)} className="flex min-h-14 items-center gap-3.5 rounded-2xl px-3 py-2.5 hover:bg-hover active:bg-hover">
+                    <span className={cx("inline-flex size-10 shrink-0 items-center justify-center rounded-xl", c.main ? "bg-brand text-white" : "bg-brand-soft text-brand-ink")}><c.icon className="size-5" aria-hidden /></span>
+                    <span className="min-w-0"><span className="block text-[15px] font-semibold text-ink">{c.label}</span><span className="block text-[12.5px] text-ink-3">{c.hint}</span></span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <button type="button" onClick={() => setCreate(false)} className="mt-1 flex h-12 w-full items-center justify-center rounded-2xl text-[15px] font-medium text-ink-2 ring-1 ring-line">Cancel</button>
+          </div>
         </div>
       )}
       <div className="lg:pl-[264px]">
@@ -162,28 +186,38 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           <ThemeToggle className="max-lg:hidden" />
           {/* quick create lives on Home only: every list page has its own button */}
           {pathname === "/app" && <>
-            <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
-            <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote"><span className="max-sm:hidden">New </span>Quote</Button>
+            <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-lg:hidden">Invoice</Button>
+            <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote" className="max-lg:hidden">New Quote</Button>
           </>}
-          <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu" data-tour="menu">
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
+          {/* phones: the menu lives in the bottom bar; screens without it (editor, settings) keep this */}
+          {!tabs && (
+            <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu" data-tour="menu">
+              {open ? <X className="size-5" /> : <Menu className="size-5" />}
+            </button>
+          )}
         </header>
         <main className={cx("mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
       </div>
       {tabs && (
         <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
-          <div className="mx-auto grid max-w-xl grid-cols-5">
+          <div className="mx-auto grid max-w-xl grid-cols-5 items-end">
             {TABS.map((t) => {
-              const on = active(t);
-              return (
-                <Link key={t.href} href={t.href} aria-current={on ? "page" : undefined}
-                  onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setGoingTo(t.href); }}
-                  className={cx("flex flex-col items-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium transition-colors", on ? "text-brand-ink" : "text-ink-3 hover:text-ink")}>
-                  <span className={cx("inline-flex h-7 w-12 items-center justify-center rounded-full transition-colors", on && "bg-brand-soft")}><t.icon className="size-5" aria-hidden /></span>
-                  {t.label}
-                </Link>
+              if (t.create) return (
+                <div key="create" className="flex justify-center pb-1.5">
+                  <button type="button" onClick={() => setCreate(true)} aria-label="Create" aria-haspopup="dialog" data-tour="new-quote"
+                    className="-mt-5 inline-flex size-14 items-center justify-center rounded-full bg-brand text-white shadow-[0_10px_24px_-8px_rgba(23,92,211,.7)] ring-4 ring-surface transition-transform active:scale-95">
+                    <Plus className="size-7" aria-hidden />
+                  </button>
+                </div>
               );
+              const menuOn = t.menu && (open || !TABS.some((x) => x.href && active(x)));
+              const on = t.menu ? menuOn : active(t);
+              const cls = cx("flex min-h-14 flex-col items-center justify-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium transition-colors", on ? "text-brand-ink" : "text-ink-3 hover:text-ink");
+              const inner = <><span className={cx("inline-flex h-7 w-12 items-center justify-center rounded-full transition-colors", on && "bg-brand-soft")}><t.icon className="size-5" aria-hidden /></span>{t.label}</>;
+              return t.menu
+                ? <button key="menu" type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" data-tour="menu" className={cls}>{inner}</button>
+                : <Link key={t.href} href={t.href} aria-current={on ? "page" : undefined}
+                    onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setGoingTo(t.href); }} className={cls}>{inner}</Link>;
             })}
           </div>
         </nav>
@@ -192,13 +226,23 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   );
 }
 
-// bottom tabs on phones and tablets: the five places people go most
+// bottom bar on phones and tablets, in thumb reach: the two lists people use
+// most, a big ➕ in the middle, and the full menu
 const TABS = [
   { href: "/app", label: "Home", icon: Home, exact: true },
   { href: "/app/quotes", label: "Quotes", icon: FileText },
+  { create: true },
   { href: "/app/invoices", label: "Invoices", icon: Receipt },
-  { href: "/app/customers", label: "Customers", icon: Users },
-  { href: "/app/payments", label: "Payments", icon: Wallet },
+  { menu: true, label: "Menu", icon: Menu },
+];
+
+// what the ➕ offers
+const CREATE = [
+  { href: "/app/quotes/new", label: "New quote", hint: "Price a job and send it", icon: FileText, main: true },
+  { href: "/app/invoices/new", label: "New invoice", hint: "Bill a customer directly", icon: Receipt },
+  { href: "/app/invoices/new?paste=1", label: "Paste a WhatsApp order", hint: "Turn a customer's list into an invoice", icon: ClipboardPaste },
+  { href: "/app/invoices?status=open", label: "Record a payment", hint: "On an unpaid invoice", icon: HandCoins, perm: "canTax" },
+  { href: "/app/customers?new=1", label: "New customer", hint: "Save their details for next time", icon: UserPlus },
 ];
 
 function TrialMeter({ allowance, canBilling, status }) {
