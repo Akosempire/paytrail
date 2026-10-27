@@ -115,7 +115,33 @@ export async function updateBusinessAccount(businessId, form) {
     if (error) return { error: error.message };
   } else return { error: "Unknown action." };
   revalidatePath("/admin/businesses");
+  revalidatePath(`/admin/businesses/${businessId}`);
   return { message: "Account updated." };
+}
+
+// Free access (e.g. a free year of Team for early users): activates the plan
+// for N months with no payment, recorded in their billing history.
+export async function giveFreeAccess(businessId, form) {
+  const ctx = await requirePlatformAdmin();
+  const months = [1, 3, 6, 12].includes(Number(form.months)) ? Number(form.months) : 12;
+  const service = createSupabaseService();
+  const [{ data: b }, { data: plan }] = await Promise.all([
+    service.from("businesses").select("id, name, plan_id, subscription_status, current_period_end").eq("id", businessId).maybeSingle(),
+    service.from("plans").select("id, name, currency, price_minor").eq("id", form.plan_id).maybeSingle(),
+  ]);
+  if (!b) return { error: "Business not found." };
+  if (!plan || !(plan.price_minor > 0)) return { error: "Choose a paid plan to give for free." };
+  const same = b.subscription_status === "active" && b.plan_id === plan.id && b.current_period_end && new Date(b.current_period_end) > new Date();
+  const start = same ? new Date(b.current_period_end) : new Date();
+  const end = new Date(start); end.setMonth(end.getMonth() + months);
+  const { error } = await service.from("businesses").update({ plan_id: plan.id, subscription_status: "active", current_period_end: end.toISOString(), updated_at: new Date().toISOString() }).eq("id", b.id);
+  if (error) return { error: error.message };
+  const note = String(form.note || "").trim().slice(0, 120);
+  await service.from("subscription_payments").insert({ business_id: b.id, plan_id: plan.id, method: "free_access", reference: note, amount_minor: 0, currency: plan.currency, period_start: start.toISOString(), period_end: end.toISOString(), recorded_by: ctx.user.id });
+  await service.from("activity").insert({ business_id: b.id, actor_id: ctx.user.id, actor_label: "Usetally", action: "subscription.extended", detail: { plan: plan.name, until: end.toISOString(), free: true } });
+  revalidatePath("/admin/businesses");
+  revalidatePath(`/admin/businesses/${b.id}`);
+  return { message: `${b.name} has ${plan.name} free until ${end.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.` };
 }
 
 // Brevo for all of Usetally's email, set up here instead of in Vercel.

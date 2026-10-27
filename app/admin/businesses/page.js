@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { requirePlatformAdmin } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -26,7 +27,7 @@ export default async function Businesses({ searchParams }) {
   const tone = { active: "success", trialing: "brand", past_due: "warn", canceled: "warn", suspended: "danger" };
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Businesses" description="Change plans, record bank-transfer subscriptions, extend trials or suspend accounts." />
+      <PageHeader title="Businesses" description="Select a business to see everything about it: plan, usage, team, payments and history." />
       <form className="flex flex-col gap-3 sm:flex-row">
         <Input icon={Search} name="q" defaultValue={q} placeholder="Search name or email" className="sm:w-80" aria-label="Search" />
         <select name="status" defaultValue={status} className="h-10 rounded-md bg-surface px-3 text-sm ring-1 ring-inset ring-line-strong" aria-label="Status">
@@ -41,7 +42,7 @@ export default async function Businesses({ searchParams }) {
         <ul className="divide-y divide-line">
           {(rows || []).map((b) => (
             <li key={b.id} className="grid grid-cols-[1fr_auto] items-center gap-x-4 gap-y-1 px-5 py-3.5 lg:grid-cols-[minmax(0,1fr)_110px_140px_70px_80px_100px]">
-              <span className="min-w-0"><span className="block truncate text-sm font-medium text-ink">{b.name}</span><span className="block truncate text-xs text-ink-3">{b.kind === "company" ? "Company" : "Freelancer"} · {b.email || "no email"} · since {formatDate(b.created_at)}</span></span>
+              <Link href={`/admin/businesses/${b.id}`} className="group min-w-0"><span className="block truncate text-sm font-medium text-ink group-hover:text-brand-ink group-hover:underline">{b.name}</span><span className="block truncate text-xs text-ink-3">{b.kind === "company" ? "Company" : "Freelancer"} · {b.email || "no email"} · since {formatDate(b.created_at)}</span></Link>
               <span><Badge size="sm" tone={tone[b.subscription_status]}>{b.subscription_status.replace("_", " ")}</Badge>{b.deletion_scheduled_for && <span className="mt-1 block text-xs text-danger-ink">Deletes {formatDate(b.deletion_scheduled_for)}</span>}</span>
               <span className="text-[13px] text-ink-2">{b.plans?.name || (b.subscription_status === "trialing" ? `Trial · ${b.trial_documents_used} used` : "—")}{b.current_period_end && <span className="block text-xs text-ink-3">until {formatDate(b.current_period_end)}</span>}</span>
               <span className="hidden text-right text-sm tabular lg:block">{seats[b.id] || 0}</span>

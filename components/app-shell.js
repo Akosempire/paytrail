@@ -149,14 +149,11 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 bg-[#101828]/45" onClick={() => setOpen(false)} />
-          <aside className="absolute inset-y-0 left-0 w-[284px] max-w-[85vw] animate-rise bg-surface shadow-[var(--shadow-dialog)]">{sidebar}</aside>
+          <aside className="absolute inset-y-0 right-0 w-[284px] max-w-[85vw] animate-rise bg-surface shadow-[var(--shadow-dialog)]">{sidebar}</aside>
         </div>
       )}
       <div className="lg:pl-[264px]">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-canvas/85 px-4 backdrop-blur sm:px-6 lg:px-8">
-          <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu" data-tour="menu">
-            {open ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
           {/* paying businesses see their own brand; trial and Free see Usetally's */}
           <Link href="/app" className="flex min-w-0 items-center gap-2.5 lg:hidden" aria-label={business.paying ? business.name : "Usetally home"}>
             {business.paying ? <><Avatar name={business.name} src={logo} color={logo ? null : business.brand_color} /><span className="truncate text-[15px] font-semibold text-ink">{business.name}</span></> : <Logo className="size-8" />}
@@ -168,6 +165,9 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
             <Button href="/app/invoices/new" variant="secondary" icon={Plus} className="max-sm:hidden">Invoice</Button>
             <Button href="/app/quotes/new" variant="primary" icon={Plus} data-tour="new-quote"><span className="max-sm:hidden">New </span>Quote</Button>
           </>}
+          <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu" data-tour="menu">
+            {open ? <X className="size-5" /> : <Menu className="size-5" />}
+          </button>
         </header>
         <main className={cx("mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
       </div>
