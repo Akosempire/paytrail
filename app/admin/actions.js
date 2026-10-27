@@ -139,9 +139,29 @@ export async function giveFreeAccess(businessId, form) {
   const note = String(form.note || "").trim().slice(0, 120);
   await service.from("subscription_payments").insert({ business_id: b.id, plan_id: plan.id, method: "free_access", reference: note, amount_minor: 0, currency: plan.currency, period_start: start.toISOString(), period_end: end.toISOString(), recorded_by: ctx.user.id });
   await service.from("activity").insert({ business_id: b.id, actor_id: ctx.user.id, actor_label: "Usetally", action: "subscription.extended", detail: { plan: plan.name, until: end.toISOString(), free: true } });
+  // tell them, beautifully: owners and the business email
+  let emailed = 0;
+  try {
+    const { sendEmail, emailConfigured } = await import("@/lib/email");
+    if (await emailConfigured()) {
+      const [{ data: owners }, { data: full }] = await Promise.all([
+        service.from("memberships").select("email, full_name").eq("business_id", b.id).eq("role", "owner"),
+        service.from("plans").select("name, document_limit, seat_limit").eq("id", plan.id).maybeSingle(),
+      ]);
+      const { data: biz } = await service.from("businesses").select("email").eq("id", b.id).maybeSingle();
+      const to = [...new Map([...(owners || []).map((o) => [o.email?.toLowerCase(), o.full_name]), [biz?.email?.toLowerCase(), owners?.[0]?.full_name]].filter(([e]) => e)).entries()];
+      const { freeAccessEmail } = await import("@/lib/emails");
+      const { siteUrl } = await import("@/lib/site");
+      const until = end.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+      for (const [email, name] of to) {
+        const r = await sendEmail({ to: email, ...freeAccessEmail({ name, businessName: b.name, plan: full || plan, months, until, link: `${siteUrl()}/app` }) }).catch(() => ({ sent: false }));
+        if (r.sent) emailed++;
+      }
+    }
+  } catch (e) { console.error("free_access.email_failed", { message: e?.message }); }
   revalidatePath("/admin/businesses");
   revalidatePath(`/admin/businesses/${b.id}`);
-  return { message: `${b.name} has ${plan.name} free until ${end.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.` };
+  return { message: `${emailed ? "Done and emailed. " : "Done (no email sent). "}${b.name} has ${plan.name} free until ${end.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}.` };
 }
 
 // Brevo for all of Usetally's email, set up here instead of in Vercel.
