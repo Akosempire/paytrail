@@ -2,10 +2,10 @@ import { CheckCircle2, CircleAlert, FileCode2, Download } from "lucide-react";
 import { Badge, Card, CardHeader, buttonClass } from "@/components/ui";
 
 // On an invoice: is it ready for Nigeria's e-invoicing, and the UBL file
-export function EInvoiceCard({ docId, check }) {
+export function EInvoiceCard({ docId, check, nigeria = true }) {
   return (
     <Card>
-      <CardHeader title="E-invoicing" icon={FileCode2} description="NRS e-invoicing (UBL format)"
+      <CardHeader title="E-invoicing" icon={FileCode2} description={nigeria ? "NRS e-invoicing (UBL format)" : "Structured e-invoice (UBL format)"}
         actions={check.ready ? <Badge tone="success" size="sm">Ready</Badge> : <Badge tone="warn" size="sm">Needs details</Badge>} />
       <div className="flex flex-col gap-3 p-5 text-[13px]">
         {check.missing.length > 0 && (

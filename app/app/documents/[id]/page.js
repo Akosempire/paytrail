@@ -17,7 +17,7 @@ import { StatusBadge, activityText } from "@/components/doc-bits";
 import { DocumentFiles } from "@/components/document-files";
 import { PaymentClaims } from "@/components/payment-claims";
 import { EInvoiceCard } from "@/components/einvoice-card";
-import { readiness } from "@/lib/einvoice";
+import { inNigeria, readiness } from "@/lib/einvoice";
 import { r2Ready } from "@/lib/storage";
 import { readyTemplates } from "@/lib/templates-ready";
 
@@ -92,7 +92,7 @@ export default async function DocumentPage({ params, searchParams }) {
         </div>
 
         <aside className="flex flex-col gap-4">
-          {doc.kind === "invoice" && doc.status !== "void" && <EInvoiceCard docId={doc.id} check={readiness(doc, items, ctx.business)} />}
+          {doc.kind === "invoice" && doc.status !== "void" && <EInvoiceCard docId={doc.id} check={readiness(doc, items, ctx.business)} nigeria={inNigeria(ctx.business)} />}
           {!draft && doc.status !== "void" && (
             <Card>
               <CardHeader title="Customer link" icon={Link2} description={doc.viewed_at ? `Opened ${timeAgo(doc.viewed_at)}` : "Not opened yet"} />

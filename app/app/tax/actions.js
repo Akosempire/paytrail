@@ -4,6 +4,7 @@ import { requireBusiness } from "@/lib/context";
 import { can } from "@/lib/permissions";
 import { toMinor } from "@/lib/money";
 import { createSupabaseService } from "@/lib/supabase/server";
+import { inNigeria } from "@/lib/einvoice";
 import { ensureReturn, markDone, markFiled, requestFiling, saveReturnFile } from "@/lib/vat-returns";
 
 // The business's side of a monthly VAT return: ask Usetally to file it, or
@@ -11,6 +12,7 @@ import { ensureReturn, markDone, markFiled, requestFiling, saveReturnFile } from
 async function guard(period) {
   const ctx = await requireBusiness();
   if (!can(ctx.member, "payments.record")) return { error: "Only owners, managers and finance officers can handle VAT returns." };
+  if (!inNigeria(ctx.business)) return { error: "VAT returns here are for businesses in Nigeria. Check your country in Settings → Business & branding." };
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(String(period))) return { error: "Choose a month." };
   const now = new Date(), cur = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   if (period > cur) return { error: "That month hasn't happened yet." };

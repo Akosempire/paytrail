@@ -38,6 +38,18 @@ test("readiness lists what's missing", () => {
   assert.equal(readiness(docFor(false, 0), items, business).ready, true);
   const r = readiness({ ...docFor(false, 0), customer_tax_id: "" }, items, { ...business, tax_id: "" });
   assert.equal(r.ready, false);
-  assert.match(r.missing[0], /business TIN/);
-  assert.match(r.advice[0], /customer's TIN/);
+  assert.match(r.missing[0], /business tax ID/);
+  assert.match(r.advice[0], /customer's tax ID/);
+});
+
+test("only Nigerian businesses get the Nigeria-only tax features", async () => {
+  const { inNigeria, countryCode } = await import("../lib/einvoice.js");
+  assert.equal(inNigeria({ country: "Nigeria", currency: "USD" }), true);
+  assert.equal(inNigeria({ country: "Lagos, Nigeria" }), true);
+  assert.equal(inNigeria({ country: "NG" }), true);
+  assert.equal(inNigeria({ country: "United Kingdom", currency: "NGN" }), false);
+  assert.equal(inNigeria({ country: "Ghana", currency: "GHS" }), false);
+  assert.equal(inNigeria({ country: "", currency: "NGN" }), true);
+  assert.equal(inNigeria({ country: "", currency: "USD" }), false);
+  assert.equal(countryCode("Accra, Ghana"), "GH");
 });

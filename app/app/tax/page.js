@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertTriangle, CalendarClock, Download, FileText, Landmark, ReceiptText } from "lucide-react";
+import { AlertTriangle, CalendarClock, Download, FileText, Landmark, ReceiptText, Wallet } from "lucide-react";
 import { requireBusiness } from "@/lib/context";
 import { can } from "@/lib/permissions";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { loadTaxMonth, vatByMonth } from "@/lib/tax";
+import { inNigeria } from "@/lib/einvoice";
 import { PeriodPicker } from "./period-picker";
 import { VatReturnCard, VatReturnsList } from "./vat-return";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -13,8 +14,9 @@ import { Badge, buttonClass, Callout, Card, CardHeader, EmptyState, PageHeader, 
 
 export const metadata = { title: "Tax" };
 
-// VAT charged on the month's invoices, when it's due, and withholding tax
-// customers deducted, with a CSV for the accountant. Not tax advice.
+// Tax charged on the period's invoices, with a CSV for the accountant. For
+// businesses in Nigeria also: the monthly VAT return (due the 21st, "File &
+// pay for me"), withholding tax and NRS e-invoicing. Not tax advice.
 export default async function TaxPage({ searchParams }) {
   const [sp, ctx] = await Promise.all([searchParams, requireBusiness()]);
   if (!can(ctx.member, "payments.record")) notFound();
@@ -30,52 +32,55 @@ export default async function TaxPage({ searchParams }) {
   // returns are monthly: in a quarter or year, the next one still to come
   const upcoming = month.months.map((m) => m.due).find((d) => new Date(`${d}T23:59:59`) >= new Date());
   const label = b.tax_label || "VAT";
+  const ng = inNigeria(b);
+  const showWht = whtReady && (ng || t.wht > 0);
 
   // the month's VAT return (or each month's, in a quarter or year)
   const past = month.months.filter((m) => m.key <= today);
-  const { data: rets, error: retError } = await ctx.supabase.from("vat_returns").select("*").eq("business_id", b.id).in("period", past.map((m) => m.key).concat(["0000-00"]));
+  const { data: rets, error: retError } = ng ? await ctx.supabase.from("vat_returns").select("*").eq("business_id", b.id).in("period", past.map((m) => m.key).concat(["0000-00"])) : { data: [], error: null };
   const retOf = (k) => (rets || []).find((r) => r.period === k) || null;
   const ret = month.type === "month" ? retOf(month.key) : null;
   const service = createSupabaseService();
   const [{ data: retFiles }, consultant, fee] = await Promise.all([
     ret ? ctx.supabase.from("vat_return_files").select("id, kind, name, created_at").eq("return_id", ret.id).order("created_at") : Promise.resolve({ data: [] }),
     ret?.consultant_id ? service.from("tax_consultants").select("name").eq("id", ret.consultant_id).maybeSingle().then((r) => r.data?.name || null) : Promise.resolve(null),
-    import("@/lib/vat-returns").then((m) => m.filingFee(service)).catch(() => 0),
+    ng ? import("@/lib/vat-returns").then((m) => m.filingFee(service)).catch(() => 0) : 0,
   ]);
   const monthsList = past.slice().reverse().map((m) => ({ key: m.key, label: m.label, vat: retOf(m.key)?.vat_minor ?? vat[m.key] ?? 0, status: retOf(m.key)?.status || "to_file", overdue: new Date(`${m.due}T23:59:59`) < now }));
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Tax" description={`${label} you charged and withholding tax your customers deducted, for any month, quarter or year. Share the export with your accountant.`}
+      <PageHeader title="Tax" description={ng ? `${label} you charged and withholding tax your customers deducted, for any month, quarter or year. Share the export with your accountant.` : `${label} you charged, for any month, quarter or year. Share the export with your accountant.`}
         actions={<a href={`/app/tax/export?period=${month.key}`} className={buttonClass({ variant: "primary" })}><Download className="size-4 shrink-0" aria-hidden />Export {month.label}</a>} />
 
       <PeriodPicker period={{ type: month.type, key: month.key, label: month.label, long: month.long, year: month.year, quarter: month.quarter || null }} vat={vat} currency={cur} today={today} />
 
-      {!tinReady && <Callout tone="warn" icon={AlertTriangle} title="One step left">Run <strong>RUN_NEW_2026-10-26d.sql</strong> in Supabase to add customer TINs and withholding tax.</Callout>}
-      {Number(b.tax_rate) === 0 && <Callout tone="info" title={`You're not charging ${label}`}>Your default tax rate is 0%. If your sales pass the VAT threshold, set your rate in Settings → Business & branding.</Callout>}
+      {!tinReady && ng && <Callout tone="warn" icon={AlertTriangle} title="One step left">Run <strong>RUN_NEW_2026-10-26d.sql</strong> in Supabase to add customer TINs and withholding tax.</Callout>}
+      {Number(b.tax_rate) === 0 && <Callout tone="info" title={`You're not charging ${label}`}>Your default tax rate is 0%. If you need to charge {label}, set your rate in Settings → Business & branding.</Callout>}
 
-      {retError && past.length > 0 && <Callout tone="warn" title="One step left">Run <strong>RUN_NEW_2026-10-27a.sql</strong> in Supabase to track VAT returns here and use "File &amp; pay for me".</Callout>}
-      {!retError && month.type === "month" && past.length > 0 && (
+      {ng && retError && past.length > 0 && <Callout tone="warn" title="One step left">Run <strong>RUN_NEW_2026-10-27a.sql</strong> in Supabase to track VAT returns here and use "File &amp; pay for me".</Callout>}
+      {ng && !retError && month.type === "month" && past.length > 0 && (
         <VatReturnCard period={month.key} label={month.label} due={month.due} dueLabel={formatDate(month.due)} vat={ret && ["filed", "done"].includes(ret.status) ? ret.vat_minor : t.vat} currency={cur}
           ret={ret} files={retFiles || []} consultant={consultant} fee={fee} canAct={can(ctx.member, "payments.record")} overdue={new Date(`${month.due}T23:59:59`) < now} />
       )}
-      {!retError && month.type !== "month" && past.length > 0 && <VatReturnsList months={monthsList} currency={cur} />}
+      {ng && !retError && month.type !== "month" && past.length > 0 && <VatReturnsList months={monthsList} currency={cur} />}
 
-      <StatGroup cols={4}>
+      <StatGroup cols={ng || showWht ? 4 : 3}>
         <StatCard label={`${label} charged`} value={money(t.vat)} hint={`On ${t.invoices} invoice${t.invoices === 1 ? "" : "s"} issued in ${month.label}`} icon={Landmark} tone="brand" />
         <StatCard label={`Sales before ${label}`} value={money(t.taxable)} hint={t.zero || t.exempt ? `Standard ${money(t.standard)} · zero-rated ${money(t.zero)} · exempt ${money(t.exempt)}` : `${money(t.gross)} including ${label}`} icon={FileText} />
-        <StatCard label={month.type === "month" ? "Return due" : upcoming ? "Next return due" : "Returns"} value={month.type === "month" ? formatDate(month.due) : upcoming ? formatDate(upcoming) : `${month.months.length} monthly`} hint={month.type === "month" ? (overdue ? "This date has passed" : "21st of the following month") : `${month.months.length} monthly returns, each due on the 21st`} icon={CalendarClock} tone={overdue ? "warn" : "neutral"} />
-        <StatCard label="WHT deducted by customers" value={money(t.wht)} hint="Credits you can claim against your own tax" icon={ReceiptText} tone="violet" />
+        {!ng && <StatCard label={`Total including ${label}`} value={money(t.gross)} hint={`${t.invoices} invoice${t.invoices === 1 ? "" : "s"}`} icon={Wallet} />}
+        {ng && <StatCard label={month.type === "month" ? "Return due" : upcoming ? "Next return due" : "Returns"} value={month.type === "month" ? formatDate(month.due) : upcoming ? formatDate(upcoming) : `${month.months.length} monthly`} hint={month.type === "month" ? (overdue ? "This date has passed" : "21st of the following month") : `${month.months.length} monthly returns, each due on the 21st`} icon={CalendarClock} tone={overdue ? "warn" : "neutral"} />}
+        {showWht && <StatCard label="WHT deducted by customers" value={money(t.wht)} hint="Credits you can claim against your own tax" icon={ReceiptText} tone="violet" />}
       </StatGroup>
       {others.length > 0 && <p className="-mt-3 text-[13px] text-ink-3">Also in other currencies: {others.map(([c, v]) => `${formatMoney(v.vat, c)} ${label} on ${v.invoices} invoice${v.invoices === 1 ? "" : "s"}`).join(" · ")}</p>}
 
       <Card>
-        <CardHeader title={`Invoices issued in ${month.label}`} description={`Sent invoices dated in this period, not including cancelled ones.${missingTin && tinReady ? ` ${missingTin} without a customer TIN.` : ""}`} />
+        <CardHeader title={`Invoices issued in ${month.label}`} description={`Sent invoices dated in this period, not including cancelled ones.${missingTin && tinReady && ng ? ` ${missingTin} without a customer TIN.` : ""}`} />
         {invoices.length ? (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-[13.5px]">
               <thead><tr className="border-y border-line text-left text-[12px] text-ink-3">
-                <th className="px-5 py-2.5 font-medium">Invoice</th><th className="px-3 py-2.5 font-medium">Customer</th><th className="px-3 py-2.5 font-medium">TIN</th>
+                <th className="px-5 py-2.5 font-medium">Invoice</th><th className="px-3 py-2.5 font-medium">Customer</th><th className="px-3 py-2.5 font-medium">{ng ? "TIN" : "Tax ID"}</th>
                 <th className="px-3 py-2.5 text-right font-medium">Before {label}</th><th className="px-3 py-2.5 text-right font-medium">{label}</th><th className="px-5 py-2.5 text-right font-medium">Total</th>
               </tr></thead>
               <tbody className="divide-y divide-line">
@@ -92,12 +97,12 @@ export default async function TaxPage({ searchParams }) {
               </tbody>
             </table>
           </div>
-        ) : <EmptyState compact icon={FileText} title={`No invoices issued in ${month.label}`} description="You may still need to file a nil return." />}
+        ) : <EmptyState compact icon={FileText} title={`No invoices issued in ${month.label}`} description={ng ? "You may still need to file a nil return." : undefined} />}
       </Card>
 
-      <EInvoicing invoices={invoices} />
+      {ng && <EInvoicing invoices={invoices} />}
 
-      {whtReady && (
+      {showWht && (
         <Card>
           <CardHeader title="Withholding tax deducted" description="Ask each customer for their WHT credit note and attach it to the invoice under Files." />
           {wht.length ? (

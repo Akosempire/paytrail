@@ -81,7 +81,7 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
                   <Line>{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</Line>
                   <Line>{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</Line>
                   {(p.features || []).map((f) => <Line key={f}>{f}</Line>)}
-                  <Line>VAT &amp; tax summary</Line>
+                  <Line>Tax summary &amp; export</Line>
                 </ul>
 
                 <div className="mt-8">{featured ? <PrimaryCta href="/signup" block>Start free trial</PrimaryCta> : <SecondaryCta href="/signup" block>Start free trial</SecondaryCta>}</div>

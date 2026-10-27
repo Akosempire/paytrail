@@ -4,7 +4,7 @@
 const LINES = [
   ["Paid into your own account", "✓"],
   ["Every payment verified", "✓"],
-  ["VAT worked out for you", "✓"],
+  ["Tax worked out for you", "✓"],
   ["Works offline", "✓"],
   ["Keys encrypted · NDPA-ready", "✓"],
   ["Free trial", "14 days"],

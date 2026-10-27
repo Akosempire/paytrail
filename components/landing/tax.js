@@ -1,12 +1,13 @@
 import { Check, FileCheck2, Send } from "lucide-react";
 
-// Tax: the month's VAT return as it appears in the app, on paper, with the
-// three things Usetally handles on every invoice. Figures are an example.
+// Tax: works anywhere (your tax name and rate, totals for any period, an
+// export for your accountant). In Nigeria, the VAT return can be filed for
+// you; the card shows that, labelled as an example.
 const cx = (...c) => c.filter(Boolean).join(" ");
 const PAPER = "rounded-[18px] bg-hero-paper text-hero-ink shadow-[0_1px_2px_rgba(20,16,8,.06),0_26px_50px_-26px_rgba(20,16,8,.45)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
 
 const STEPS = ["To file", "Filed", "Paid"];
-const LINES = ["VAT on every invoice", "WHT & customer TIN", "E-invoice file (UBL)"];
+const LINES = ["VAT, GST or sales tax", "Customer tax ID", "Export for your accountant"];
 
 export function Tax({ wrap, kicker, h2 }) {
   return (
@@ -14,10 +15,10 @@ export function Tax({ wrap, kicker, h2 }) {
       <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16">
         <div className="max-w-[520px]">
           <p className={kicker}>Tax</p>
-          <h2 id="tax-title" className={`mt-4 ${h2}`}>Your VAT, sorted.</h2>
-          <p className="mt-5 text-[17px] leading-relaxed text-hero-ink-2">Usetally works out the VAT on every invoice and adds it up each month. File it yourself, or tap once and a tax consultant files it for you.</p>
+          <h2 id="tax-title" className={`mt-4 ${h2}`}>Your tax, sorted.</h2>
+          <p className="mt-5 text-[17px] leading-relaxed text-hero-ink-2">Usetally works out the tax on every invoice, at your rate, and adds it up for any month, quarter or year. One export and your accountant has it all.</p>
           <p className="mt-6 inline-flex items-center gap-2 font-mono text-[11.5px] tracking-[0.12em] text-hero-ink-2 uppercase">
-            <span className="size-1.5 rounded-full bg-hero-accent" aria-hidden="true" />You pay NRS directly. We never hold tax money.
+            <span className="size-1.5 rounded-full bg-hero-accent" aria-hidden="true" />In Nigeria: tap once and a tax consultant files your VAT
           </p>
         </div>
 
@@ -25,7 +26,7 @@ export function Tax({ wrap, kicker, h2 }) {
           <div className={cx(PAPER, "relative z-10 p-6 sm:p-7")}>
             <div className="flex items-start justify-between gap-4">
               <p className="text-[11px] font-semibold tracking-[0.18em] text-hero-ink-2">OCTOBER VAT RETURN</p>
-              <span className="rounded-full bg-hero-tint px-2.5 py-1 text-[11px] font-semibold text-hero-ink-2">Example</span>
+              <span className="rounded-full bg-hero-tint px-2.5 py-1 text-[11px] font-semibold text-hero-ink-2">Nigeria · example</span>
             </div>
             <p className="font-display mt-3 text-[40px] leading-none tabular-nums">₦80,250</p>
             <p className="mt-2 text-[13.5px] text-hero-ink-2">Due 21 Nov</p>

@@ -98,7 +98,7 @@ export default async function Home({ searchParams }) {
             <h1 className="font-display text-[clamp(32px,6svh,60px)] leading-[0.98] font-semibold tracking-[-0.045em] lg:text-[clamp(46px,6.4vw,84px)]">
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
-            <p className="mt-4 max-w-[440px] text-[15px] leading-relaxed text-hero-ink-2 sm:max-w-[520px] sm:text-[17px] lg:mt-6 lg:max-w-[560px] lg:text-[19px] [@media(max-height:700px)]:text-[14px] [@media(max-height:700px)]:leading-snug">Send branded quotes, turn them into invoices, and get paid by transfer, Bachs, Paystack or Stripe, straight into your own account. See your real profit and the VAT you owe, with receipts sent automatically.</p>
+            <p className="mt-4 max-w-[440px] text-[15px] leading-relaxed text-hero-ink-2 sm:max-w-[520px] sm:text-[17px] lg:mt-6 lg:max-w-[560px] lg:text-[19px] [@media(max-height:700px)]:text-[14px] [@media(max-height:700px)]:leading-snug">Send branded quotes, turn them into invoices, and get paid by transfer, Bachs, Paystack or Stripe, straight into your own account. See your real profit and the tax you owe, with receipts sent automatically.</p>
             <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-6 lg:mt-9">
               <PrimaryCta href="/signup">Get started free</PrimaryCta>
               <a href="#how-it-works" className="group hidden items-center justify-start gap-2 self-start text-[15px] font-medium sm:inline-flex sm:self-auto [@media(max-height:700px)]:max-lg:hidden">
