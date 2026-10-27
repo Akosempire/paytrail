@@ -1,7 +1,7 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardPaste, EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, CircleAlert, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
+import { ClipboardPaste, EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
@@ -40,7 +40,6 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const [emailCustomer, setEmailCustomer] = useState(emailReady);
   const [targetMargin, setTargetMargin] = useState("30");
   const [presetOpen, setPresetOpen] = useState(false);
-  const [error, setError] = useState(null);
 
   const parsedItems = items.map((i) => ({ quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat }));
   const totals = computeTotals(parsedItems, toMinor(discount) || 0, Number(taxRate) || 0, { inclusive });
@@ -88,9 +87,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   function setCost(key, patch) { setCosts((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c))); }
 
   function submit(intent) {
-    setError(null);
     const bad = items.find((i) => i.description.trim() && !Number.isFinite(toMinor(i.price)));
-    if (bad) { const m = `Check the price for "${bad.description}".`; setError(m); return toast.error(m); }
+    if (bad) return toast.error(`Check the price for "${bad.description}".`);
     const input = {
       kind, title, issue_date: issueDate,
       ...(quote ? { valid_until: endDate } : { due_date: endDate }),
@@ -105,7 +103,6 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     start(async () => {
       const result = onSave ? await onSave(input, intent) : await saveDocument(doc?.id || null, input, intent);
       if (result?.error) {
-        setError(result.error);
         toast.error(result.error);
         if (result.id && !onSaved) router.push(`/app/documents/${result.id}`);
         return;
@@ -117,7 +114,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   }
 
   return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-28 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px]">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-40 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px]">
       <div className="sticky top-16 z-10 -mx-4 -mt-2 bg-canvas/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden" role="tablist" aria-label="Editor view">
         <div className="grid grid-cols-2 gap-0.5 rounded-lg bg-tray p-1">
           {[["edit", "Edit", PencilLine], ["preview", "Preview", Eye]].map(([v, l, Icon]) => (
@@ -349,21 +346,20 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       </aside>
 
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur lg:left-[264px]">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6 lg:px-8">
-          <div className="min-w-0 flex-1">
-            {error ? <p role="alert" className="flex items-start gap-2 text-[13px] text-ink"><CircleAlert className="mt-px size-4 shrink-0 text-intent-error" aria-hidden="true" /><span><span className="sr-only">Error: </span>{error}</span></p> : (
-              <p className="text-[13px] text-ink-3"><span className="font-semibold text-ink tabular">{money(totals.total)}</span> total{costsVisible && costTotal > 0 && <> · <span className={profit < 0 ? "text-danger-ink" : "text-success-ink"}>{money(profit)} profit</span></>}</p>
-            )}
+        {/* phones: total on top, two equal buttons, clear of the home bar; problems show as toasts */}
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-2.5 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] sm:gap-3 sm:px-6 sm:pb-3 lg:px-8">
+          <div className="w-full min-w-0 sm:w-auto sm:flex-1">
+            <p className="text-[13px] text-ink-3"><span className="font-semibold text-ink tabular">{money(totals.total)}</span> total{costsVisible && costTotal > 0 && <> · <span className={profit < 0 ? "text-danger-ink" : "text-success-ink"}>{money(profit)} profit</span></>}</p>
           </div>
           {!needsApproval && emailReady && (
             <label className="hidden items-center gap-2 text-[13px] text-ink-2 sm:flex">
               <input type="checkbox" checked={emailCustomer} onChange={(e) => setEmailCustomer(e.target.checked)} className="size-4 accent-[var(--color-brand)]" />Email to customer
             </label>
           )}
-          <Button variant="secondary" icon={pending ? Loader2 : Save} loading={pending} onClick={() => submit("draft")}>Save draft</Button>
+          <Button variant="secondary" icon={pending ? Loader2 : Save} loading={pending} onClick={() => submit("draft")} className="h-12 flex-1 sm:h-10 sm:flex-none">Save draft</Button>
           {needsApproval
-            ? <Button variant="primary" icon={ShieldCheck} disabled={pending} onClick={() => submit("submit")}>Submit for approval</Button>
-            : <Button variant="primary" icon={Send} disabled={pending} onClick={() => submit("send")}>{quote ? "Save & send quote" : "Save & send invoice"}</Button>}
+            ? <Button variant="primary" icon={ShieldCheck} disabled={pending} onClick={() => submit("submit")} className="h-12 flex-[1.6] sm:h-10 sm:flex-none">Submit for approval</Button>
+            : <Button variant="primary" icon={Send} disabled={pending} onClick={() => submit("send")} className="h-12 flex-[1.6] sm:h-10 sm:flex-none">{quote ? "Save & send" : "Save & send"}<span className="max-sm:hidden">&nbsp;{quote ? "quote" : "invoice"}</span></Button>}
         </div>
       </div>
     </div>
