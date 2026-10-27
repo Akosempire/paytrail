@@ -2,6 +2,7 @@
 import { requirePermission } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { startCheckout } from "@/lib/payments";
+import { subscriptionCurrencyFor } from "@/lib/plans";
 
 export async function choosePlan(planId) {
   const ctx = await requirePermission("settings.billing");
@@ -15,6 +16,12 @@ export async function choosePlan(planId) {
   const spotsLeft = plan && !plan.active && plan.spots != null ? (await service.rpc("plan_spots_left", { plan: plan.id })).data : null;
   if (!plan || (!plan.active && !(ctx.business.plan_id === plan.id && ctx.business.subscription_status === "active") && !(spotsLeft > 0))) return { error: plan?.spots != null ? "All the founding spots are taken." : "That plan is no longer available." };
   if (ctx.business.kind === "company" && !plan.allow_company) return { error: "This plan is for freelancers. Choose a team plan." };
+  // naira plans are for Nigerian businesses, dollar plans for everyone else
+  // (a business already on a plan can keep renewing it)
+  const isCurrent = ctx.business.plan_id === plan.id;
+  if (plan.price_minor > 0 && !isCurrent && plan.currency !== subscriptionCurrencyFor(ctx.business)) {
+    return { error: plan.currency === "NGN" ? "Naira plans are for businesses in Nigeria. Choose a dollar plan." : "Businesses in Nigeria pay in naira. Choose a naira plan." };
+  }
   if (plan.price_minor === 0) {
     const { error } = await service.rpc("extend_subscription", { target: ctx.business.id, new_plan: plan.id, pay_method: "free", pay_reference: "", pay_amount: 0, pay_currency: plan.currency, recorder: ctx.user.id });
     return error ? { error: error.message } : { message: `You're on ${plan.name}.` };

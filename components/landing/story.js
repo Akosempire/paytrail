@@ -1,4 +1,5 @@
 "use client";
+import { createContext, useContext } from "react";
 import { Check, EyeOff, FileText, MessageCircle, Printer, ShieldCheck } from "lucide-react";
 import { ScrollScene, ScrollWords } from "@/components/landing/scroll-scene";
 
@@ -7,19 +8,31 @@ import { ScrollScene, ScrollWords } from "@/components/landing/scroll-scene";
 // are clearly labelled examples, never claims about customers.
 
 const PAPER = "rounded-[14px] bg-hero-paper text-hero-ink shadow-[0_1px_2px_rgba(20,16,8,.06),0_22px_44px_-22px_rgba(20,16,8,.38)] ring-1 ring-black/[.06] dark:ring-white/[.06]";
-const naira = (n) => `₦${n.toLocaleString("en-NG")}`;
+// Example amounts are written in naira. Visitors outside Nigeria see the same
+// story in dollars (divided by 100, so 500,000 naira reads as $5,000).
+const MoneyCtx = createContext("NGN");
+const useMoney = () => {
+  const cur = useContext(MoneyCtx);
+  return cur === "NGN" ? (n) => `₦${n.toLocaleString("en-NG")}` : (n) => `$${(n / 100).toLocaleString("en-US")}`;
+};
+const useTaxLabel = () => (useContext(MoneyCtx) === "NGN" ? "VAT 7.5%" : "Tax 7.5%");
 const cx = (...c) => c.filter(Boolean).join(" ");
 
 const COSTS = [
   ["Data & internet", 25000],
-  ["Fuel & generator", 38000],
+  ["Fuel & power", 38000],
   ["Transport", 15000],
   ["Software subscriptions", 30000],
   ["Freelance help", 50000],
 ];
 const PRICE = 500000;
 
-export function PainStory() {
+export function PainStory({ currency = "NGN" }) {
+  return <MoneyCtx.Provider value={currency}><PainStoryBody /></MoneyCtx.Provider>;
+}
+
+function PainStoryBody() {
+  const m = useMoney();
   return (
     <ScrollScene steps={COSTS.length + 2} heightVh={250} label="The real cost of a job" className="text-hero-ink">
       {(step, still, compact) => {
@@ -31,7 +44,7 @@ export function PainStory() {
           <div className="mx-auto flex w-full max-w-[560px] flex-col gap-5 px-4 sm:px-6">
             <div>
               <p className="text-[12px] font-semibold tracking-[0.14em] text-hero-accent uppercase">The problem</p>
-              <h2 className="font-display mt-3 text-[clamp(28px,8vw,42px)] leading-[1.05]">You quoted ₦500,000.<br /><span className="text-hero-ink-2">What did you keep?</span></h2>
+              <h2 className="font-display mt-3 text-[clamp(28px,8vw,42px)] leading-[1.05]">You quoted {m(500000)}.<br /><span className="text-hero-ink-2">What did you keep?</span></h2>
               <p className="mt-3 text-[15px] leading-snug text-hero-ink-2 [@media(max-height:700px)]:hidden">None of these costs show on the invoice. Usetally keeps them on every job, hidden from your customer.</p>
             </div>
             <CostCard shown={shown} spent={spent} done={done} compact />
@@ -42,7 +55,7 @@ export function PainStory() {
             <div className="max-w-[560px]">
               <p className="text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase">The problem</p>
               <h2 className="font-display mt-4 text-[clamp(34px,4.6vw,60px)] leading-[1.02] font-semibold tracking-[-0.035em]">
-                You quoted ₦500,000.<br /><span className="text-hero-ink-2">What did you keep?</span>
+                You quoted {m(500000)}.<br /><span className="text-hero-ink-2">What did you keep?</span>
               </h2>
               <ScrollWords from={0.05} to={0.75} className="mt-6 text-[17px] leading-relaxed text-hero-ink sm:text-[19px]"
                 text="Data, fuel, transport, software and the friend who helped you finish. None of it shows on the invoice, so most small businesses never see their real profit. Usetally keeps those costs on every job, hidden from your customer and visible to you." />
@@ -57,6 +70,7 @@ export function PainStory() {
 }
 
 function CostCard({ shown, spent, done, compact }) {
+  const m = useMoney();
   return (
     <div className={cx(PAPER, compact ? "p-4" : "p-6 sm:p-7")}>
                 <div className="flex items-start justify-between gap-4">
@@ -68,7 +82,7 @@ function CostCard({ shown, spent, done, compact }) {
                 </div>
                 <div className="mt-5 flex items-baseline justify-between border-b border-hero-line pb-4">
                   <span className="text-[14px] text-hero-ink-2">Customer pays</span>
-                  <span className={cx("font-semibold tracking-[-0.02em] tabular-nums", compact ? "text-[22px]" : "text-[26px]")}>{naira(PRICE)}</span>
+                  <span className={cx("font-semibold tracking-[-0.02em] tabular-nums", compact ? "text-[22px]" : "text-[26px]")}>{m(PRICE)}</span>
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-[12px] font-semibold text-hero-violet">
                   <EyeOff className="size-3.5" aria-hidden="true" />YOUR COSTS · ONLY YOUR TEAM SEES THESE
@@ -78,13 +92,13 @@ function CostCard({ shown, spent, done, compact }) {
                     <li key={label} className={cx("flex items-center justify-between rounded-lg px-3 transition-all duration-500", compact ? "py-1.5 text-[13px]" : "py-2 text-[14px]",
                       i < shown ? "translate-x-0 bg-hero-tint/70 opacity-100" : "translate-x-3 opacity-0")}>
                       <span className="text-hero-ink-2">{label}</span>
-                      <span className="tabular-nums">−{naira(value)}</span>
+                      <span className="tabular-nums">−{m(value)}</span>
                     </li>
                   ))}
                 </ul>
                 <div className="mt-4 flex items-baseline justify-between border-t border-hero-line pt-4">
                   <span className="text-[14px] font-semibold">Real profit</span>
-                  <span className={cx("font-semibold tracking-[-0.02em] tabular-nums transition-colors duration-500", compact ? "text-[22px]" : "text-[26px]", done ? "text-hero-accent" : "text-hero-ink")}>{naira(PRICE - spent)}</span>
+                  <span className={cx("font-semibold tracking-[-0.02em] tabular-nums transition-colors duration-500", compact ? "text-[22px]" : "text-[26px]", done ? "text-hero-accent" : "text-hero-ink")}>{m(PRICE - spent)}</span>
                 </div>
                 <div className="mt-3 h-2 overflow-hidden rounded-full bg-hero-tint" aria-hidden="true">
                   <div className="h-full rounded-full bg-hero-accent transition-[width] duration-500" style={{ width: `${((PRICE - spent) / PRICE) * 100}%` }} />
@@ -103,7 +117,11 @@ const CHAPTERS = [
   { kicker: "04 · Receipt", title: "A receipt, printed or sent.", body: "A numbered receipt is issued for every payment, full or part. Download it, share it, or print it on A4 or an 80 mm or 58 mm receipt printer.", Visual: ReceiptVisual },
 ];
 
-export function Chapters() {
+export function Chapters({ currency = "NGN" }) {
+  return <MoneyCtx.Provider value={currency}><ChaptersBody /></MoneyCtx.Provider>;
+}
+
+function ChaptersBody() {
   return (
     <div id="how-it-works" className="scroll-mt-0 text-hero-ink">
       {/* reduced motion: a simple stacked story; phones: a compact pinned story */}
@@ -217,6 +235,7 @@ function Row({ label, value, muted, strong }) {
 }
 
 function QuoteVisual({ active }) {
+  const m = useMoney();
   return (
     <div className="relative">
       <div className={cx(PAPER, "p-6")}>
@@ -225,16 +244,16 @@ function QuoteVisual({ active }) {
           <span className="rounded-full bg-hero-tint px-2 py-0.5 text-[11px] font-semibold text-hero-ink-2">Draft</span>
         </div>
         <div className="mt-4 divide-y divide-hero-line">
-          <Row label="Brand identity" value="₦180,000" />
-          <Row label="Website, 6 pages" value="₦270,000" />
-          <Row label="Product photos" value="₦50,000" />
+          <Row label="Brand identity" value={m(180000)} />
+          <Row label="Website, 6 pages" value={m(270000)} />
+          <Row label="Product photos" value={m(50000)} />
         </div>
-        <div className="mt-2 border-t border-hero-ink pt-2"><Row label="Total" value="₦500,000" strong /></div>
+        <div className="mt-2 border-t border-hero-ink pt-2"><Row label="Total" value={m(500000)} strong /></div>
       </div>
       <div className={cx("absolute -right-3 -bottom-16 w-[62%] rounded-[14px] border border-dashed border-hero-violet/50 bg-hero-paper p-4 shadow-[0_22px_44px_-22px_rgba(20,16,8,.45)] transition-all duration-700 sm:-right-8", active ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0")}>
         <p className="flex items-center gap-1.5 text-[11px] font-semibold text-hero-violet"><EyeOff className="size-3.5" aria-hidden="true" />HIDDEN COSTS</p>
-        <p className="mt-2 flex justify-between text-[13px]"><span className="text-hero-ink-2">Costs</span><span className="tabular-nums">₦158,000</span></p>
-        <p className="mt-1 flex justify-between text-[13px] font-semibold"><span>Profit</span><span className="tabular-nums text-hero-accent">₦342,000</span></p>
+        <p className="mt-2 flex justify-between text-[13px]"><span className="text-hero-ink-2">Costs</span><span className="tabular-nums">{m(158000)}</span></p>
+        <p className="mt-1 flex justify-between text-[13px] font-semibold"><span>Profit</span><span className="tabular-nums text-hero-accent">{m(342000)}</span></p>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-hero-tint"><div className="h-full rounded-full bg-hero-accent transition-[width] delay-300 duration-1000" style={{ width: active ? "68%" : "0%" }} /></div>
         <p className="mt-1 text-right text-[11px] text-hero-ink-2">68% margin</p>
       </div>
@@ -244,6 +263,7 @@ function QuoteVisual({ active }) {
 }
 
 function AcceptVisual({ active }) {
+  const m = useMoney();
   return (
     <div className="mx-auto flex max-w-[400px] justify-center">
       <div className="w-[268px] rounded-[38px] bg-hero-ink p-2.5 shadow-[0_30px_60px_-28px_rgba(20,16,8,.55)]">
@@ -253,7 +273,7 @@ function AcceptVisual({ active }) {
             <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-[#d9f2e3] px-3 py-2 text-[12.5px] text-[#14281d]">Hi Chioma, here's our quote for the website and brand refresh 👇<span className="mt-1 block truncate font-medium underline">usetally.cc/d/7f3a…</span></div>
             <div className={cx("rounded-2xl bg-hero-paper p-3 text-[12.5px] text-hero-ink shadow-sm transition-all duration-500", active ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0")}>
               <p className="text-[10.5px] font-semibold tracking-[0.14em] text-hero-ink-2">QUOTATION</p>
-              <p className="mt-0.5 font-semibold">₦500,000</p>
+              <p className="mt-0.5 font-semibold">{m(500000)}</p>
               <div className={cx("mt-2.5 flex items-center justify-center gap-1.5 rounded-lg py-2 text-[12px] font-semibold transition-colors delay-700 duration-500", active ? "bg-hero-accent text-white" : "bg-hero-ink text-hero")}>
                 {active ? <><Check className="size-3.5" aria-hidden="true" />Accepted by Chioma Obi</> : "Accept quote"}
               </div>
@@ -267,6 +287,8 @@ function AcceptVisual({ active }) {
 }
 
 function PayVisual({ active }) {
+  const m = useMoney();
+  const taxLabel = useTaxLabel();
   return (
     <div className="relative">
       <div className={cx(PAPER, "p-6")}>
@@ -275,10 +297,10 @@ function PayVisual({ active }) {
           <span className={cx("rounded-full px-2 py-0.5 text-[11px] font-semibold transition-colors delay-500 duration-500", active ? "bg-[#e6eefc] text-[#175cd3]" : "bg-[#f6eedc] text-[#8a5a12]")}>{active ? "Paid" : "Due 31 Oct"}</span>
         </div>
         <div className="mt-4 divide-y divide-hero-line">
-          <Row label="Subtotal" value="₦500,000" muted />
-          <Row label="VAT 7.5%" value="₦37,500" muted />
+          <Row label="Subtotal" value={m(500000)} muted />
+          <Row label={taxLabel} value={m(37500)} muted />
         </div>
-        <div className="mt-2 border-t border-hero-ink pt-2"><Row label="Total due" value="₦537,500" strong /></div>
+        <div className="mt-2 border-t border-hero-ink pt-2"><Row label="Total due" value={m(537500)} strong /></div>
         <div className="mt-4 grid grid-cols-3 gap-1.5 text-center text-[11.5px] font-semibold">
           {["Transfer", "Bachs", "Paystack"].map((p, i) => (
             <span key={p} className={cx("rounded-lg py-2 ring-1", i === 1 && active ? "bg-hero-ink text-hero ring-hero-ink" : "text-hero-ink-2 ring-hero-line")}>{p}</span>
@@ -294,6 +316,7 @@ function PayVisual({ active }) {
 }
 
 function ReceiptVisual({ active }) {
+  const m = useMoney();
   return (
     <div className="mx-auto flex max-w-[360px] flex-col items-center">
       <div className="relative z-10 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-hero-ink text-[12px] font-semibold text-hero shadow-[0_18px_40px_-20px_rgba(20,16,8,.6)]">
@@ -308,7 +331,7 @@ function ReceiptVisual({ active }) {
           <p className="mt-2 flex justify-between"><span>RC-0042</span><span>24 Oct</span></p>
           <p className="flex justify-between"><span>For</span><span>INV-0042</span></p>
           <p className="flex justify-between"><span>Method</span><span>Bachs</span></p>
-          <p className="mt-2 flex justify-between border-t border-dashed border-hero-ink/60 pt-2 font-sans text-[15px] font-bold"><span>PAID</span><span className="tabular-nums">₦537,500</span></p>
+          <p className="mt-2 flex justify-between border-t border-dashed border-hero-ink/60 pt-2 font-sans text-[15px] font-bold"><span>PAID</span><span className="tabular-nums">{m(537500)}</span></p>
           <p className="mt-3 text-center text-hero-ink-2">Thank you!</p>
         </div>
       </div>

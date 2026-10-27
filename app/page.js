@@ -18,7 +18,8 @@ import { LiveStats } from "@/components/landing/live-stats";
 import { supabaseConfigured } from "@/lib/supabase/server";
 import { getContext } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
-import { hasYearly, monthlyEquivalent, plansFor } from "@/lib/plans";
+import { hasYearly, monthlyEquivalent, plansFor, subscriptionCurrency } from "@/lib/plans";
+import { visitorCountry } from "@/lib/geo";
 import { BRAND } from "@/lib/brand";
 import { SEO } from "@/lib/seo";
 import { publicPlans } from "@/lib/public-plans";
@@ -71,7 +72,11 @@ function structuredData(plans) {
 export default async function Home({ searchParams }) {
   preload("/fonts/orbitron-700.woff2", { as: "font", type: "font/woff2", crossOrigin: "anonymous" });
   const sp = await searchParams;
-  const [{ plans: allPlans, trial, offer }, ctx] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }]);
+  const [{ plans: allPlans, trial, offers = [] }, ctx, country] = await Promise.all([publicData(), supabaseConfigured() ? getContext() : { user: null }, visitorCountry()]);
+  // naira for visitors in Nigeria, dollars everywhere else (prices, offer, examples)
+  const currency = subscriptionCurrency(country);
+  const nigeria = currency === "NGN";
+  const offer = offers.find((o) => o.currency === currency) || null;
   const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Free trial";
   const signedIn = Boolean(ctx.user);
   const jsonLd = structuredData(allPlans);
@@ -117,11 +122,11 @@ export default async function Home({ searchParams }) {
       </div>
 
       {/* ------------------------------------------------ story */}
-      <PainStory />
-      <Chapters />
+      <PainStory currency={currency} />
+      <Chapters currency={currency} />
 
       {/* ------------------------------------------------ tax */}
-      <Tax wrap={WRAP} kicker={KICKER} h2={H2} />
+      <Tax wrap={WRAP} kicker={KICKER} h2={H2} nigeria={nigeria} />
 
       {/* ------------------------------------------------ teams */}
       <Team wrap={WRAP} kicker={KICKER} h2={H2} />
@@ -162,11 +167,11 @@ export default async function Home({ searchParams }) {
 
       {/* ------------------------------------------------ pricing */}
       {allPlans.length > 0 && (() => {
-        const currencies = [...new Set(allPlans.filter((p) => p.price_minor > 0).map((p) => p.currency))];
+        // the currency follows the visitor's location; there's no switch
         const interval = sp.interval === "year" ? "year" : "month";
-        const { currency, plans } = plansFor(allPlans, { currency: currencies.includes(sp.currency) ? sp.currency : currencies.includes("NGN") ? "NGN" : "USD", interval });
-        const link = (c, i) => `/?currency=${c}&interval=${i}#pricing`;
-        return <Pricing plans={plans} currency={currency} currencies={currencies} interval={interval} yearly={hasYearly(allPlans, currency)} trialText={trialText} link={link} wrap={WRAP} kicker={KICKER} h2={H2} />;
+        const { currency: shown, plans } = plansFor(allPlans, { currency, interval });
+        const link = (c, i) => `/?interval=${i}#pricing`;
+        return <Pricing plans={plans} currency={shown} currencies={[shown]} interval={interval} yearly={hasYearly(allPlans, shown)} trialText={trialText} link={link} wrap={WRAP} kicker={KICKER} h2={H2} />;
       })()}
 
       {/* ------------------------------------------------ FAQ */}

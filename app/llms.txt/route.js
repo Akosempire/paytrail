@@ -41,7 +41,7 @@ ${SEO.features.map(([t, d]) => `- **${t}**: ${d}`).join("\n")}
 
 ## Pricing
 ${trialLine}
-${priceLines.length ? priceLines.join("\n") : `See ${base}/#pricing for current plans.`}
+${priceLines.length ? priceLines.join("\n") + "\nNaira prices are for businesses in Nigeria; dollar prices apply everywhere else." : `See ${base}/#pricing for current plans.`}
 Usetally takes 0% of customer payments; payment providers charge their own fees.
 
 ## FAQ

@@ -3,17 +3,20 @@ import { useEffect, useState } from "react";
 import { Field, Input, Select } from "@/components/ui";
 import { COUNTRIES, OTHER, countryByName, guessCountry } from "@/lib/countries";
 
+const byCode = (code) => COUNTRIES.find((c) => c.code === String(code || "").toUpperCase()) || null;
+
 // Required country: a list, with "Other" for anywhere not listed. Guesses from
-// the device's time zone when empty. onPick(country | null) lets the form
+// the visitor's location (ipCountry, from the server), else the device's time
+// zone, when empty. onPick(country | null) lets the form
 // suggest a currency.
-export function CountrySelect({ id = "country", name = "country", defaultValue = "", onPick, guess = false, hint, className }) {
+export function CountrySelect({ id = "country", name = "country", defaultValue = "", onPick, guess = false, ipCountry, hint, className }) {
   const known = countryByName(defaultValue);
   const [choice, setChoice] = useState(known ? known.name : defaultValue ? OTHER : "");
   const [other, setOther] = useState(known ? "" : defaultValue || "");
   useEffect(() => {
     if (!guess || choice) return;
     let tz = ""; try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch {}
-    const g = guessCountry(tz);
+    const g = byCode(ipCountry) || guessCountry(tz);
     if (g) { setChoice(g.name); onPick?.(g); }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
   const value = choice === OTHER ? other.trim() : choice;

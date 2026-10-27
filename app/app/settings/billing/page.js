@@ -7,7 +7,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
 import { PlanButton } from "./plan-button";
-import { hasYearly, monthlyEquivalent, plansFor } from "@/lib/plans";
+import { hasYearly, monthlyEquivalent, plansFor, subscriptionCurrencyFor } from "@/lib/plans";
 import { cx } from "@/components/ui";
 
 export const metadata = { title: "Plan & billing" };
@@ -25,7 +25,7 @@ export default async function Billing({ searchParams }) {
   ]);
   const currentInterval = (plans || []).find((p) => p.id === b.plan_id)?.billing_interval;
   const interval = wanted === "year" || wanted === "month" ? wanted : currentInterval === "year" ? "year" : "month";
-  const { currency: planCurrency, plans: visible } = plansFor(plans, { currency: b.currency, interval, kind: b.kind, currentPlanId: b.subscription_status === "active" ? b.plan_id : null });
+  const { currency: planCurrency, plans: visible } = plansFor(plans, { currency: subscriptionCurrencyFor(b), interval, kind: b.kind, currentPlanId: b.subscription_status === "active" ? b.plan_id : null });
   const yearly = hasYearly(plans, planCurrency);
   const a = ctx.allowance || {};
   const onFree = Boolean(a.free);

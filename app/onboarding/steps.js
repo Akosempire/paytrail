@@ -76,7 +76,7 @@ function ChoiceCard({ checked, onSelect, icon: Icon, title, description, points 
   );
 }
 
-export function StepStart({ ownerName, firstBusiness }) {
+export function StepStart({ ownerName, firstBusiness, ipCountry }) {
   const [state, action] = useActionState(startBusiness, null);
   const [kind, setKind] = useState("freelancer");
   const [currency, setCurrency] = useState("NGN");
@@ -102,7 +102,7 @@ export function StepStart({ ownerName, firstBusiness }) {
             <Input id="name" name="name" placeholder={kind === "company" ? "Adeyemi Studio Ltd" : "Tolu Adeyemi Designs"} required />
           </Field>
           <Field label="Your name" htmlFor="owner_name"><Input id="owner_name" name="owner_name" defaultValue={ownerName} required /></Field>
-          <CountrySelect guess onPick={(c) => c && CURRENCIES.includes(c.currency) && setCurrency(c.currency)} />
+          <CountrySelect guess ipCountry={ipCountry} onPick={(c) => c && CURRENCIES.includes(c.currency) && setCurrency(c.currency)} />
           <Field label="Main currency" htmlFor="currency"><Select id="currency" name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
         </div>
         <More label="Add contact details (optional)">

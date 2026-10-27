@@ -5,6 +5,7 @@ import { logoUrl } from "@/lib/site";
 import { Logo } from "@/components/ui";
 import { ThemeToggle } from "@/components/ui-client";
 import { StepStart, StepBrand, StepMoney, StepFinish } from "./steps";
+import { visitorCountry } from "@/lib/geo";
 
 export const metadata = { title: "Set up your business" };
 
@@ -32,6 +33,7 @@ export default async function Onboarding({ searchParams }) {
   const step = pending ? (["brand", "money", "finish"].includes(params.step) ? params.step : "brand") : "start";
   const index = STEPS.findIndex((s) => s.key === step);
   const name = ctx.user.user_metadata?.full_name || "";
+  const ipCountry = step === "start" ? await visitorCountry() : null;
 
   return (
     <div className="min-h-dvh bg-canvas">
@@ -55,7 +57,7 @@ export default async function Onboarding({ searchParams }) {
             </li>
           ))}
         </ol>
-        {step === "start" && <StepStart ownerName={name} firstBusiness={!ctx.memberships.length} />}
+        {step === "start" && <StepStart ownerName={name} firstBusiness={!ctx.memberships.length} ipCountry={ipCountry} />}
         {step === "brand" && <StepBrand business={pending} logo={logoUrl(pending.logo_path)} />}
         {step === "money" && <StepMoney business={pending} />}
         {step === "finish" && <StepFinish business={pending} />}
