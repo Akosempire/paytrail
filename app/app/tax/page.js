@@ -129,13 +129,12 @@ function EInvoicing({ invoices }) {
   const top = Object.entries(issues).sort((a, b) => b[1] - a[1]).slice(0, 5);
   return (
     <Card>
-      <CardHeader title="E-invoicing readiness" description="NRS e-invoicing: businesses with ₦1bn–₦5bn turnover from 1 July 2026, under ₦1bn from 1 July 2027 (check with NRS)."
+      <CardHeader title="E-invoicing readiness" description="What NRS e-invoicing needs on each invoice."
         actions={invoices.length ? <Badge tone={ready === invoices.length ? "success" : "warn"} size="sm">{ready} of {invoices.length} ready</Badge> : null} />
       <div className="flex flex-col gap-3 p-5 text-[13.5px] text-ink-2">
         {top.length ? (
           <ul className="space-y-1.5">{top.map(([m, n]) => <li key={m} className="flex justify-between gap-3"><span>{m}</span><span className="shrink-0 text-ink-3">{n} invoice{n === 1 ? "" : "s"}</span></li>)}</ul>
-        ) : invoices.length ? <p>Every invoice in this period has what e-invoicing needs.</p> : <p>No invoices in this period.</p>}
-        <p className="text-[12.5px] text-ink-3">Each invoice has a <strong>Download e-invoice (XML)</strong> button: the UBL file e-invoicing providers accept. Sending to NRS (with the IRN and QR code) comes when Usetally connects to an approved provider.</p>
+        ) : invoices.length ? <p>All set. Every invoice has what it needs.</p> : <p className="text-ink-3">No invoices in this period.</p>}
       </div>
     </Card>
   );

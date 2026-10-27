@@ -2,8 +2,10 @@
 // "Usetally's cut" is the total. Straight, still and readable; the torn edge
 // at the bottom is a CSS mask. Everything here is true of the product today.
 const LINES = [
-  ["Paid into your own Paystack/Stripe", "✓"],
+  ["Paid into your own account", "✓"],
   ["Every payment verified", "✓"],
+  ["VAT worked out for you", "✓"],
+  ["Works offline", "✓"],
   ["Keys encrypted · NDPA-ready", "✓"],
   ["Free trial", "14 days"],
   ["Card needed to start", "No"],

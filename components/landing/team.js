@@ -85,6 +85,7 @@ export function Team({ wrap, kicker, h2 }) {
         <div className="-mx-4 flex snap-x snap-mandatory gap-4 overflow-x-auto px-4 pb-4 [scrollbar-width:none] sm:-mx-6 sm:px-6 lg:mx-0 lg:grid lg:grid-cols-3 lg:gap-5 lg:overflow-visible lg:px-0 lg:pb-0 [&::-webkit-scrollbar]:hidden">
           {BADGES.map((b) => <div key={b.role} className="w-[78%] shrink-0 snap-center sm:w-[46%] lg:w-auto"><Badge b={b} /></div>)}
         </div>
+        <p aria-hidden="true" className="-mt-8 text-center font-mono text-[11px] tracking-[0.14em] text-hero-ink-2 uppercase lg:hidden">Swipe for each role →</p>
       </div>
     </section>
   );

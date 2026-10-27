@@ -21,7 +21,7 @@ const PRICE = 500000;
 
 export function PainStory() {
   return (
-    <ScrollScene steps={COSTS.length + 2} heightVh={320} label="The real cost of a job" className="text-hero-ink">
+    <ScrollScene steps={COSTS.length + 2} heightVh={250} label="The real cost of a job" className="text-hero-ink">
       {(step, still, compact) => {
         const shown = Math.min(COSTS.length, Math.max(0, step));
         const spent = COSTS.slice(0, shown).reduce((s, [, v]) => s + v, 0);
@@ -99,7 +99,7 @@ function CostCard({ shown, spent, done, compact }) {
 const CHAPTERS = [
   { kicker: "01 · Quote", title: "Price the job. See the profit first.", body: "Add your items, then your hidden costs. Usetally shows your margin before you send, and suggests a price if it's too thin.", Visual: QuoteVisual },
   { kicker: "02 · Accept", title: "Share a link. They accept in one tap.", body: "Send by WhatsApp or email. Your customer opens your branded quote on any phone and accepts with their name, no app or account needed.", Visual: AcceptVisual },
-  { kicker: "03 · Pay", title: "They pay. It marks itself paid.", body: "Card or transfer through your own Paystack, Stripe, Flutterwave or Bachs account. Every payment is confirmed with the provider before the invoice is marked paid.", Visual: PayVisual },
+  { kicker: "03 · Pay", title: "They pay. It marks itself paid.", body: "By transfer to your bank, or by card through your own Bachs, Paystack or Stripe. Card payments are checked with the provider; a transfer you confirm in one tap.", Visual: PayVisual },
   { kicker: "04 · Receipt", title: "A receipt, printed or sent.", body: "A numbered receipt is issued for every payment, full or part. Download it, share it, or print it on A4 or an 80 mm or 58 mm receipt printer.", Visual: ReceiptVisual },
 ];
 
@@ -107,7 +107,7 @@ export function Chapters() {
   return (
     <div id="how-it-works" className="scroll-mt-0 text-hero-ink">
       {/* reduced motion: a simple stacked story; phones: a compact pinned story */}
-      <ScrollScene steps={CHAPTERS.length} heightVh={CHAPTERS.length * 110} label="How Usetally works">
+      <ScrollScene steps={CHAPTERS.length} heightVh={CHAPTERS.length * 75} label="How Usetally works">
         {(step, still, compact) => compact && !still ? <ChaptersCompact step={step} /> : still ? (
           <div className="mx-auto flex w-full max-w-[1280px] flex-col gap-16 px-4 py-20 sm:px-6 lg:px-10">
             <ChapterIntro />
@@ -280,14 +280,14 @@ function PayVisual({ active }) {
         </div>
         <div className="mt-2 border-t border-hero-ink pt-2"><Row label="Total due" value="₦537,500" strong /></div>
         <div className="mt-4 grid grid-cols-3 gap-1.5 text-center text-[11.5px] font-semibold">
-          {["Paystack", "Stripe", "Transfer"].map((p, i) => (
-            <span key={p} className={cx("rounded-lg py-2 ring-1", i === 0 && active ? "bg-hero-ink text-hero ring-hero-ink" : "text-hero-ink-2 ring-hero-line")}>{p}</span>
+          {["Transfer", "Bachs", "Paystack"].map((p, i) => (
+            <span key={p} className={cx("rounded-lg py-2 ring-1", i === 1 && active ? "bg-hero-ink text-hero ring-hero-ink" : "text-hero-ink-2 ring-hero-line")}>{p}</span>
           ))}
         </div>
       </div>
       <div aria-hidden="true" className={cx("absolute top-[38%] right-6 rotate-[-12deg] rounded-md border-[3px] border-[#175cd3] px-3 py-1 text-[26px] font-bold tracking-[0.16em] text-[#175cd3] transition-all duration-300", active ? "scale-100 opacity-90 delay-300" : "scale-[1.6] opacity-0")}>PAID</div>
       <p className={cx("mt-4 flex items-center justify-center gap-2 text-[13px] text-hero-ink-2 transition-opacity delay-700 duration-500", active ? "opacity-100" : "opacity-0")}>
-        <ShieldCheck className="size-4 text-hero-accent" aria-hidden="true" />Verified with Paystack before marking paid
+        <ShieldCheck className="size-4 text-hero-accent" aria-hidden="true" />Verified with Bachs before marking paid
       </p>
     </div>
   );
@@ -307,7 +307,7 @@ function ReceiptVisual({ active }) {
           <p className="mt-2 border-y border-dashed border-hero-ink/60 py-1 text-center font-sans text-[12px] font-semibold tracking-[0.18em]">RECEIPT</p>
           <p className="mt-2 flex justify-between"><span>RC-0042</span><span>24 Oct</span></p>
           <p className="flex justify-between"><span>For</span><span>INV-0042</span></p>
-          <p className="flex justify-between"><span>Method</span><span>Paystack</span></p>
+          <p className="flex justify-between"><span>Method</span><span>Bachs</span></p>
           <p className="mt-2 flex justify-between border-t border-dashed border-hero-ink/60 pt-2 font-sans text-[15px] font-bold"><span>PAID</span><span className="tabular-nums">₦537,500</span></p>
           <p className="mt-3 text-center text-hero-ink-2">Thank you!</p>
         </div>

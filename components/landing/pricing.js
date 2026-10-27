@@ -70,9 +70,9 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
                 {p.tagline && <p className="mt-2 text-[14px] text-hero-ink-2">{p.tagline}</p>}
 
                 <div className="my-5 border-t border-dashed border-hero-ink/25" />
-                <p className="flex items-baseline gap-2">
-                  <span className="font-display text-[44px] leading-none tabular-nums">{formatMoney(p.price_minor, p.currency)}</span>
-                  <span className="font-mono text-[11.5px] tracking-[0.12em] text-hero-ink-2 uppercase">/ {p.billing_interval}</span>
+                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="font-display text-[40px] lg:text-[36px] leading-none tabular-nums">{formatMoney(p.price_minor, p.currency)}</span>
+                  <span className="font-mono text-[11.5px] tracking-[0.12em] whitespace-nowrap text-hero-ink-2 uppercase">/ {p.billing_interval}</span>
                 </p>
                 <p className="mt-2 h-4 font-mono text-[11.5px] tracking-[0.06em] text-hero-ink-2">{month ? `= ${formatMoney(month, p.currency)} a month` : ""}</p>
                 <div className="my-5 border-t border-dashed border-hero-ink/25" />
@@ -81,6 +81,7 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
                   <Line>{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} documents a month`}</Line>
                   <Line>{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</Line>
                   {(p.features || []).map((f) => <Line key={f}>{f}</Line>)}
+                  <Line>VAT &amp; tax summary</Line>
                 </ul>
 
                 <div className="mt-8">{featured ? <PrimaryCta href="/signup" block>Start free trial</PrimaryCta> : <SecondaryCta href="/signup" block>Start free trial</SecondaryCta>}</div>

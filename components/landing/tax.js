@@ -1,0 +1,64 @@
+import { Check, FileCheck2, Send } from "lucide-react";
+
+// Tax: the month's VAT return as it appears in the app, on paper, with the
+// three things Usetally handles on every invoice. Figures are an example.
+const cx = (...c) => c.filter(Boolean).join(" ");
+const PAPER = "rounded-[18px] bg-hero-paper text-hero-ink shadow-[0_1px_2px_rgba(20,16,8,.06),0_26px_50px_-26px_rgba(20,16,8,.45)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
+
+const STEPS = ["To file", "Filed", "Paid"];
+const LINES = ["VAT on every invoice", "WHT & customer TIN", "E-invoice file (UBL)"];
+
+export function Tax({ wrap, kicker, h2 }) {
+  return (
+    <section className={`py-24 ${wrap}`} aria-labelledby="tax-title">
+      <div className="grid gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16">
+        <div className="max-w-[520px]">
+          <p className={kicker}>Tax</p>
+          <h2 id="tax-title" className={`mt-4 ${h2}`}>Your VAT, sorted.</h2>
+          <p className="mt-5 text-[17px] leading-relaxed text-hero-ink-2">Usetally works out the VAT on every invoice and adds it up each month. File it yourself, or tap once and a tax consultant files it for you.</p>
+          <p className="mt-6 inline-flex items-center gap-2 font-mono text-[11.5px] tracking-[0.12em] text-hero-ink-2 uppercase">
+            <span className="size-1.5 rounded-full bg-hero-accent" aria-hidden="true" />You pay NRS directly. We never hold tax money.
+          </p>
+        </div>
+
+        <div className="mx-auto w-full max-w-[460px]">
+          <div className={cx(PAPER, "relative z-10 p-6 sm:p-7")}>
+            <div className="flex items-start justify-between gap-4">
+              <p className="text-[11px] font-semibold tracking-[0.18em] text-hero-ink-2">OCTOBER VAT RETURN</p>
+              <span className="rounded-full bg-hero-tint px-2.5 py-1 text-[11px] font-semibold text-hero-ink-2">Example</span>
+            </div>
+            <p className="font-display mt-3 text-[40px] leading-none tabular-nums">₦80,250</p>
+            <p className="mt-2 text-[13.5px] text-hero-ink-2">Due 21 Nov</p>
+
+            <ol className="mt-5 flex items-center gap-2 border-y border-hero-line py-3 text-[12px] font-semibold" aria-label="Progress">
+              {STEPS.map((s, i) => (
+                <li key={s} className="flex items-center gap-2">
+                  {i > 0 && <span aria-hidden="true" className="h-px w-5 bg-hero-line sm:w-8" />}
+                  <span className={cx("rounded-full px-2.5 py-1", i === 0 ? "bg-hero-accent/10 text-hero-accent" : "text-hero-ink-2")}>{s}</span>
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-5 flex flex-col gap-2 sm:flex-row">
+              <span className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-full bg-[#175cd3] px-4 text-[14px] font-semibold text-white shadow-[inset_0_1px_0_rgba(255,255,255,.28),0_14px_30px_-14px_rgba(23,92,211,.7)] dark:bg-[#2563eb]"><Send className="size-4" aria-hidden="true" />File &amp; pay for me</span>
+              <span className="inline-flex h-11 items-center justify-center gap-2 rounded-full px-4 text-[14px] font-semibold ring-1 ring-hero-line"><FileCheck2 className="size-4" aria-hidden="true" />I'll file it</span>
+            </div>
+          </div>
+
+          {/* what's on every invoice: a small torn slip */}
+          <div className="receipt-shadow relative z-0 -mt-3 ml-4 w-[70%] sm:ml-8 sm:w-[64%]">
+            <ul className="receipt-paper space-y-2 bg-hero-paper px-5 pt-6 pb-7 font-mono text-[11px] tracking-[0.05em] text-hero-ink uppercase">
+              {LINES.map((l) => (
+                <li key={l} className="flex items-baseline gap-2">
+                  <span>{l}</span>
+                  <span aria-hidden="true" className="min-w-3 flex-1 -translate-y-[3px] border-b border-dotted border-hero-ink/25" />
+                  <Check className="size-3 shrink-0 translate-y-[1px] text-hero-accent" aria-label="Yes" />
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}

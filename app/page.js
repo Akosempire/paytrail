@@ -12,6 +12,7 @@ import { SiteNav } from "@/components/landing/site-nav";
 import { Platforms } from "@/components/landing/platforms";
 import { Pricing } from "@/components/landing/pricing";
 import { Team } from "@/components/landing/team";
+import { Tax } from "@/components/landing/tax";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { LiveStats } from "@/components/landing/live-stats";
 import { supabaseConfigured } from "@/lib/supabase/server";
@@ -34,11 +35,11 @@ const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-accent upp
 const H2 = "font-display text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]";
 
 const PROVIDERS = [
+  ["Bank transfer", "Confirm in one tap"],
+  ["Bachs", "Recommended"],
   ["Paystack", "Cards, bank transfer and USSD"],
-  ["Stripe", "US, UK, Europe and 40+ countries"],
   ["Flutterwave", "Cards and mobile money"],
-  ["Bachs", "Where Bachs operates"],
-  ["Bank transfer", "Your account details on every invoice"],
+  ["Stripe", "US, UK, Europe and 40+ countries"],
 ];
 
 const FAQ = SEO.faq;
@@ -97,7 +98,7 @@ export default async function Home({ searchParams }) {
             <h1 className="font-display text-[clamp(32px,6svh,60px)] leading-[0.98] font-semibold tracking-[-0.045em] lg:text-[clamp(46px,6.4vw,84px)]">
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
-            <p className="mt-4 max-w-[440px] text-[15px] leading-relaxed text-hero-ink-2 sm:max-w-[520px] sm:text-[17px] lg:mt-6 lg:max-w-[560px] lg:text-[19px] [@media(max-height:700px)]:text-[14px] [@media(max-height:700px)]:leading-snug">Send branded quotes, turn them into invoices, and get paid straight into your own Paystack or Stripe. See your real profit on every job, with receipts sent automatically.</p>
+            <p className="mt-4 max-w-[440px] text-[15px] leading-relaxed text-hero-ink-2 sm:max-w-[520px] sm:text-[17px] lg:mt-6 lg:max-w-[560px] lg:text-[19px] [@media(max-height:700px)]:text-[14px] [@media(max-height:700px)]:leading-snug">Send branded quotes, turn them into invoices, and get paid by transfer, Bachs, Paystack or Stripe, straight into your own account. See your real profit and the VAT you owe, with receipts sent automatically.</p>
             <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-6 lg:mt-9">
               <PrimaryCta href="/signup">Get started free</PrimaryCta>
               <a href="#how-it-works" className="group hidden items-center justify-start gap-2 self-start text-[15px] font-medium sm:inline-flex sm:self-auto [@media(max-height:700px)]:max-lg:hidden">
@@ -119,6 +120,9 @@ export default async function Home({ searchParams }) {
       <PainStory />
       <Chapters />
 
+      {/* ------------------------------------------------ tax */}
+      <Tax wrap={WRAP} kicker={KICKER} h2={H2} />
+
       {/* ------------------------------------------------ teams */}
       <Team wrap={WRAP} kicker={KICKER} h2={H2} />
 
@@ -132,8 +136,10 @@ export default async function Home({ searchParams }) {
             <ul className="mt-8 divide-y divide-hero-line border-y border-hero-line">
               {PROVIDERS.map(([name, where]) => (
                 <li key={name} className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="flex items-center gap-3 text-[16px] font-semibold">{name === "Bank transfer" ? <Landmark className="size-4 text-hero-ink-2" aria-hidden="true" /> : <span className="size-2 rounded-full bg-hero-accent" aria-hidden="true" />}{name}</span>
-                  <span className="text-right text-[13.5px] text-hero-ink-2">{where}</span>
+                  <span className="flex items-center gap-3 text-[16px] font-semibold whitespace-nowrap">{name === "Bank transfer" ? <Landmark className="size-4 text-hero-ink-2" aria-hidden="true" /> : <span className="size-2 rounded-full bg-hero-accent" aria-hidden="true" />}{name}</span>
+                  {where === "Recommended"
+                    ? <span className="rounded-full border border-hero-accent px-2.5 py-0.5 font-mono text-[10.5px] tracking-[0.14em] text-hero-accent uppercase">Recommended</span>
+                    : <span className="text-right text-[13.5px] text-hero-ink-2">{where}</span>}
                 </li>
               ))}
             </ul>
