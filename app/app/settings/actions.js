@@ -1,18 +1,20 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/context";
-import { businessFieldsFrom, uploadLogo, uploadSignature } from "@/lib/business";
+import { businessFieldsFrom, dropTax2IfNotReady, uploadLogo, uploadSignature } from "@/lib/business";
 import { requireStepUp } from "@/lib/step-up";
 import { postcodeFields } from "@/lib/postcode-server";
 
 export async function updateBusiness(_prev, form) {
   const ctx = await requirePermission("settings.business");
   const fields = businessFieldsFrom(form, ["name", "legal_name", "email", "phone", "website", "address", "city", "country", "tax_id",
-    "brand_color", "footer_note", "currency", "tax_label", "tax_rate", "quote_validity_days", "invoice_due_days",
+    "brand_color", "footer_note", "currency", "tax_label", "tax_rate", "tax2_label", "tax2_rate", "region", "quote_validity_days", "invoice_due_days",
     "quote_prefix", "invoice_prefix", "receipt_prefix", "bank_name", "bank_account_name", "bank_account_number", "default_terms",
     "signatory_name", "signatory_title",
     ...(ctx.business.kind === "company" ? ["require_approval"] : [])]);
   if (fields.name === "") return { error: "Business name can't be empty." };
+  const taxGate = dropTax2IfNotReady(fields, ctx.business);
+  if (taxGate) return taxGate;
   // Nigeria's postcode, checked with NIPOST (needs the postcode SQL: the column shows on the business)
   if (form.has("postcode") && "postcode" in ctx.business) {
     const pc = await postcodeFields(form.get("postcode"));

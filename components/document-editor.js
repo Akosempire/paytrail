@@ -1,7 +1,7 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardPaste, Truck, EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
+import { ClipboardPaste, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
@@ -39,6 +39,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const [discount, setDiscount] = useState(doc?.discount_minor ? minorToInput(doc.discount_minor) : "");
   const [taxRate, setTaxRate] = useState(String(doc?.tax_rate ?? business.tax_rate ?? 0));
   const [taxLabel, setTaxLabel] = useState(doc?.tax_label || business.tax_label || "VAT");
+  // a second tax for places that charge two (Canada: GST + PST or QST)
+  const [tax2Rate, setTax2Rate] = useState(String(doc?.tax2_rate ?? business.tax2_rate ?? 0));
+  const [tax2Label, setTax2Label] = useState(doc?.tax2_label ?? business.tax2_label ?? "");
+  const tax2On = Boolean(tax2Label) || Number(tax2Rate) > 0;
+  const taxNames = tax2On ? `${taxLabel || "Tax"} + ${tax2Label || "tax"}` : taxLabel || "VAT";
   const [notes, setNotes] = useState(doc?.notes || "");
   const [terms, setTerms] = useState(doc?.terms ?? business.default_terms ?? "");
   const [emailCustomer, setEmailCustomer] = useState(emailReady);
@@ -46,7 +51,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const [presetOpen, setPresetOpen] = useState(false);
 
   const parsedItems = items.map((i) => ({ quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat }));
-  const totals = computeTotals(parsedItems, toMinor(discount) || 0, Number(taxRate) || 0, { inclusive });
+  const totals = computeTotals(parsedItems, toMinor(discount) || 0, Number(taxRate) || 0, { inclusive, tax2Rate: tax2On ? Number(tax2Rate) || 0 : 0 });
   const mixedVat = items.some((i) => i.vat !== "standard");
   const costTotal = costs.reduce((s, c) => s + (toMinor(c.amount) || 0), 0);
   const revenue = totals.net; // what you earn before tax
@@ -66,7 +71,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     issue_date: issueDate, due_date: quote ? null : endDate, valid_until: quote ? endDate : null,
     customer_name: who.name || "", customer_company: who.company || "", customer_email: who.email || "", customer_phone: who.phone || "", customer_address: who.address || "", customer_postcode: who.postcode || "",
     delivery_address: deliveryOn ? delivery.address : "", delivery_postcode: deliveryOn ? delivery.postcode : "", delivery_contact: deliveryOn ? delivery.contact : "",
-    subtotal_minor: totals.subtotal, discount_minor: totals.discount, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax_minor: totals.tax, total_minor: totals.total, prices_include_vat: inclusive,
+    subtotal_minor: totals.subtotal, discount_minor: totals.discount, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax2_rate: tax2On ? Number(tax2Rate) || 0 : 0, tax2_label: tax2On ? tax2Label : "", tax2_minor: totals.tax2, tax_minor: totals.tax, total_minor: totals.total, prices_include_vat: inclusive,
     amount_paid_minor: doc?.amount_paid_minor || 0, notes, terms, snapshot: null,
   };
   const draftItems = items.filter((i) => i.description.trim()).map((i) => ({ description: i.description, details: i.details, quantity: Number(i.quantity) || 0, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat }));
@@ -97,7 +102,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     const input = {
       kind, title, issue_date: issueDate,
       ...(quote ? { valid_until: endDate } : { due_date: endDate }),
-      discount_minor: toMinor(discount) || 0, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, notes, terms,
+      discount_minor: toMinor(discount) || 0, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax2_rate: tax2On ? Number(tax2Rate) || 0 : 0, tax2_label: tax2On ? tax2Label : "", notes, terms,
       items: items.filter((i) => i.description.trim()).map((i) => ({ description: i.description.trim(), details: i.details.trim(), quantity: Number(i.quantity) || 1, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat })),
       prices_include_vat: inclusive,
       email_customer: emailCustomer,
@@ -220,7 +225,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                       {taxLabel || "VAT"}
                       <select aria-label={`Item ${idx + 1} ${taxLabel || "VAT"}`} value={item.vat} onChange={(e) => setItem(item.key, { vat: e.target.value })}
                         className={`h-7 rounded-md bg-surface px-1.5 text-[12.5px] ring-1 ring-line-strong ${item.vat === "standard" ? "text-ink-2" : "font-medium text-brand-ink"}`}>
-                        <option value="standard">Standard ({Number(taxRate) || 0}%)</option><option value="zero">Zero-rated (0%)</option><option value="exempt">Exempt</option>
+                        <option value="standard">Standard ({(Number(taxRate) || 0) + (tax2On ? Number(tax2Rate) || 0 : 0)}%)</option><option value="zero">Zero-rated (0%)</option><option value="exempt">Exempt</option>
                       </select>
                     </label>
                   </div>
@@ -257,13 +262,25 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                   <input aria-label="Tax name" value={taxLabel} onChange={(e) => setTaxLabel(e.target.value)} className="w-12 rounded border-0 bg-transparent p-0 text-sm text-ink-2 focus:ring-0" />
                   <input aria-label="Tax rate" value={taxRate} onChange={(e) => setTaxRate(e.target.value.replace(/[^\d.]/g, ""))} className="h-7 w-14 rounded-sm px-1.5 text-right text-sm ring-1 ring-line-strong" />%
                 </dt>
-                <dd className="tabular text-ink">{money(totals.tax)}</dd>
+                <dd className="tabular text-ink">{money(totals.tax1)}</dd>
               </div>
+              {tax2On ? (
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="flex items-center gap-1.5 text-ink-2">
+                    <input aria-label="Second tax name" value={tax2Label} onChange={(e) => setTax2Label(e.target.value)} placeholder="PST" className="w-12 rounded border-0 bg-transparent p-0 text-sm text-ink-2 focus:ring-0" />
+                    <input aria-label="Second tax rate" value={tax2Rate} onChange={(e) => setTax2Rate(e.target.value.replace(/[^\d.]/g, ""))} className="h-7 w-14 rounded-sm px-1.5 text-right text-sm ring-1 ring-line-strong" />%
+                    <button type="button" aria-label="Remove second tax" onClick={() => { setTax2Label(""); setTax2Rate("0"); }} className="grid size-7 place-items-center rounded-md text-ink-3 hover:bg-tray hover:text-ink"><X className="size-3.5" /></button>
+                  </dt>
+                  <dd className="tabular text-ink">{money(totals.tax2)}</dd>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setTax2Label("Tax 2")} className="-mt-1 text-[12.5px] font-medium text-brand-ink hover:underline">+ Add another tax</button>
+              )}
               <label className="flex items-center gap-2 text-[13px] text-ink-2">
                 <input type="checkbox" checked={inclusive} onChange={(e) => setInclusive(e.target.checked)} className="size-4 accent-[var(--color-brand)]" />
-                Prices already include {taxLabel || "VAT"}
+                Prices already include {taxNames}
               </label>
-              {(inclusive || mixedVat) && <p className="text-[12px] text-ink-3">{inclusive ? `${money(totals.tax)} of the total is ${taxLabel || "VAT"}. ` : ""}{mixedVat ? `${taxLabel || "VAT"} only on standard-rated items.` : ""}</p>}
+              {(inclusive || mixedVat) && <p className="text-[12px] text-ink-3">{inclusive ? `${money(totals.tax)} of the total is ${taxNames}. ` : ""}{mixedVat ? `${taxLabel || "VAT"} only on standard-rated items.` : ""}</p>}
               <div className="flex items-center justify-between border-t border-line pt-3">
                 <dt className="font-semibold text-ink">Total</dt>
                 <dd className="text-title-2 text-ink tabular">{money(totals.total)}</dd>

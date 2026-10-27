@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
-import { businessFieldsFrom, uploadLogo } from "@/lib/business";
+import { businessFieldsFrom, dropTax2IfNotReady, uploadLogo } from "@/lib/business";
 import { inviteMember } from "@/lib/team";
 import { notifyAdmins } from "@/lib/admin-alerts";
 
@@ -25,12 +25,18 @@ export async function startBusiness(_prev, form) {
     business_kind: kind, business_name: name, owner_name: ownerName, business_currency: String(form.get("currency") || "NGN"),
   });
   if (error) return { error: error.message };
-  const fields = businessFieldsFrom(form, ["legal_name", "email", "phone", "website", "address", "city", "country", "tax_id"]);
+  const fields = businessFieldsFrom(form, ["legal_name", "email", "phone", "website", "address", "city", "country", "tax_id", "region"]);
   fields.country = country;
-  // a sensible tax name for the country (VAT, GST, Sales tax…); the rate is set in the next step
+  // the country's tax names (VAT, GST, GST + PST in British Columbia…); the
+  // rates stay 0 until the owner says they charge tax, in the money step
   const { countryByName } = await import("@/lib/countries");
+  const { presetFields } = await import("@/lib/tax-presets");
   const known = countryByName(country);
   if (known) fields.tax_label = known.tax;
+  const preset = known ? presetFields(known.code, fields.region) : null;
+  if (preset) { fields.tax_label = preset.tax_label; fields.tax2_label = preset.tax2_label; }
+  const { data: row } = await ctx.supabase.from("businesses").select("*").eq("id", id).single();
+  dropTax2IfNotReady(fields, row);
   await ctx.supabase.from("businesses").update(fields).eq("id", id);
   redirect("/onboarding?step=brand");
 }
@@ -50,8 +56,11 @@ export async function saveBrand(_prev, form) {
 export async function saveMoney(_prev, form) {
   const ctx = await pendingBusiness();
   const id = String(form.get("business_id"));
-  const fields = businessFieldsFrom(form, ["currency", "tax_label", "tax_rate", "quote_validity_days", "invoice_due_days",
+  const fields = businessFieldsFrom(form, ["currency", "tax_label", "tax_rate", "tax2_label", "tax2_rate", "quote_validity_days", "invoice_due_days",
     "quote_prefix", "invoice_prefix", "receipt_prefix", "bank_name", "bank_account_name", "bank_account_number", "default_terms"]);
+  const { data: row } = await ctx.supabase.from("businesses").select("*").eq("id", id).single();
+  const taxGate = dropTax2IfNotReady(fields, row);
+  if (taxGate) return taxGate;
   const { error } = await ctx.supabase.from("businesses").update(fields).eq("id", id);
   if (error) return { error: "Could not save these settings." };
   redirect("/onboarding?step=finish");

@@ -20,12 +20,25 @@ test("amounts parse to minor units exactly", () => {
 test("editor totals match the database formula", () => {
   // same numbers as the SQL test: 45,000,000 subtotal, 1,000,000 discount, 7.5% VAT
   const t = money.computeTotals([{ quantity: 1, unit_price_minor: 25000000 }, { quantity: 2, unit_price_minor: 10000000 }], 1000000, 7.5);
-  assert.deepEqual(t, { subtotal: 45000000, discount: 1000000, tax: 3300000, total: 47300000, net: 44000000 });
+  assert.deepEqual(t, { subtotal: 45000000, discount: 1000000, tax: 3300000, tax1: 3300000, tax2: 0, total: 47300000, net: 44000000 });
   // per-line VAT and VAT-inclusive prices, as in supabase/tests/line-vat.test.mjs
   const lines = [{ quantity: 1, unit_price_minor: 100000 }, { quantity: 1, unit_price_minor: 50000, vat_category: "zero" }, { quantity: 1, unit_price_minor: 50000, vat_category: "exempt" }];
-  assert.deepEqual(money.computeTotals(lines, 20000, 7.5), { subtotal: 200000, discount: 20000, tax: 6750, total: 186750, net: 180000 });
-  assert.deepEqual(money.computeTotals([{ quantity: 1, unit_price_minor: 107500 }], 0, 7.5, { inclusive: true }), { subtotal: 107500, discount: 0, tax: 7500, total: 107500, net: 100000 });
+  assert.deepEqual(money.computeTotals(lines, 20000, 7.5), { subtotal: 200000, discount: 20000, tax: 6750, tax1: 6750, tax2: 0, total: 186750, net: 180000 });
+  assert.deepEqual(money.computeTotals([{ quantity: 1, unit_price_minor: 107500 }], 0, 7.5, { inclusive: true }), { subtotal: 107500, discount: 0, tax: 7500, tax1: 7500, tax2: 0, total: 107500, net: 100000 });
   assert.equal(money.computeTotals([{ quantity: 1, unit_price_minor: 100 }], 500, 0).total, 0, "discount can't exceed subtotal");
+});
+
+test("two taxes match the database (supabase/tests/tax2.test.mjs)", () => {
+  const item = [{ quantity: 1, unit_price_minor: 10000 }];
+  // British Columbia: GST 5% + PST 7%
+  assert.deepEqual(money.computeTotals(item, 0, 5, { tax2Rate: 7 }), { subtotal: 10000, discount: 0, tax: 1200, tax1: 500, tax2: 700, total: 11200, net: 10000 });
+  // Québec: GST 5% + QST 9.975%, then with prices that include both
+  const qc = money.computeTotals(item, 0, 5, { tax2Rate: 9.975 });
+  assert.deepEqual([qc.tax1, qc.tax2, qc.total], [500, 998, 11498]);
+  const inc = money.computeTotals(item, 0, 5, { tax2Rate: 9.975, inclusive: true });
+  assert.equal(inc.total, 10000);
+  assert.equal(inc.tax, Math.round(10000 * 14.975 / 114.975));
+  assert.equal(inc.tax2, Math.round(inc.tax * 9.975 / 14.975));
 });
 
 test("margin and money formatting", () => {

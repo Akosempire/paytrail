@@ -31,7 +31,10 @@ export default async function TaxPage({ searchParams }) {
   const overdue = month.type === "month" && new Date(`${month.due}T23:59:59`) < new Date();
   // returns are monthly: in a quarter or year, the next one still to come
   const upcoming = month.months.map((m) => m.due).find((d) => new Date(`${d}T23:59:59`) >= new Date());
-  const label = b.tax_label || "VAT";
+  const label1 = b.tax_label || "VAT";
+  // two taxes (Canada: GST + PST or QST) read as one name, split in the hint
+  const twoTaxes = Boolean(b.tax2_label) || Number(b.tax2_rate) > 0 || Number(t.tax2) > 0;
+  const label = twoTaxes ? `${label1} + ${b.tax2_label || "tax"}` : label1;
   const ng = inNigeria(b);
   const showWht = whtReady && (ng || t.wht > 0);
 
@@ -56,7 +59,7 @@ export default async function TaxPage({ searchParams }) {
       <PeriodPicker period={{ type: month.type, key: month.key, label: month.label, long: month.long, year: month.year, quarter: month.quarter || null }} vat={vat} currency={cur} today={today} />
 
       {!tinReady && ng && <Callout tone="warn" icon={AlertTriangle} title="One step left">Run <strong>RUN_NEW_2026-10-26d.sql</strong> in Supabase to add customer TINs and withholding tax.</Callout>}
-      {Number(b.tax_rate) === 0 && <Callout tone="info" title={`You're not charging ${label}`}>Your default tax rate is 0%. If you need to charge {label}, set your rate in Settings → Business & branding.</Callout>}
+      {Number(b.tax_rate) === 0 && !(Number(b.tax2_rate) > 0) && <Callout tone="info" title={`You're not charging ${label}`}>Your default tax rate is 0%. If you need to charge {label}, set your rate in Settings → Business & branding.</Callout>}
 
       {ng && retError && past.length > 0 && <Callout tone="warn" title="One step left">Run <strong>RUN_NEW_2026-10-27a.sql</strong> in Supabase to track VAT returns here and use "File &amp; pay for me".</Callout>}
       {ng && !retError && month.type === "month" && past.length > 0 && (
@@ -66,7 +69,7 @@ export default async function TaxPage({ searchParams }) {
       {ng && !retError && month.type !== "month" && past.length > 0 && <VatReturnsList months={monthsList} currency={cur} />}
 
       <StatGroup cols={ng || showWht ? 4 : 3}>
-        <StatCard label={`${label} charged`} value={money(t.vat)} hint={`On ${t.invoices} invoice${t.invoices === 1 ? "" : "s"} issued in ${month.label}`} icon={Landmark} tone="brand" />
+        <StatCard label={`${label} charged`} value={money(t.vat)} hint={Number(t.tax2) > 0 ? `${label1} ${money(t.vat - t.tax2)} · ${b.tax2_label || "Tax"} ${money(t.tax2)}` : `On ${t.invoices} invoice${t.invoices === 1 ? "" : "s"} issued in ${month.label}`} icon={Landmark} tone="brand" />
         <StatCard label={`Sales before ${label}`} value={money(t.taxable)} hint={t.zero || t.exempt ? `Standard ${money(t.standard)} · zero-rated ${money(t.zero)} · exempt ${money(t.exempt)}` : `${money(t.gross)} including ${label}`} icon={FileText} />
         {!ng && <StatCard label={`Total including ${label}`} value={money(t.gross)} hint={`${t.invoices} invoice${t.invoices === 1 ? "" : "s"}`} icon={Wallet} />}
         {ng && <StatCard label={month.type === "month" ? "Return due" : upcoming ? "Next return due" : "Returns"} value={month.type === "month" ? formatDate(month.due) : upcoming ? formatDate(upcoming) : `${month.months.length} monthly`} hint={month.type === "month" ? (overdue ? "This date has passed" : "21st of the following month") : `${month.months.length} monthly returns, each due on the 21st`} icon={CalendarClock} tone={overdue ? "warn" : "neutral"} />}

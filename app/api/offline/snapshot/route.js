@@ -8,7 +8,7 @@ import { emailConfigured } from "@/lib/email";
 export const dynamic = "force-dynamic";
 
 const BUSINESS_KEYS = ["id", "name", "kind", "legal_name", "email", "phone", "website", "address", "city", "country", "tax_id", "logo_path", "brand_color", "footer_note",
-  "bank_name", "bank_account_name", "bank_account_number", "currency", "tax_rate", "tax_label", "default_terms", "quote_validity_days", "invoice_due_days", "require_approval",
+  "bank_name", "bank_account_name", "bank_account_number", "currency", "tax_rate", "tax_label", "tax2_rate", "tax2_label", "region", "default_terms", "quote_validity_days", "invoice_due_days", "require_approval",
   "document_prefs", "signature_path", "signatory_name", "signatory_title", "quote_prefix", "invoice_prefix", "receipt_prefix"];
 
 export async function GET() {

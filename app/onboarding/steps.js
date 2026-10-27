@@ -1,5 +1,7 @@
 "use client";
 import { CountrySelect } from "@/components/country-select";
+import { RegionSelect, TaxFields } from "@/components/tax-fields";
+import { countryByName } from "@/lib/countries";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Briefcase, Building2, Check, PlugZap, UserRound } from "lucide-react";
@@ -80,6 +82,9 @@ export function StepStart({ ownerName, firstBusiness, ipCountry }) {
   const [state, action] = useActionState(startBusiness, null);
   const [kind, setKind] = useState("freelancer");
   const [currency, setCurrency] = useState("NGN");
+  // Canada asks for the province: it decides GST, HST, PST or QST
+  const [countryCode, setCountryCode] = useState("");
+  const [region, setRegion] = useState("");
   return (
     <form action={action}>
       <input type="hidden" name="kind" value={kind} />
@@ -102,7 +107,8 @@ export function StepStart({ ownerName, firstBusiness, ipCountry }) {
             <Input id="name" name="name" placeholder={kind === "company" ? "Adeyemi Studio Ltd" : "Tolu Adeyemi Designs"} required />
           </Field>
           <Field label="Your name" htmlFor="owner_name"><Input id="owner_name" name="owner_name" defaultValue={ownerName} required /></Field>
-          <CountrySelect guess ipCountry={ipCountry} onPick={(c) => c && CURRENCIES.includes(c.currency) && setCurrency(c.currency)} />
+          <CountrySelect guess ipCountry={ipCountry} onPick={(c) => { setCountryCode(c?.code || ""); setRegion(""); if (c && CURRENCIES.includes(c.currency)) setCurrency(c.currency); }} />
+          <RegionSelect countryCode={countryCode} value={region} onChange={setRegion} />
           <Field label="Main currency" htmlFor="currency"><Select id="currency" name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
         </div>
         <More label="Add contact details (optional)">
@@ -208,9 +214,8 @@ export function StepMoney({ business }) {
         <FormMessage state={state} />
         <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           <Field label="Currency" htmlFor="currency"><Select id="currency" name="currency" defaultValue={business.currency}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-          <Field label="Tax rate (%)" htmlFor="tax_rate"><Input id="tax_rate" name="tax_rate" type="number" step="0.01" min="0" max="100" defaultValue={business.tax_rate} /></Field>
-          <p className="col-span-2 -mt-2 text-xs text-ink-3 sm:col-span-1 sm:mt-7">Your VAT or sales tax. Use 0 if you don't charge it.</p>
         </section>
+        <section><TaxFields countryCode={countryByName(business.country || "")?.code || ""} regionCode={business.region || ""} defaults={business} /></section>
         <section>
           <p className="text-[13px] font-medium text-ink-2">Bank details for transfers</p>
           <p className="mb-2.5 text-xs text-ink-3">Printed on invoices so customers can pay by transfer. You record those payments yourself.</p>
@@ -223,7 +228,6 @@ export function StepMoney({ business }) {
         <More label="Tax name, due dates, numbering and terms (optional)">
           <div className="flex flex-col gap-5">
             <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Tax name" htmlFor="tax_label"><Input id="tax_label" name="tax_label" defaultValue={business.tax_label} /></Field>
               <Field label="Quotes valid for (days)" htmlFor="qv"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={business.quote_validity_days} /></Field>
               <Field label="Invoices due after (days)" htmlFor="idd"><Input id="idd" name="invoice_due_days" type="number" min="0" max="365" defaultValue={business.invoice_due_days} /></Field>
             </div>

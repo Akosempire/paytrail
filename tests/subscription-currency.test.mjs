@@ -34,3 +34,13 @@ test("a business keeps seeing its current plan in another currency", () => {
   const ids = plansFor(plans, { currency: "USD", interval: "month", currentPlanId: "ng" }).plans.map((p) => p.id);
   assert.deepEqual(ids, ["ng", "us"]);
 });
+
+import { presetFields, taxPreset, presetText } from "../lib/tax-presets.js";
+test("tax presets follow the country, and the province in Canada", () => {
+  assert.deepEqual(presetFields("GB"), { tax_label: "VAT", tax_rate: 20, tax2_label: "", tax2_rate: 0 });
+  assert.deepEqual(presetFields("CA", "BC"), { tax_label: "GST", tax_rate: 5, tax2_label: "PST", tax2_rate: 7 });
+  assert.deepEqual(presetFields("CA", "ON"), { tax_label: "HST", tax_rate: 13, tax2_label: "", tax2_rate: 0 });
+  assert.equal(presetText(taxPreset("CA", "QC")), "GST 5% + QST 9.975%");
+  assert.deepEqual(taxPreset("CA"), [["GST", 5]]); // no province yet: GST only
+  assert.equal(presetFields("ZZ"), null);
+});

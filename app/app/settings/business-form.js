@@ -1,6 +1,8 @@
 "use client";
 import { PostcodeField } from "@/components/postcode-field";
 import { CountrySelect } from "@/components/country-select";
+import { RegionSelect, TaxFields } from "@/components/tax-fields";
+import { countryByName } from "@/lib/countries";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useStepUp } from "@/components/step-up";
 import { Save } from "lucide-react";
@@ -25,6 +27,9 @@ export function BusinessForm({ business: b, logo: initialLogo, signature: signat
     if (state?.stepUp) ask(state.stepUp).then((ok) => ok && formRef.current?.requestSubmit());
   }, [state, ask]);
   const [color, setColor] = useState(b.brand_color);
+  // the country (and province) suggest the taxes below
+  const [countryCode, setCountryCode] = useState(countryByName(b.country || "")?.code || "");
+  const [region, setRegion] = useState(b.region || "");
   const [logo, setLogo] = useState(initialLogo);
   const [approval, setApproval] = useState(b.require_approval);
   const [footer, setFooter] = useState(b.footer_note || "");
@@ -77,7 +82,8 @@ export function BusinessForm({ business: b, logo: initialLogo, signature: signat
             <Field label="Address" htmlFor="addr" className="sm:col-span-2"><Input id="addr" name="address" defaultValue={b.address} /></Field>
             <Field label="City" htmlFor="city"><Input id="city" name="city" defaultValue={b.city} /></Field>
             {"postcode" in b && <PostcodeField id="postcode" name="postcode" value={b.postcode || ""} area={b.postcode_area || ""} verified={Boolean(b.postcode_verified_at)} hint="Nigeria's 11-character postcode. Shown on your documents and e-invoices." />}
-            <CountrySelect defaultValue={b.country || ""} />
+            <CountrySelect defaultValue={b.country || ""} onPick={(c) => { setCountryCode(c?.code || ""); setRegion(""); }} />
+            <RegionSelect countryCode={countryCode} value={region} onChange={setRegion} />
             <Field label="Website" htmlFor="web" optional><Input id="web" name="website" defaultValue={b.website} /></Field>
             <Field label="Tax ID (TIN)" htmlFor="tin" optional><Input id="tin" name="tax_id" defaultValue={b.tax_id} /></Field>
           </div>
@@ -87,11 +93,9 @@ export function BusinessForm({ business: b, logo: initialLogo, signature: signat
           <CardHeader title="Money & numbering" />
           <div className="grid gap-4 p-5 sm:grid-cols-3">
             <Field label="Currency" htmlFor="cur" hint="For new documents."><Select id="cur" name="currency" defaultValue={b.currency}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-            <Field label="Tax name" htmlFor="tl"><Input id="tl" name="tax_label" defaultValue={b.tax_label} /></Field>
-            <Field label="Tax rate (%)" htmlFor="tr"><Input id="tr" name="tax_rate" type="number" step="0.01" min="0" max="100" defaultValue={b.tax_rate} /></Field>
             <Field label="Quote validity (days)" htmlFor="qv"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={b.quote_validity_days} /></Field>
             <Field label="Invoice due after (days)" htmlFor="id"><Input id="id" name="invoice_due_days" type="number" min="0" max="365" defaultValue={b.invoice_due_days} /></Field>
-            <div />
+            <div className="border-y border-line py-4 sm:col-span-3"><TaxFields countryCode={countryCode} regionCode={region} defaults={b} /></div>
             <Field label="Quote prefix" htmlFor="qp" hint={`Next: ${b.quote_prefix}-${String(b.quote_seq + 1).padStart(4, "0")}`}><Input id="qp" name="quote_prefix" defaultValue={b.quote_prefix} maxLength={8} /></Field>
             <Field label="Invoice prefix" htmlFor="ip" hint={`Next: ${b.invoice_prefix}-${String(b.invoice_seq + 1).padStart(4, "0")}`}><Input id="ip" name="invoice_prefix" defaultValue={b.invoice_prefix} maxLength={8} /></Field>
             <Field label="Receipt prefix" htmlFor="rp" hint={`Next: ${b.receipt_prefix}-${String(b.receipt_seq + 1).padStart(4, "0")}`}><Input id="rp" name="receipt_prefix" defaultValue={b.receipt_prefix} maxLength={8} /></Field>
