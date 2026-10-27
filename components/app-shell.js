@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, Home, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins,
+  Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -146,21 +146,78 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
     </div>
   );
 
+  // phones: Menu is a full page (big rows in thumb reach), not a drawer
+  const row = "flex min-h-[52px] items-center gap-3.5 px-4 py-2.5 text-[15px] font-medium text-ink active:bg-hover hover:bg-hover";
+  const menuPage = (
+    <div className="mx-auto flex max-w-xl flex-col gap-5 pb-4">
+      <h1 className="text-title-1 text-ink">Menu</h1>
+      <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-line">
+        <div className="flex items-center gap-3.5 px-4 py-4">
+          <Avatar size="lg" name={business.name} src={logo} color={logo ? null : business.brand_color} />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[16px] font-semibold text-ink">{business.name}</p>
+            <p className="truncate text-[13px] text-ink-3">{business.kind === "company" ? "Company" : "Freelancer"} · {member.roleLabel}</p>
+          </div>
+        </div>
+        {memberships.length > 1 && (
+          <div className="border-t border-line">
+            <p className="px-4 pt-3 pb-1 text-overline text-ink-3">Switch business</p>
+            {memberships.filter((m) => m.business_id !== business.id).map((m) => (
+              <form key={m.business_id} action={switchBusiness}>
+                <input type="hidden" name="business_id" value={m.business_id} />
+                <button type="submit" className={cx(row, "w-full text-left")}><Avatar size="sm" name={m.name} /><span className="min-w-0 flex-1 truncate">{m.name}</span><ChevronRight className="size-4 text-ink-3" /></button>
+              </form>
+            ))}
+          </div>
+        )}
+        <Link href="/onboarding?new=1" className={cx(row, "border-t border-line text-ink-2")}><span className="inline-flex size-8 items-center justify-center rounded-lg bg-subtle"><Plus className="size-4" /></span>Add another business</Link>
+      </div>
+
+      {nav.map((group, i) => (
+        <section key={i}>
+          {group.title && <p className="px-1 pb-2 text-overline text-ink-3">{group.title}</p>}
+          <ul className="divide-y divide-line overflow-hidden rounded-2xl bg-surface ring-1 ring-line">
+            {group.items.map((item) => (
+              <li key={item.href}>
+                <Link href={item.href} data-tour={`nav:${item.href}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey && e.button === 0) setGoingTo(item.href); }} className={row}>
+                  <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-soft text-brand-ink"><item.icon className="size-[18px]" /></span>
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  <ChevronRight className="size-4 shrink-0 text-ink-3" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ))}
+      {isPlatformAdmin && (
+        <section>
+          <p className="px-1 pb-2 text-overline text-ink-3">{BRAND.name}</p>
+          <Link href="/admin" className={cx(row, "rounded-2xl bg-surface ring-1 ring-line")}><span className="inline-flex size-8 items-center justify-center rounded-lg bg-violet-soft text-violet"><ShieldCheck className="size-[18px]" /></span><span className="flex-1">Platform admin</span><ChevronRight className="size-4 text-ink-3" /></Link>
+        </section>
+      )}
+
+      <div className="-mx-3"><TrialMeter allowance={allowance} canBilling={perms.canBilling} status={business.subscription_status} /></div>
+
+      <div className="overflow-hidden rounded-2xl bg-surface ring-1 ring-line">
+        <div className="px-2 py-1"><ThemeToggle row /></div>
+        <TourButton className={cx(row, "w-full border-t border-line text-left")}><span className="inline-flex size-8 items-center justify-center rounded-lg bg-subtle"><CircleHelp className="size-[18px] text-ink-2" /></span>Take the tour</TourButton>
+      </div>
+
+      <div className="flex items-center gap-3 rounded-2xl bg-surface px-4 py-3 ring-1 ring-line">
+        <Avatar name={member.full_name || member.email} />
+        <span className="min-w-0 flex-1"><span className="block truncate text-[14px] font-medium text-ink">{member.full_name || "You"}</span><span className="block truncate text-[12.5px] text-ink-3">{member.email}</span></span>
+        <form action={signOut} onSubmit={clearOfflinePages}>
+          <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-xl px-3.5 text-[14px] font-medium text-danger-ink ring-1 ring-line hover:bg-danger-soft"><LogOut className="size-4" />Sign out</button>
+        </form>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-dvh bg-canvas">
       <InstallPrompt />
       <Tour userId={tour?.userId} done={tour?.done} />
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-line bg-surface lg:block">{sidebar}</aside>
-      {open && (
-        <div className="fixed inset-0 z-40 lg:hidden">
-          <div className="absolute inset-0 animate-fade-in bg-[#101828]/45" onClick={() => setOpen(false)} />
-          {/* phones: the menu rises from the bottom, within thumb reach */}
-          <aside aria-label="Menu" className="absolute inset-x-0 bottom-0 max-h-[88dvh] animate-rise overflow-y-auto rounded-t-3xl bg-surface pb-[env(safe-area-inset-bottom)] shadow-[var(--shadow-dialog)]">
-            <div className="sticky top-0 z-10 flex justify-center bg-surface pt-2.5 pb-1"><span aria-hidden="true" className="h-1.5 w-10 rounded-full bg-line-strong" /></div>
-            {sidebar}
-          </aside>
-        </div>
-      )}
       {create && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 animate-fade-in bg-[#101828]/45" onClick={() => setCreate(false)} />
@@ -195,12 +252,10 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           </>}
           {/* phones: the menu lives in the bottom bar; screens without it (editor, settings) keep this */}
           {!tabs && (
-            <button type="button" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" onClick={() => setOpen(true)} aria-label="Open menu" data-tour="menu">
-              {open ? <X className="size-5" /> : <Menu className="size-5" />}
-            </button>
+            <Link href="/app/menu" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" aria-label="Menu" data-tour="menu"><Menu className="size-5" /></Link>
           )}
         </header>
-        <main className={cx("mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : children}</main>
+        <main className={cx("mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : pathname === "/app/menu" ? menuPage : children}</main>
       </div>
       {tabs && (
         <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">
@@ -214,12 +269,12 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
                   </button>
                 </div>
               );
-              const menuOn = t.menu && (open || !TABS.some((x) => x.href && active(x)));
+              const menuOn = t.menu && (pathname === "/app/menu" || !TABS.some((x) => x.href && active(x)));
               const on = t.menu ? menuOn : active(t);
               const cls = cx("flex min-h-14 flex-col items-center justify-center gap-0.5 pt-2 pb-1.5 text-[11px] font-medium transition-colors", on ? "text-brand-ink" : "text-ink-3 hover:text-ink");
               const inner = <><span className={cx("inline-flex h-7 w-12 items-center justify-center rounded-full transition-colors", on && "bg-brand-soft")}><t.icon className="size-5" aria-hidden /></span>{t.label}</>;
               return t.menu
-                ? <button key="menu" type="button" onClick={() => setOpen(true)} aria-haspopup="dialog" data-tour="menu" className={cls}>{inner}</button>
+                ? <Link key="menu" href="/app/menu" aria-current={pathname === "/app/menu" ? "page" : undefined} data-tour="menu" onClick={() => setGoingTo("/app/menu")} className={cls}>{inner}</Link>
                 : <Link key={t.href} href={t.href} aria-current={on ? "page" : undefined}
                     onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setGoingTo(t.href); }} className={cls}>{inner}</Link>;
             })}
