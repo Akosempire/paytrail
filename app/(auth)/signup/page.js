@@ -1,6 +1,8 @@
 import { SignupForm } from "@/components/auth-forms";
 import { googleEnabled } from "@/lib/auth-providers";
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
+import { formToken, turnstileOn } from "@/lib/guard";
+import { pendingVerify } from "@/lib/verify-cookie";
 export const metadata = { title: "Create account" };
 
 async function trialText() {
@@ -14,6 +16,6 @@ async function trialText() {
 
 export default async function Page({ searchParams }) {
   const { next, email } = await searchParams;
-  const [trial, google] = await Promise.all([trialText(), googleEnabled()]);
-  return <SignupForm next={next} email={email} trialText={trial} google={google} />;
+  const [trial, google, pending] = await Promise.all([trialText(), googleEnabled(), pendingVerify()]);
+  return <SignupForm next={next} email={email} trialText={trial} google={google} token={formToken()} turnstile={turnstileOn()} pending={pending} />;
 }

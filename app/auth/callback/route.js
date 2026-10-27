@@ -21,5 +21,8 @@ export async function GET(request) {
   else if (tokenHash && type) ({ error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type }));
   else error = new Error("missing code");
   if (error) return NextResponse.redirect(new URL("/login?link=expired", url.origin));
-  return NextResponse.redirect(new URL(next, url.origin));
+  // confirmed by the email's link: the "enter your code" screen isn't needed any more
+  const res = NextResponse.redirect(new URL(next, url.origin));
+  res.cookies.delete("ut_verify");
+  return res;
 }

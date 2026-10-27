@@ -1,10 +1,11 @@
 "use client";
 import { useActionState, useRef, useState } from "react";
 import Link from "next/link";
-import { Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from "lucide-react";
+import { ExternalLink, Eye, EyeOff, KeyRound, Lock, Mail, MailCheck } from "lucide-react";
 import { Field, Input } from "@/components/ui";
 import { FormMessage, SubmitButton, useActionToast } from "@/components/ui-client";
-import { continueWithGoogle, requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
+import { changeSignupEmail, continueWithGoogle, requestReset, resendResetCode, resendSignupCode, signIn, signUp, updatePassword, verifyResetCode, verifySignup } from "@/app/(auth)/actions";
+import { BotFields } from "@/components/bot-fields";
 import { BRAND } from "@/lib/brand";
 import { OtpInput, ResendCode } from "@/components/otp-input";
 
@@ -19,6 +20,16 @@ function PasswordInput({ name = "password", placeholder = "Enter your password",
       </button>
     </div>
   );
+}
+
+// a button to the inbox for the big email providers (opens the app on phones)
+function mailApp(email) {
+  const d = String(email || "").split("@")[1]?.toLowerCase() || "";
+  if (/^(gmail|googlemail)\.com$/.test(d)) return ["Open Gmail", "https://mail.google.com/mail/u/0/#inbox"];
+  if (/^(outlook|hotmail|live|msn)\./.test(d)) return ["Open Outlook", "https://outlook.live.com/mail/0/inbox"];
+  if (/^(yahoo|ymail)\./.test(d)) return ["Open Yahoo Mail", "https://mail.yahoo.com"];
+  if (/^(icloud|me|mac)\.com$/.test(d)) return ["Open iCloud Mail", "https://www.icloud.com/mail"];
+  return null;
 }
 
 // the code from the sign-up email (6–10 digits, whatever Supabase is set to)
@@ -42,11 +53,19 @@ export function VerifyEmailForm({ email, next, intro, codeLength = 6 }) {
       <input type="hidden" name="code_length" value={length} />
       <OtpInput key={length} length={length} label="Confirmation code" errorKey={state?.error ? state : null} onChange={setCode} onComplete={() => form.current?.requestSubmit()} />
       <SubmitButton size="lg" block pendingText="Checking…" disabled={code.length < length}>Confirm email</SubmitButton>
+      {mailApp(email) && (
+        <a href={mailApp(email)[1]} target="_blank" rel="noopener noreferrer" className="-mt-2 inline-flex h-11 items-center justify-center gap-2 rounded-xl text-sm font-semibold text-brand-ink ring-1 ring-line hover:bg-tray">
+          {mailApp(email)[0]}<ExternalLink className="size-4" aria-hidden="true" />
+        </a>
+      )}
       <p className="text-center text-sm text-ink-2">
-        No email? Check spam, or{" "}
+        No email? Check spam or Promotions, or{" "}
         <ResendCode onResend={async () => { const r = { messageTitle: "New code sent", ...(await resendSignupCode(email, next)) }; setResend(r); return r; }} label="send a new code" />
       </p>
-      <p className="text-center text-xs text-ink-3">The email also has a button. Opening it works too.</p>
+      <p className="text-center text-xs text-ink-3">
+        The email also has a button. Opening it works too. Wrong email?{" "}
+        <button type="submit" formAction={changeSignupEmail} formNoValidate className="font-medium text-brand-ink underline-offset-2 hover:underline">Change it</button>
+      </p>
     </form>
   );
 }
@@ -74,7 +93,7 @@ function GoogleSignIn({ next, label = "Continue with Google" }) {
   );
 }
 
-export function LoginForm({ next, google = false }) {
+export function LoginForm({ next, google = false, token }) {
   const [state, action] = useActionState(signIn, null);
   if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} codeLength={state.codeLength} intro={`Your email isn't confirmed yet. We sent a new ${state.codeLength || 6}-digit code to`} />;
   return (
@@ -87,6 +106,7 @@ export function LoginForm({ next, google = false }) {
     <form action={action} className="flex flex-col gap-5">
       <FormMessage state={state} />
       <input type="hidden" name="next" value={next || ""} />
+      <BotFields token={token} />
       <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
       <Field label="Password" htmlFor="password">
         <PasswordInput id="password" />
@@ -99,9 +119,11 @@ export function LoginForm({ next, google = false }) {
   );
 }
 
-export function SignupForm({ next, email, trialText, google = false }) {
+export function SignupForm({ next, email, trialText, google = false, token, turnstile = false, pending }) {
   const [state, action] = useActionState(signUp, null);
   if (state?.verify) return <VerifyEmailForm email={state.verify} next={state.next} codeLength={state.codeLength} />;
+  // came back from the email app (or the page reloaded): the code screen again
+  if (pending && !state) return <VerifyEmailForm email={pending.email} next={pending.next} codeLength={pending.codeLength || 6} />;
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -112,8 +134,8 @@ export function SignupForm({ next, email, trialText, google = false }) {
     <form action={action} className="flex flex-col gap-5">
       <FormMessage state={state} />
       <input type="hidden" name="next" value={next || ""} />
-      <Field label="Your full name" htmlFor="name"><Input id="name" icon={User} name="name" defaultValue={state?.name ?? ""} placeholder="Tolu Adeyemi" autoComplete="name" required /></Field>
-      <Field label="Work email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
+      <BotFields token={token} turnstile={turnstile} resetKey={state} />
+      <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
       <Field label="Password" htmlFor="password" hint="At least 8 characters."><PasswordInput id="password" placeholder="Create a password" autoComplete="new-password" /></Field>
       <SubmitButton size="lg" block pendingText="Creating account…">Create account</SubmitButton>
       <p className="text-center text-xs text-ink-3">By creating an account you agree to the <Link href="/terms" target="_blank" className="underline underline-offset-2 hover:text-ink">Terms of Service</Link> and <Link href="/privacy" target="_blank" className="underline underline-offset-2 hover:text-ink">Privacy Policy</Link>.</p>
@@ -123,7 +145,7 @@ export function SignupForm({ next, email, trialText, google = false }) {
   );
 }
 
-export function ForgotForm() {
+export function ForgotForm({ token, turnstile = false }) {
   const [state, action] = useActionState(requestReset, null);
   if (state?.sent) return <ResetCodeForm email={state.sent} codeLength={state.codeLength} />;
   return (
@@ -133,6 +155,7 @@ export function ForgotForm() {
         <p className="mt-1 text-sm text-ink-2">We'll email you a code to choose a new one.</p>
       </div>
       <FormMessage state={state} />
+      <BotFields token={token} turnstile={turnstile} resetKey={state} />
       <Field label="Email" htmlFor="email"><Input id="email" icon={Mail} name="email" type="email" defaultValue={state?.email ?? ""} placeholder="you@company.com" autoComplete="email" required /></Field>
       <SubmitButton size="lg" block pendingText="Sending…">Send reset code</SubmitButton>
       <Link href="/login" className="text-center text-sm font-medium text-brand-ink hover:underline">Back to sign in</Link>
