@@ -18,12 +18,20 @@ export async function startBusiness(_prev, form) {
   const name = String(form.get("name") || "").trim();
   const ownerName = String(form.get("owner_name") || ctx.user.user_metadata?.full_name || "").trim();
   if (!name) return { error: kind === "company" ? "Enter your company name." : "Enter the name you trade under." };
+  // the country decides which tax features show (e.g. Nigeria's VAT returns), so it's required
+  const country = String(form.get("country") || "").trim().slice(0, 60);
+  if (!country) return { error: "Choose your country." };
   const { data: id, error } = await ctx.supabase.rpc("create_business", {
     business_kind: kind, business_name: name, owner_name: ownerName, business_currency: String(form.get("currency") || "NGN"),
   });
   if (error) return { error: error.message };
   const fields = businessFieldsFrom(form, ["legal_name", "email", "phone", "website", "address", "city", "country", "tax_id"]);
-  if (Object.keys(fields).length) await ctx.supabase.from("businesses").update(fields).eq("id", id);
+  fields.country = country;
+  // a sensible tax name for the country (VAT, GST, Sales tax…); the rate is set in the next step
+  const { countryByName } = await import("@/lib/countries");
+  const known = countryByName(country);
+  if (known) fields.tax_label = known.tax;
+  await ctx.supabase.from("businesses").update(fields).eq("id", id);
   redirect("/onboarding?step=brand");
 }
 

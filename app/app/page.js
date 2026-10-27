@@ -63,6 +63,11 @@ export default async function Dashboard({ searchParams }) {
       <PageHeader title={`${greeting()}${firstName ? `, ${firstName}` : ""}`} description={`Here's how ${business.name} is doing.`} />
 
       {gift && <GiftCelebration gift={gift} />}
+      {!String(business.country || "").trim() && can(member, "settings.business") && (
+        <Callout tone="warn" icon={AlertCircle} title="Choose your country" action={<Button href="/app/settings" size="sm" variant="primary">Set country</Button>}>
+          It decides your tax features and what shows on your invoices.
+        </Callout>
+      )}
       {sp.welcome && <ShowToast title="You're all set up" message="Create your first quote. Add your hidden costs to see your profit before you send it." clear={["welcome"]} duration={7000} />}
       {ctx.allowance?.reason === "deletion_pending" && <Callout tone="danger" icon={AlertCircle} title={`${business.name} will be permanently deleted on ${formatDate(ctx.allowance.deletes_at)}`}
         action={member.role === "owner" && <Button href="/app/settings/privacy" size="sm" variant="primary">Keep my business</Button>}>

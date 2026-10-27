@@ -1,5 +1,6 @@
 "use client";
 import { PostcodeField } from "@/components/postcode-field";
+import { CountrySelect } from "@/components/country-select";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useStepUp } from "@/components/step-up";
 import { Save } from "lucide-react";
@@ -76,7 +77,7 @@ export function BusinessForm({ business: b, logo: initialLogo, signature: signat
             <Field label="Address" htmlFor="addr" className="sm:col-span-2"><Input id="addr" name="address" defaultValue={b.address} /></Field>
             <Field label="City" htmlFor="city"><Input id="city" name="city" defaultValue={b.city} /></Field>
             {"postcode" in b && <PostcodeField id="postcode" name="postcode" value={b.postcode || ""} area={b.postcode_area || ""} verified={Boolean(b.postcode_verified_at)} hint="Nigeria's 11-character postcode. Shown on your documents and e-invoices." />}
-            <Field label="Country" htmlFor="country"><Input id="country" name="country" defaultValue={b.country} /></Field>
+            <CountrySelect defaultValue={b.country || ""} />
             <Field label="Website" htmlFor="web" optional><Input id="web" name="website" defaultValue={b.website} /></Field>
             <Field label="Tax ID (TIN)" htmlFor="tin" optional><Input id="tin" name="tax_id" defaultValue={b.tax_id} /></Field>
           </div>

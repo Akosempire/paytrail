@@ -1,4 +1,5 @@
 "use client";
+import { CountrySelect } from "@/components/country-select";
 import { useActionState, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Briefcase, Building2, Check, PlugZap, UserRound } from "lucide-react";
@@ -78,6 +79,7 @@ function ChoiceCard({ checked, onSelect, icon: Icon, title, description, points 
 export function StepStart({ ownerName, firstBusiness }) {
   const [state, action] = useActionState(startBusiness, null);
   const [kind, setKind] = useState("freelancer");
+  const [currency, setCurrency] = useState("NGN");
   return (
     <form action={action}>
       <input type="hidden" name="kind" value={kind} />
@@ -100,7 +102,8 @@ export function StepStart({ ownerName, firstBusiness }) {
             <Input id="name" name="name" placeholder={kind === "company" ? "Adeyemi Studio Ltd" : "Tolu Adeyemi Designs"} required />
           </Field>
           <Field label="Your name" htmlFor="owner_name"><Input id="owner_name" name="owner_name" defaultValue={ownerName} required /></Field>
-          <Field label="Main currency" htmlFor="currency"><Select id="currency" name="currency" defaultValue="NGN">{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+          <CountrySelect guess onPick={(c) => c && CURRENCIES.includes(c.currency) && setCurrency(c.currency)} />
+          <Field label="Main currency" htmlFor="currency"><Select id="currency" name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
         </div>
         <More label="Add contact details (optional)">
           <div className="grid items-start gap-4 sm:grid-cols-2">
@@ -110,7 +113,6 @@ export function StepStart({ ownerName, firstBusiness }) {
             <Field label="Website" htmlFor="website" optional><Input id="website" name="website" placeholder="yourbusiness.com" /></Field>
             <Field label="Address" htmlFor="address" className="sm:col-span-2"><Input id="address" name="address" placeholder="12 Admiralty Way, Lekki Phase 1" /></Field>
             <Field label="City" htmlFor="city"><Input id="city" name="city" placeholder="Your city" /></Field>
-            <Field label="Country" htmlFor="country"><Input id="country" name="country" placeholder="Your country" /></Field>
             <Field label="Tax ID (TIN)" htmlFor="tax_id" optional><Input id="tax_id" name="tax_id" /></Field>
           </div>
         </More>
