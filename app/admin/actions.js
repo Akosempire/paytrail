@@ -394,3 +394,61 @@ export async function sendTestAlert() {
   const ok = await sendAlert(["🧪 Test alert: this is what you'll get when something breaks."]);
   return ok ? { message: "Test alert sent to your webhook and/or alert email." } : { error: "The test alert couldn't be delivered anywhere. Add a webhook below, and check Admin → Integrations → Email." };
 }
+
+// ---------------------------------------------------------------- tax filing (VAT returns)
+export async function saveConsultant(form) {
+  await requirePlatformAdmin();
+  const row = {
+    name: String(form.name || "").trim().slice(0, 120), firm: String(form.firm || "").trim().slice(0, 120),
+    email: String(form.email || "").trim().toLowerCase().slice(0, 200), phone: String(form.phone || "").trim().slice(0, 40),
+    citn_number: String(form.citn || "").trim().slice(0, 40),
+  };
+  if (!row.name) return { error: "Enter the consultant's name." };
+  if (!/^\S+@\S+\.\S+$/.test(row.email)) return { error: "Enter a valid email: requests are sent there." };
+  const service = createSupabaseService();
+  const { error } = form.id ? await service.from("tax_consultants").update(row).eq("id", form.id) : await service.from("tax_consultants").insert(row);
+  revalidatePath("/admin/tax");
+  if (error) return { error: /tax_consultants/.test(error.message) ? "Run RUN_NEW_2026-10-27a.sql in Supabase first." : error.message };
+  return { message: form.id ? "Consultant updated." : `${row.name} added. New requests are shared between active consultants.` };
+}
+
+export async function setConsultantActive(id, active) {
+  await requirePlatformAdmin();
+  await createSupabaseService().from("tax_consultants").update({ active: Boolean(active) }).eq("id", id);
+  revalidatePath("/admin/tax");
+  return { message: active ? "Consultant is active again." : "Consultant paused: they get no new requests." };
+}
+
+// a new private link (the old one stops working)
+export async function newConsultantLink(id) {
+  await requirePlatformAdmin();
+  const { randomBytes } = await import("node:crypto");
+  await createSupabaseService().from("tax_consultants").update({ access_token: randomBytes(24).toString("hex") }).eq("id", id);
+  revalidatePath("/admin/tax");
+  return { message: "New link created. The old one no longer works." };
+}
+
+export async function assignConsultant(returnId, consultantId) {
+  await requirePlatformAdmin();
+  const service = createSupabaseService();
+  const { data: ret } = await service.from("vat_returns").select("*").eq("id", returnId).maybeSingle();
+  if (!ret) return { error: "That request wasn't found." };
+  const { data: c } = consultantId ? await service.from("tax_consultants").select("*").eq("id", consultantId).maybeSingle() : { data: null };
+  await service.from("vat_returns").update({ consultant_id: c?.id || null, updated_at: new Date().toISOString() }).eq("id", returnId);
+  if (c && ret.status === "requested") {
+    const { data: business } = await service.from("businesses").select("id, name, tax_id").eq("id", ret.business_id).maybeSingle();
+    const { notifyConsultant } = await import("@/lib/vat-returns");
+    await notifyConsultant(service, c, ret, business);
+  }
+  revalidatePath("/admin/tax");
+  return { message: c ? `Assigned to ${c.name}${ret.status === "requested" ? ". They've been emailed." : "."}` : "Unassigned." };
+}
+
+export async function saveFilingFee(amount) {
+  await requirePlatformAdmin();
+  const minor = toMinor(amount || 0);
+  if (!Number.isFinite(minor) || minor < 0) return { error: "Enter an amount, or 0 for free." };
+  const { error } = await createSupabaseService().from("platform_settings").update({ tax_filing_fee_minor: minor }).eq("id", true);
+  revalidatePath("/admin/tax");
+  return error ? { error: "Run RUN_NEW_2026-10-27a.sql in Supabase first." } : { message: minor ? "Fee saved. Businesses see it before they request." : "Set to free while testing." };
+}

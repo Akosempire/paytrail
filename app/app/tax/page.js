@@ -7,6 +7,8 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { loadTaxMonth, vatByMonth } from "@/lib/tax";
 import { PeriodPicker } from "./period-picker";
+import { VatReturnCard, VatReturnsList } from "./vat-return";
+import { createSupabaseService } from "@/lib/supabase/server";
 import { Badge, buttonClass, Callout, Card, CardHeader, EmptyState, PageHeader, StatCard, StatGroup, cx } from "@/components/ui";
 
 export const metadata = { title: "Tax" };
@@ -29,6 +31,19 @@ export default async function TaxPage({ searchParams }) {
   const upcoming = month.months.map((m) => m.due).find((d) => new Date(`${d}T23:59:59`) >= new Date());
   const label = b.tax_label || "VAT";
 
+  // the month's VAT return (or each month's, in a quarter or year)
+  const past = month.months.filter((m) => m.key <= today);
+  const { data: rets, error: retError } = await ctx.supabase.from("vat_returns").select("*").eq("business_id", b.id).in("period", past.map((m) => m.key).concat(["0000-00"]));
+  const retOf = (k) => (rets || []).find((r) => r.period === k) || null;
+  const ret = month.type === "month" ? retOf(month.key) : null;
+  const service = createSupabaseService();
+  const [{ data: retFiles }, consultant, fee] = await Promise.all([
+    ret ? ctx.supabase.from("vat_return_files").select("id, kind, name, created_at").eq("return_id", ret.id).order("created_at") : Promise.resolve({ data: [] }),
+    ret?.consultant_id ? service.from("tax_consultants").select("name").eq("id", ret.consultant_id).maybeSingle().then((r) => r.data?.name || null) : Promise.resolve(null),
+    import("@/lib/vat-returns").then((m) => m.filingFee(service)).catch(() => 0),
+  ]);
+  const monthsList = past.slice().reverse().map((m) => ({ key: m.key, label: m.label, vat: retOf(m.key)?.vat_minor ?? vat[m.key] ?? 0, status: retOf(m.key)?.status || "to_file", overdue: new Date(`${m.due}T23:59:59`) < now }));
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Tax" description={`${label} you charged and withholding tax your customers deducted, for any month, quarter or year. Share the export with your accountant.`}
@@ -38,6 +53,13 @@ export default async function TaxPage({ searchParams }) {
 
       {!tinReady && <Callout tone="warn" icon={AlertTriangle} title="One step left">Run <strong>RUN_NEW_2026-10-26d.sql</strong> in Supabase to add customer TINs and withholding tax.</Callout>}
       {Number(b.tax_rate) === 0 && <Callout tone="info" title={`You're not charging ${label}`}>Your default tax rate is 0%. If your sales pass the VAT threshold, set your rate in Settings → Business & branding.</Callout>}
+
+      {retError && past.length > 0 && <Callout tone="warn" title="One step left">Run <strong>RUN_NEW_2026-10-27a.sql</strong> in Supabase to track VAT returns here and use "File &amp; pay for me".</Callout>}
+      {!retError && month.type === "month" && past.length > 0 && (
+        <VatReturnCard period={month.key} label={month.label} due={month.due} dueLabel={formatDate(month.due)} vat={ret && ["filed", "done"].includes(ret.status) ? ret.vat_minor : t.vat} currency={cur}
+          ret={ret} files={retFiles || []} consultant={consultant} fee={fee} canAct={can(ctx.member, "payments.record")} overdue={new Date(`${month.due}T23:59:59`) < now} />
+      )}
+      {!retError && month.type !== "month" && past.length > 0 && <VatReturnsList months={monthsList} currency={cur} />}
 
       <StatGroup cols={4}>
         <StatCard label={`${label} charged`} value={money(t.vat)} hint={`On ${t.invoices} invoice${t.invoices === 1 ? "" : "s"} issued in ${month.label}`} icon={Landmark} tone="brand" />
