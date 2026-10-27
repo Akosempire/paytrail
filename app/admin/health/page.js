@@ -14,20 +14,20 @@ export const dynamic = "force-dynamic";
 const TONE = { ok: "success", warn: "warn", down: "danger" };
 const WORD = { ok: "Working", warn: "Warning", down: "Broken" };
 const ICON = { ok: CheckCircle2, warn: AlertTriangle, down: CircleX };
-const SHORT = { email: "Email", payments: "Payment", storage: "Upload" };
-const FILTERS = [["", "All"], ["email", "Email"], ["payments", "Payments"], ["storage", "Uploads"], ["check", "Checks"]];
+const SHORT = { email: "Email", payments: "Payment", storage: "Upload", backup_failed: "Backup" };
+const FILTERS = [["", "All"], ["email", "Email"], ["payments", "Payments"], ["storage", "Uploads"], ["check", "Checks"], ["backup", "Backups"]];
 
 export default async function HealthPage({ searchParams }) {
   const sp = await searchParams;
   const service = createSupabaseService();
   const filter = FILTERS.some(([k]) => k === sp.kind) ? sp.kind : "";
   let eventsQ = service.from("monitor_events").select("id, kind, detail, created_at").order("created_at", { ascending: false }).limit(150);
-  if (filter === "check") eventsQ = eventsQ.like("kind", "check:%"); else if (filter) eventsQ = eventsQ.eq("kind", filter);
+  if (filter === "check") eventsQ = eventsQ.like("kind", "check:%"); else if (filter === "backup") eventsQ = eventsQ.in("kind", ["backup", "backup_failed"]); else if (filter) eventsQ = eventsQ.eq("kind", filter);
   const since = new Date(Date.now() - 86400_000).toISOString();
   const [{ data: state, error }, { data: events }, { data: day }, { data: settings }, cfg] = await Promise.all([
     service.from("monitor_state").select("*").order("check_key"),
     eventsQ,
-    service.from("monitor_events").select("kind").gte("created_at", since).not("kind", "like", "check:%"),
+    service.from("monitor_events").select("kind").gte("created_at", since).not("kind", "like", "check:%").neq("kind", "backup"),
     service.from("platform_settings").select("alert_webhook_hint").eq("id", true).maybeSingle(),
     platformConfig(),
   ]);
@@ -95,7 +95,7 @@ export default async function HealthPage({ searchParams }) {
               <li key={e.id} className="flex gap-3 px-5 py-3">
                 <span className="w-24 shrink-0 text-[12px] text-ink-3" title={formatDate(e.created_at, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}><Clock className="mr-1 inline size-3" />{timeAgo(e.created_at)}</span>
                 <div className="min-w-0 flex-1">
-                  <Badge size="sm" tone={e.kind.startsWith("check:") ? (/^Working/.test(e.detail) ? "success" : "warn") : "danger"}>{e.kind.startsWith("check:") ? labelOf(e.kind.slice(6)) : `${SHORT[e.kind] || e.kind} failure`}</Badge>
+                  <Badge size="sm" tone={e.kind === "backup" ? "success" : e.kind.startsWith("check:") ? (/^Working/.test(e.detail) ? "success" : "warn") : "danger"}>{e.kind === "backup" ? "Backup saved" : e.kind.startsWith("check:") ? labelOf(e.kind.slice(6)) : `${SHORT[e.kind] || e.kind} failure`}</Badge>
                   <p className="mt-1 break-words text-[13px] text-ink-2">{e.detail}</p>
                 </div>
               </li>

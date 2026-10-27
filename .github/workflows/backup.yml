@@ -1,0 +1,95 @@
+# Daily database backup (free). Every night it copies the whole Supabase
+# database (roles, structure and data), encrypts it with your passphrase, saves
+# it to your Cloudflare R2 bucket (kept 30 days) and here as a 7-day download,
+# then tells Usetally so Admin → Health shows it and you're alerted if it fails.
+# Setup and restore: docs/BACKUPS.md
+name: Database backup
+
+on:
+  schedule:
+    - cron: "17 2 * * *" # 03:17 in Lagos, every day
+  workflow_dispatch: {}   # "Run workflow" button for a backup right now
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      SITE_URL: ${{ vars.SITE_URL || 'https://usetally.cc' }}
+      CRON_SECRET: ${{ secrets.CRON_SECRET }}
+    steps:
+      - name: Check the settings
+        run: |
+          missing=""
+          for v in SUPABASE_DB_URL BACKUP_PASSPHRASE; do [ -z "${!v}" ] && missing="$missing $v"; done
+          if [ -n "$missing" ]; then echo "::error::Add these repository secrets:$missing (see docs/BACKUPS.md)"; exit 1; fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Copy the database
+        run: |
+          set -euo pipefail
+          mkdir -p dump
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f dump/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f dump/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f dump/data.sql --use-copy --data-only
+          # a backup with no data in it is a failed backup
+          test "$(wc -c < dump/data.sql)" -gt 1000
+          ls -la dump
+
+      - name: Encrypt it
+        run: |
+          set -euo pipefail
+          NAME="usetally-db-$(date -u +%Y-%m-%d-%H%M).tar.gz.gpg"
+          tar -czf - -C dump . | gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 -o "$NAME"
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+          echo "BYTES=$(wc -c < "$NAME")" >> "$GITHUB_ENV"
+          rm -rf dump
+
+      - name: Save to Cloudflare R2 (kept 30 days)
+        if: env.R2_ACCOUNT_ID != '' && env.R2_BUCKET != ''
+        run: |
+          set -euo pipefail
+          EP="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          aws s3 cp "$NAME" "s3://${R2_BUCKET}/backups/db/$NAME" --endpoint-url "$EP" --only-show-errors
+          echo "WHERE=R2" >> "$GITHUB_ENV"
+          cutoff=$(date -u -d '30 days ago' +%Y-%m-%d)
+          aws s3 ls "s3://${R2_BUCKET}/backups/db/" --endpoint-url "$EP" | awk '{print $4}' | while read -r f; do
+            d=$(echo "$f" | sed -n 's/^usetally-db-\([0-9-]\{10\}\).*/\1/p')
+            if [ -n "$d" ] && [[ "$d" < "$cutoff" ]]; then aws s3 rm "s3://${R2_BUCKET}/backups/db/$f" --endpoint-url "$EP" --only-show-errors; fi
+          done
+
+      - name: Keep a copy here too (7 days)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.NAME }}
+          path: ${{ env.NAME }}
+          retention-days: 7
+
+      - name: Tell Usetally it worked
+        if: success() && env.CRON_SECRET != ''
+        run: |
+          curl -fsS -X POST "$SITE_URL/api/monitor/backup" -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json" \
+            -d "{\"ok\":true,\"file\":\"$NAME\",\"bytes\":${BYTES:-0},\"where\":\"${WHERE:-GitHub only}\"}" || echo "::warning::Couldn't reach $SITE_URL to report the backup"
+
+      - name: Tell Usetally it failed
+        if: failure() && env.CRON_SECRET != ''
+        run: |
+          curl -fsS -X POST "$SITE_URL/api/monitor/backup" -H "Authorization: Bearer $CRON_SECRET" -H "Content-Type: application/json" \
+            -d "{\"ok\":false,\"detail\":\"The nightly backup failed. Open GitHub → Actions → Database backup to see why.\",\"run\":\"$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID\"}" || true

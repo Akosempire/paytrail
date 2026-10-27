@@ -1,0 +1,60 @@
+# Restore a backup into a NEW Supabase project (never the live one). Use it in
+# an emergency, or once now to prove the backups work. Steps: docs/BACKUPS.md
+name: Restore backup
+
+on:
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "Backup file name in R2 (leave empty for the newest)"
+        required: false
+        default: ""
+      confirm:
+        description: "Type RESTORE to confirm"
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      RESTORE_DB_URL: ${{ secrets.RESTORE_DB_URL }}
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      CONFIRM: ${{ github.event.inputs.confirm }}
+      FILE_INPUT: ${{ github.event.inputs.file }}
+    steps:
+      - name: Safety checks
+        run: |
+          [ "$CONFIRM" = "RESTORE" ] || { echo "::error::Type RESTORE to confirm."; exit 1; }
+          [ -n "$RESTORE_DB_URL" ] || { echo "::error::Add the RESTORE_DB_URL secret: the connection string of a NEW, empty Supabase project."; exit 1; }
+          if [ "$RESTORE_DB_URL" = "$SUPABASE_DB_URL" ]; then echo "::error::RESTORE_DB_URL is your live database. Restore into a new project instead."; exit 1; fi
+
+      - name: Download the backup
+        run: |
+          set -euo pipefail
+          EP="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          FILE="$FILE_INPUT"
+          if [ -z "$FILE" ]; then FILE=$(aws s3 ls "s3://${R2_BUCKET}/backups/db/" --endpoint-url "$EP" | awk '{print $4}' | sort | tail -1); fi
+          echo "Restoring $FILE"
+          aws s3 cp "s3://${R2_BUCKET}/backups/db/$FILE" backup.gpg --endpoint-url "$EP" --only-show-errors
+          mkdir -p dump
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" -d backup.gpg | tar -xzf - -C dump
+          ls -la dump
+
+      - name: Restore into the new project
+        run: |
+          set -euo pipefail
+          psql --single-transaction --variable ON_ERROR_STOP=1 \
+            --file dump/roles.sql --file dump/schema.sql \
+            --command 'SET session_replication_role = replica' \
+            --file dump/data.sql --dbname "$RESTORE_DB_URL"
+          psql "$RESTORE_DB_URL" -t -c "select 'businesses: ' || count(*) from public.businesses union all select 'documents: ' || count(*) from public.documents union all select 'users: ' || count(*) from auth.users"
