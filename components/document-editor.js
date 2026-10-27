@@ -1,7 +1,7 @@
 "use client";
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, CircleAlert, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
+import { ClipboardPaste, EyeOff, Plus, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, CircleAlert, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui-client";
 import { computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
 import { COST_CATEGORIES } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
+import { PasteList } from "@/components/paste-list";
 
 const blankItem = () => ({ key: Math.random().toString(36).slice(2), description: "", details: "", quantity: "1", price: "", vat: "standard" });
 const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label: c.label || "", category: c.category || "other", amount: c.amount_minor ? minorToInput(c.amount_minor) : "" });
@@ -69,6 +70,19 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const previewModel = useMemo(() => { const [d, its] = JSON.parse(deferred); return buildModel({ doc: d, items: its, business }); }, [deferred, business]);
 
   function setItem(key, patch) { setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i))); }
+  // a list pasted from WhatsApp etc.: replaces empty rows, adds after the rest
+  const [paste, setPaste] = useState(null); // null = closed, else the starting text
+  function addPasted(parsed) {
+    const fresh = parsed.map((p) => ({ ...blankItem(), description: p.description.slice(0, 300), quantity: String(p.quantity), price: p.price == null ? "" : String(p.price) }));
+    setItems((list) => [...list.filter((i) => i.description.trim() || i.price), ...fresh]);
+    setPaste(null);
+    toast.success(`${fresh.length} item${fresh.length === 1 ? "" : "s"} added. Check the prices before you send.`);
+  }
+  // pasting several lines into a description opens the list reader instead
+  const onDescPaste = (e) => {
+    const t = e.clipboardData?.getData("text") || "";
+    if (t.split(/\r?\n/).filter((l) => l.trim()).length >= 2) { e.preventDefault(); setPaste(t); }
+  };
   function setCost(key, patch) { setCosts((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c))); }
 
   function submit(intent) {
@@ -172,7 +186,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               return (
                 <li key={item.key} className="grid gap-2.5 px-5 py-4 md:grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] md:items-start md:gap-3">
                   <div className="flex flex-col gap-2">
-                    <Input aria-label={`Item ${idx + 1} description`} value={item.description} onChange={(e) => setItem(item.key, { description: e.target.value })} placeholder="e.g. Brand identity design" />
+                    <Input aria-label={`Item ${idx + 1} description`} value={item.description} onPaste={onDescPaste} onChange={(e) => setItem(item.key, { description: e.target.value })} placeholder="e.g. Brand identity design" />
                     <Textarea aria-label={`Item ${idx + 1} details`} rows={1} value={item.details} onChange={(e) => setItem(item.key, { details: e.target.value })} placeholder="Details (optional)" className="min-h-9 text-[13px]" />
                     <label className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ink-3">
                       {taxLabel || "VAT"}
@@ -199,7 +213,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             })}
           </ul>
           <div className="flex flex-col gap-5 border-t border-line p-5 sm:flex-row sm:items-start sm:justify-between">
-            <Button size="sm" icon={Plus} onClick={() => setItems((l) => [...l, blankItem()])}>Add item</Button>
+            <div className="flex flex-wrap gap-2">
+              <Button size="sm" icon={Plus} onClick={() => setItems((l) => [...l, blankItem()])}>Add item</Button>
+              <Button size="sm" icon={ClipboardPaste} onClick={() => setPaste("")}>Paste list</Button>
+            </div>
+            <PasteList open={paste !== null} initialText={paste || ""} onClose={() => setPaste(null)} onAdd={addPasted} currency={currency} />
             <dl className="w-full max-w-xs space-y-2.5 text-sm">
               <Row label="Subtotal" value={money(totals.subtotal)} />
               <div className="flex items-center justify-between gap-3">
