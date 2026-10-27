@@ -7,6 +7,8 @@ import { formatMoney } from "@/lib/money";
 import { formatDate, timeAgo } from "@/lib/format";
 import { Button, Callout, Card, CardHeader, EmptyState, ListRow, PageHeader, SectionHeader, StatCard, StatGroup, cx } from "@/components/ui";
 import { StatusBadge, activityText } from "@/components/doc-bits";
+import { GiftCelebration } from "@/components/gift-celebration";
+import { createSupabaseService } from "@/lib/supabase/server";
 
 export const metadata = { title: "Dashboard" };
 
@@ -28,6 +30,16 @@ export default async function Dashboard({ searchParams }) {
     supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("business_id", business.id),
   ]);
   const money = (v) => formatMoney(v, business.currency);
+  // free access given in the last 30 days: celebrate it once
+  let gift = null;
+  try {
+    const since = new Date(Date.now() - 30 * 86400_000).toISOString();
+    const { data: g } = await createSupabaseService().from("subscription_payments").select("id, period_start, period_end, plans(name)").eq("business_id", business.id).eq("method", "free_access").gte("created_at", since).order("created_at", { ascending: false }).limit(1);
+    if (g?.[0] && new Date(g[0].period_end) > new Date()) {
+      const months = Math.max(1, Math.round((Date.parse(g[0].period_end) - Date.parse(g[0].period_start)) / (30.44 * 86400_000)));
+      gift = { id: g[0].id, plan: g[0].plans?.name || "Usetally", months, until: formatDate(g[0].period_end, { day: "numeric", month: "long", year: "numeric" }) };
+    }
+  } catch { /* never block the dashboard */ }
   // bank transfers customers say they've sent, waiting for someone to check
   const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
     .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
@@ -50,6 +62,7 @@ export default async function Dashboard({ searchParams }) {
     <div className="flex flex-col gap-8">
       <PageHeader title={`${greeting()}${firstName ? `, ${firstName}` : ""}`} description={`Here's how ${business.name} is doing.`} />
 
+      {gift && <GiftCelebration gift={gift} />}
       {sp.welcome && <ShowToast title="You're all set up" message="Create your first quote. Add your hidden costs to see your profit before you send it." clear={["welcome"]} duration={7000} />}
       {ctx.allowance?.reason === "deletion_pending" && <Callout tone="danger" icon={AlertCircle} title={`${business.name} will be permanently deleted on ${formatDate(ctx.allowance.deletes_at)}`}
         action={member.role === "owner" && <Button href="/app/settings/privacy" size="sm" variant="primary">Keep my business</Button>}>
