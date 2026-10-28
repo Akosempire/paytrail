@@ -97,3 +97,37 @@ The `usetally-sync` Edge Function sends pending rows oldest first: on 2xx → `s
 link revoked; on 422 → `failed` (no retry); otherwise retry with backoff (1, 5, 15, 60 min, then
 hourly, max 24 attempts). It runs on a pg_cron schedule every minute and is also nudged right after
 checkout. Settings shows last sync time, pending and failed counts, and a "Retry failed" button.
+
+## 6. Setting it up (once)
+
+**Usetally (Vercel + Supabase)**
+1. Run `supabase/RUN_NEW_2026-10-29a.sql` in Usetally's Supabase SQL editor.
+2. Optional: Vercel env `POS_RETURN_ORIGINS` if TrackOja moves off `https://trackoja.cv`
+   (comma separated, e.g. `https://pos.usetally.cc,https://trackoja.cv`). Redeploy.
+
+**TrackOja (its own Supabase project)**
+1. Apply `supabase/migrations/20261029000001_usetally_link.sql` (`supabase db push`, or paste it in the SQL editor).
+2. Edge Function secrets (Supabase → Edge Functions → Secrets):
+   - `USETALLY_LINK_SECRET`: a random string of at least 32 characters (encrypts link keys). Never change it after shops connect.
+   - `USETALLY_SYNC_TOKEN`: another random string (lets the every-minute job call usetally-sync).
+   - `USETALLY_URL`: `https://usetally.cc` (optional; that is the default).
+3. Deploy the functions: `supabase functions deploy usetally-connect usetally-disconnect usetally-sync usetally-catalog usetally-stock`.
+4. Every-minute delivery: in the SQL editor run
+   `select vault.create_secret('https://<project-ref>.supabase.co', 'usetally_project_url');`
+   `select vault.create_secret('<the USETALLY_SYNC_TOKEN value>', 'usetally_sync_token');`
+   (pg_cron and pg_net must be enabled under Database → Extensions; the migration schedules the job.)
+5. Vercel env for the TrackOja site (optional): `VITE_USETALLY_URL` if Usetally is not at `https://usetally.cc`.
+
+## 7. Known limits in v1
+
+- Full voids reach Usetally. Partial refunds stay in TrackOja only; void and re-ring the sale if Usetally must match.
+- Stock from Usetally invoices is applied at product level (no batch/lot picking).
+- One TrackOja store per Usetally business. Linking another branch replaces the first link.
+
+## 8. Tests
+
+- Usetally: `npm test` (tests/pos.test.mjs) and `bash scripts/test-db.sh` (supabase/tests/pos.test.mjs).
+- TrackOja: `npx vitest run tests/usetally-connect.test.ts` and `bash scripts/test-db.sh` (supabase/tests/usetally.test.mjs).
+- Both together, local databases only: build both test databases, then in Usetally
+  `node --import ./tests/register.mjs scripts/pos-e2e.mjs 50`. It rings 50 real TrackOja sales (tax, discounts,
+  weights, change, credit, voids), delivers them, and checks both sides match to the kobo.
