@@ -19,9 +19,11 @@ export async function EditorPage({ kind, id, customerId }) {
     kind = full.doc.kind;
   }
   const showCosts = can(ctx.member, "costs.view");
-  const [{ data: customers }, { data: presets }] = await Promise.all([
+  const [{ data: customers }, { data: presets }, { data: posLink }] = await Promise.all([
     ctx.supabase.from("customers").select("id, name, company, email, phone, address").eq("business_id", ctx.business.id).is("archived_at", null).order("name"),
     showCosts ? ctx.supabase.from("cost_presets").select("*").eq("business_id", ctx.business.id).order("label") : Promise.resolve({ data: [] }),
+    // TrackOja POS: "Add from TrackOja" when the business is connected (errors = not set up yet)
+    ctx.supabase.from("pos_connections").select("id, store_name").eq("business_id", ctx.business.id).is("revoked_at", null).maybeSingle().then((r) => r, () => ({ data: null })),
   ]);
   const b = ctx.business;
   const quote = kind === "quote";
@@ -46,6 +48,7 @@ export async function EditorPage({ kind, id, customerId }) {
           logo_path: b.logo_path, signature_path: b.signature_path, signatory_name: b.signatory_name, signatory_title: b.signatory_title, brand_color: b.brand_color, footer_note: b.footer_note, bank_name: b.bank_name, bank_account_name: b.bank_account_name, bank_account_number: b.bank_account_number, document_prefs: b.document_prefs }}
         perms={{ canViewCosts: showCosts, isJunior: ctx.member.role === "junior_finance" }}
         emailReady={await emailConfigured()}
+        pos={posLink ? { store: posLink.store_name || "TrackOja" } : null}
       />
     </div>
   );

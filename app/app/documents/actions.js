@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { redirect } from "next/navigation";
 import { friendlyError, requireBusiness } from "@/lib/context";
 import { cleanPayload, getDocument } from "@/lib/documents";
@@ -10,6 +11,10 @@ import { formatMoney, toMinor } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { logoUrl, absoluteLogoUrl, siteUrl } from "@/lib/site";
 import { emailDocument, sendDocumentInternal } from "@/lib/document-send";
+import { pushPendingStock } from "@/lib/pos";
+
+// an invoice with TrackOja products that is now fully paid: TrackOja deducts the stock
+const stockSoon = (businessId) => after(() => pushPendingStock({ businessId, limit: 5 }));
 
 function refresh(id) {
   revalidatePath("/app", "layout");
@@ -139,6 +144,7 @@ export async function recordPayment(id, form) {
     ? await ctx.supabase.rpc("record_payment_with_wht", { ...common, cash_amount: amount, wht_amount: wht })
     : await ctx.supabase.rpc("record_manual_payment", { ...common, pay_amount: amount });
   refresh(id);
+  if (!error) stockSoon(ctx.business.id);
   if (error && /record_payment_with_wht/.test(error.message || "")) return { error: "Recording WHT needs a database update. Run RUN_NEW_2026-10-26d.sql in Supabase, then try again." };
   return error ? { error: friendlyError(error) } : { message: wht > 0 ? "Payment and WHT recorded. Receipt issued." : "Payment recorded and receipt issued." };
 }
@@ -197,6 +203,7 @@ export async function confirmPaymentClaim(claimId, amount) {
   const { error } = await ctx.supabase.rpc("confirm_payment_claim", { claim_id: claimId, confirm_amount: minor });
   refresh(claim.document_id);
   if (error) return { error: friendlyError(error) };
+  stockSoon(ctx.business.id);
   // email the receipt when we can
   const { data: receipt } = await ctx.supabase.from("receipts").select("id, payment_id").eq("document_id", claim.document_id).order("issued_at", { ascending: false }).limit(1).maybeSingle();
   if (receipt && (await emailConfigured())) {

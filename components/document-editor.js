@@ -1,7 +1,7 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ClipboardPaste, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
+import { Boxes, ClipboardPaste, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
@@ -11,12 +11,15 @@ import { COST_CATEGORIES } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
 import { PasteList } from "@/components/paste-list";
 import { PostcodeField } from "@/components/postcode-field";
+import { TrackOjaPicker } from "@/components/trackoja-picker";
 
-const blankItem = () => ({ key: Math.random().toString(36).slice(2), description: "", details: "", quantity: "1", price: "", vat: "standard" });
+// externalId: the TrackOja product a line came from ("Add from TrackOja")
+const blankItem = () => ({ key: Math.random().toString(36).slice(2), description: "", details: "", quantity: "1", price: "", vat: "standard", externalId: null });
 const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label: c.label || "", category: c.category || "other", amount: c.amount_minor ? minorToInput(c.amount_minor) : "" });
 
 // onSave/onSaved: used by offline mode, which saves to the device instead of the server
-export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved }) {
+// pos: { store } when the business is connected to TrackOja POS (products can be added from it)
+export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -33,7 +36,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const [title, setTitle] = useState(doc?.title || "");
   const [issueDate, setIssueDate] = useState(doc?.issue_date || new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState((quote ? doc?.valid_until : doc?.due_date) || addDays(quote ? business.quote_validity_days : business.invoice_due_days));
-  const [items, setItems] = useState(initialItems?.length ? initialItems.map((i) => ({ key: i.id, description: i.description, details: i.details || "", quantity: String(Number(i.quantity)), price: minorToInput(i.unit_price_minor), vat: i.vat_category || "standard" })) : [blankItem()]);
+  const [items, setItems] = useState(initialItems?.length ? initialItems.map((i) => ({ key: i.id, description: i.description, details: i.details || "", quantity: String(Number(i.quantity)), price: minorToInput(i.unit_price_minor), vat: i.vat_category || "standard", externalId: i.external_product_id || null })) : [blankItem()]);
   const [inclusive, setInclusive] = useState(Boolean(doc?.prices_include_vat));
   const [costs, setCosts] = useState(initialCosts?.length ? initialCosts.map((c) => blankCost(c)) : []);
   const [discount, setDiscount] = useState(doc?.discount_minor ? minorToInput(doc.discount_minor) : "");
@@ -94,6 +97,16 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     const t = e.clipboardData?.getData("text") || "";
     if (t.split(/\r?\n/).filter((l) => l.trim()).length >= 2) { e.preventDefault(); setPaste(t); }
   };
+  // a product from TrackOja: one more of it if it's already on the document
+  const [posOpen, setPosOpen] = useState(false);
+  function addFromTrackOja(p) {
+    setItems((list) => {
+      const same = list.find((i) => i.externalId === p.id);
+      if (same) return list.map((i) => (i === same ? { ...i, quantity: String(Math.round(((Number(i.quantity) || 0) + 1) * 100) / 100) } : i));
+      const line = { ...blankItem(), description: p.name.slice(0, 300), details: p.sku ? `SKU ${p.sku}` : "", price: minorToInput(p.price_minor), externalId: p.id };
+      return [...list.filter((i) => i.description.trim() || i.price), line];
+    });
+  }
   function setCost(key, patch) { setCosts((list) => list.map((c) => (c.key === key ? { ...c, ...patch } : c))); }
 
   function submit(intent) {
@@ -103,7 +116,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       kind, title, issue_date: issueDate,
       ...(quote ? { valid_until: endDate } : { due_date: endDate }),
       discount_minor: toMinor(discount) || 0, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax2_rate: tax2On ? Number(tax2Rate) || 0 : 0, tax2_label: tax2On ? tax2Label : "", notes, terms,
-      items: items.filter((i) => i.description.trim()).map((i) => ({ description: i.description.trim(), details: i.details.trim(), quantity: Number(i.quantity) || 1, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat })),
+      items: items.filter((i) => i.description.trim()).map((i) => ({ description: i.description.trim(), details: i.details.trim(), quantity: Number(i.quantity) || 1, unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat, ...(i.externalId ? { external_product_id: i.externalId } : {}) })),
       prices_include_vat: inclusive,
       email_customer: emailCustomer,
     };
@@ -220,6 +233,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                 <li key={item.key} className="grid gap-2.5 px-5 py-4 md:grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] md:items-start md:gap-3">
                   <div className="flex flex-col gap-2">
                     <Input aria-label={`Item ${idx + 1} description`} value={item.description} onPaste={onDescPaste} onChange={(e) => setItem(item.key, { description: e.target.value })} placeholder="e.g. Brand identity design" />
+                    {item.externalId && (
+                      <span className="inline-flex items-center gap-1.5 self-start text-[12px] font-medium text-brand-ink" title="Stock is deducted in TrackOja when this invoice is fully paid">
+                        <Boxes className="size-3.5" />TrackOja product
+                      </span>
+                    )}
                     <Textarea aria-label={`Item ${idx + 1} details`} rows={1} value={item.details} onChange={(e) => setItem(item.key, { details: e.target.value })} placeholder="Details (optional)" className="min-h-9 text-[13px]" />
                     <label className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ink-3">
                       {taxLabel || "VAT"}
@@ -249,7 +267,9 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             <div className="flex flex-wrap gap-2">
               <Button size="sm" icon={Plus} onClick={() => setItems((l) => [...l, blankItem()])}>Add item</Button>
               <Button size="sm" icon={ClipboardPaste} onClick={() => setPaste("")}>Paste list</Button>
+              {pos && <Button size="sm" icon={Boxes} onClick={() => setPosOpen(true)}>Add from TrackOja</Button>}
             </div>
+            {pos && <TrackOjaPicker open={posOpen} onClose={() => setPosOpen(false)} onPick={addFromTrackOja} currency={currency} store={pos.store} />}
             <PasteList open={paste !== null} initialText={paste || ""} onClose={() => setPaste(null)} onAdd={addPasted} currency={currency} />
             <dl className="w-full max-w-xs space-y-2.5 text-sm">
               <Row label="Subtotal" value={money(totals.subtotal)} />

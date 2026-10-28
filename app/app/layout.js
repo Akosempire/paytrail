@@ -1,6 +1,7 @@
 import { after } from "next/server";
 import { AppShell } from "@/components/app-shell";
 import { reconcileSoon } from "@/lib/payments";
+import { pushStockSoon } from "@/lib/pos";
 import { requireBusiness } from "@/lib/context";
 import { can, ROLES } from "@/lib/permissions";
 import { logoUrl } from "@/lib/site";
@@ -12,6 +13,8 @@ export default async function Layout({ children }) {
   const { business, member } = ctx;
   // catch any customer payment whose webhook was missed, after the page is sent
   after(() => reconcileSoon(`b:${business.id}`, { businessId: business.id }));
+  // and any TrackOja stock update that's due for a retry
+  after(() => pushStockSoon(business.id));
   return (
     <AppShell
       business={{ id: business.id, name: business.name, kind: business.kind, brand_color: business.brand_color, subscription_status: business.subscription_status, paying: isPaying(business) }}
