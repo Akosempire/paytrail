@@ -1,0 +1,19 @@
+# The ad report every 6 hours. Vercel's free plan only allows daily scheduled
+# jobs, so Vercel runs the 06:00 UTC one (vercel.json) and this runs the other
+# three: 00:00, 12:00 and 18:00 UTC. Needs the repository secret CRON_SECRET
+# (the same value as in Vercel). "Run workflow" runs it now.
+name: Marketing sync
+on:
+  schedule:
+    - cron: "0 0,12,18 * * *"
+  workflow_dispatch:
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync Meta ads and email the report
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ]; then echo "Add the CRON_SECRET repository secret (same value as in Vercel)."; exit 1; fi
+          curl -fsS -m 90 -H "Authorization: Bearer $CRON_SECRET" "https://usetally.cc/api/cron/marketing"

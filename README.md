@@ -178,7 +178,7 @@ Shows which Meta ads bring sign-ups and paying customers, gives each ad a verdic
 3. **Verdicts & report**: set the thresholds and the email reports go to (from reports@usetally.cc; the domain needs DKIM).
 4. In every ad's link, set `utm_content` to a name unique to that ad, and start `utm_campaign` with the country (`ng_test_1`, `uk_test_1`):
    `https://usetally.cc/?utm_source=facebook&utm_medium=paid&utm_campaign=ng_test_1&utm_content=real_profit`
-5. `CRON_SECRET` must be set in Vercel. Vercel Cron calls `/api/cron/marketing` every 6 hours (see `vercel.json`), and **Sync now** runs the same job.
+5. `CRON_SECRET` must be set in Vercel, and as a GitHub repository secret with the same value. Vercel's free plan only allows daily jobs, so Vercel runs the 06:00 UTC sync (`vercel.json`) and GitHub Actions runs 00:00, 12:00 and 18:00 (`.github/workflows/marketing-sync.yml`). **Sync now** runs the same job. On Vercel Pro you can instead set the `vercel.json` schedule to `0 */6 * * *` and delete the workflow.
 
 **Sign-ups** are counted in Usetally, by matching `utm_content`; Meta's own count is shown for comparison. The site remembers the first and last ad touch for 30 days, and saves them on the business when it's created.
 
