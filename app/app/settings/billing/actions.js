@@ -3,6 +3,7 @@ import { requirePermission } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { startCheckout } from "@/lib/payments";
 import { subscriptionCurrencyFor } from "@/lib/plans";
+import { offerEligible, offerPrice } from "@/lib/trial-offer";
 
 export async function choosePlan(planId) {
   const ctx = await requirePermission("settings.billing");
@@ -26,15 +27,22 @@ export async function choosePlan(planId) {
     const { error } = await service.rpc("extend_subscription", { target: ctx.business.id, new_plan: plan.id, pay_method: "free", pay_reference: "", pay_amount: 0, pay_currency: plan.currency, recorder: ctx.user.id });
     return error ? { error: error.message } : { message: `You're on ${plan.name}.` };
   }
+  // pay before the trial ends: 25% off a yearly plan (first payment only, checked here)
+  let amountMinor = Number(plan.price_minor);
+  const discounted = offerPrice(plan);
+  if (discounted != null) {
+    const { count } = await service.from("subscription_payments").select("id", { count: "exact", head: true }).eq("business_id", ctx.business.id).gt("amount_minor", 0);
+    if (offerEligible({ business: ctx.business, paidBefore: (count || 0) > 0 })) amountMinor = discounted;
+  }
   if (settings.billing_provider === "manual") {
     return { manual: true, email: settings.support_email };
   }
   try {
     const { url } = await startCheckout({
       billingBusinessId: ctx.business.id, provider: settings.billing_provider, purpose: "subscription", planId: plan.id,
-      amountMinor: plan.price_minor, currency: plan.currency,
+      amountMinor, currency: plan.currency,
       customer: { email: ctx.business.email || ctx.user.email, name: ctx.business.name },
-      brand: { name: "Usetally", description: `${plan.name} plan` },
+      brand: { name: "Usetally", description: `${plan.name} plan${amountMinor < Number(plan.price_minor) ? " (25% off your first year)" : ""}` },
     });
     return { url };
   } catch (e) {

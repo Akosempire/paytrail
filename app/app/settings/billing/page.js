@@ -10,6 +10,7 @@ import { PlanButton } from "./plan-button";
 import { hasYearly, monthlyEquivalent, plansFor, subscriptionCurrencyFor } from "@/lib/plans";
 import { cx } from "@/components/ui";
 import { MetaEvent } from "@/components/marketing-tags";
+import { TRIAL_OFFER, offerEligible, offerPrice } from "@/lib/trial-offer";
 
 export const metadata = { title: "Plan & billing" };
 
@@ -25,7 +26,12 @@ export default async function Billing({ searchParams }) {
     service.from("platform_settings").select("trial_mode, trial_documents, trial_days, billing_provider, support_email").eq("id", true).single(),
   ]);
   const currentInterval = (plans || []).find((p) => p.id === b.plan_id)?.billing_interval;
-  const interval = wanted === "year" || wanted === "month" ? wanted : currentInterval === "year" ? "year" : "month";
+  // pay before the trial ends: 25% off a yearly plan (until 30 Nov); yearly shown first
+  const { count: paidCount } = b.subscription_status === "trialing"
+    ? await service.from("subscription_payments").select("id", { count: "exact", head: true }).eq("business_id", b.id).gt("amount_minor", 0)
+    : { count: 1 };
+  const deal = offerEligible({ business: b, paidBefore: (paidCount || 0) > 0 });
+  const interval = wanted === "year" || wanted === "month" ? wanted : deal || currentInterval === "year" ? "year" : "month";
   const { currency: planCurrency, plans: visible } = plansFor(plans, { currency: subscriptionCurrencyFor(b), interval, kind: b.kind, currentPlanId: b.subscription_status === "active" ? b.plan_id : null });
   const yearly = hasYearly(plans, planCurrency);
   const a = ctx.allowance || {};
@@ -33,7 +39,7 @@ export default async function Billing({ searchParams }) {
   const active = b.subscription_status === "active" && !(onFree && a.ended);
   // hidden offers with spots left (Founding), in this business's currency
   const offers = [];
-  for (const p of (plans || []).filter((p) => !p.active && p.spots > 0 && p.currency === planCurrency && p.id !== b.plan_id && (b.kind !== "company" || p.allow_company))) {
+  for (const p of (plans || []).filter((p) => !deal && !p.active && p.spots > 0 && p.currency === planCurrency && p.id !== b.plan_id && (b.kind !== "company" || p.allow_company))) {
     const { data: left } = await service.rpc("plan_spots_left", { plan: p.id });
     if (left > 0) offers.push({ ...p, left });
   }
@@ -60,6 +66,15 @@ export default async function Billing({ searchParams }) {
           <Badge tone={onFree ? "neutral" : active ? "success" : b.subscription_status === "trialing" ? "brand" : "danger"}>{onFree ? "free" : b.subscription_status.replace("_", " ")}</Badge>
         </div>
       </Card>
+      {deal && (
+        <Card className="flex items-start gap-3 p-5 ring-2 ring-brand/40">
+          <span className="text-[22px] leading-none" aria-hidden="true">🎁</span>
+          <div className="min-w-0">
+            <p className="text-title-3 text-ink">{TRIAL_OFFER.percent}% off your first year</p>
+            <p className="mt-1 text-[13.5px] text-ink-2">Choose a yearly plan before your free trial ends. Offer ends {TRIAL_OFFER.endsLabel}.</p>
+          </div>
+        </Card>
+      )}
       {offers.map((p) => (
         <Card key={p.id} className="flex flex-col gap-4 p-5 ring-2 ring-brand/40 sm:flex-row sm:items-center">
           <div className="min-w-0 flex-1">
@@ -71,7 +86,7 @@ export default async function Billing({ searchParams }) {
       ))}
       {yearly && (
         <nav className="inline-flex items-center gap-0.5 self-start rounded-lg bg-tray p-1" aria-label="Billing period">
-          {[["month", "Monthly"], ["year", "Yearly · 2 months free"]].map(([v, l]) => (
+          {[["month", "Monthly"], ["year", deal ? `Yearly · ${TRIAL_OFFER.percent}% off` : "Yearly · 2 months free"]].map(([v, l]) => (
             <Link key={v} href={`/app/settings/billing?interval=${v}`} className={cx("inline-flex h-8 items-center rounded-md px-3 text-[13px] font-medium", interval === v ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3 hover:text-ink")}>{l}</Link>
           ))}
         </nav>
@@ -82,13 +97,15 @@ export default async function Billing({ searchParams }) {
         <div className={cx("grid gap-1.5 rounded-2xl bg-tray p-1.5 md:grid-cols-2", visible.length >= 4 ? "xl:grid-cols-4" : visible.length === 3 ? "xl:grid-cols-3" : "")}>
           {visible.map((p) => {
             const current = (active && b.plan_id === p.id) || (onFree && a.ended && p.price_minor === 0);
-            const perMonth = monthlyEquivalent(p);
+            const sale = deal && !current ? offerPrice(p) : null; // 25% off while the offer runs
+            const perMonth = sale != null ? Math.round(sale / 12 / 100) * 100 : monthlyEquivalent(p);
             const free = p.price_minor === 0;
             return (
               <div key={p.id} className={`flex flex-col rounded-xl bg-surface p-5 ring-1 ${current ? "ring-2 ring-brand" : "ring-line"}`}>
                 <div className="flex items-center justify-between gap-2"><p className="text-title-3 text-ink">{p.name}</p>{current && <Badge tone="brand" size="sm">Current</Badge>}</div>
                 {p.tagline && <p className="mt-1 text-[13px] text-ink-3">{p.tagline}</p>}
-                <p className="mt-4"><span className="text-[28px] font-semibold tracking-[-0.02em] text-ink tabular">{free ? "Free" : formatMoney(p.price_minor, p.currency)}</span>{!free && <span className="text-sm text-ink-3"> / {p.billing_interval}</span>}</p>
+                <p className="mt-4"><span className="text-[28px] font-semibold tracking-[-0.02em] text-ink tabular">{free ? "Free" : formatMoney(sale ?? p.price_minor, p.currency)}</span>{!free && <span className="text-sm text-ink-3"> / {p.billing_interval}</span>}</p>
+                {sale != null && <p className="text-[12.5px]"><s className="text-ink-3">{formatMoney(p.price_minor, p.currency)}</s> <span className="font-semibold text-success-ink">· {TRIAL_OFFER.percent}% off your first year</span></p>}
                 {perMonth && <p className="text-xs text-ink-3">{formatMoney(perMonth, p.currency)} a month</p>}
                 <ul className="mt-4 flex-1 space-y-2 text-[13px] text-ink-2">
                   <li className="flex gap-2"><Check className="mt-0.5 size-3.5 shrink-0 text-success" />{p.document_limit == null ? "Unlimited quotes & invoices" : `${p.document_limit} quotes & invoices a month`}</li>

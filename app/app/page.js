@@ -8,6 +8,10 @@ import { formatDate, timeAgo } from "@/lib/format";
 import { Button, Callout, Card, CardHeader, EmptyState, ListRow, PageHeader, SectionHeader, StatCard, StatGroup, cx } from "@/components/ui";
 import { StatusBadge, activityText } from "@/components/doc-bits";
 import { GiftCelebration } from "@/components/gift-celebration";
+import { TrialNudge } from "@/components/trial-nudge";
+import { trialNudge } from "@/lib/trial-nudge";
+import { TRIAL_OFFER, offerEligible, offerPrice } from "@/lib/trial-offer";
+import { monthlyEquivalent, subscriptionCurrencyFor } from "@/lib/plans";
 import { createSupabaseService } from "@/lib/supabase/server";
 
 export const metadata = { title: "Dashboard" };
@@ -40,6 +44,52 @@ export default async function Dashboard({ searchParams }) {
       gift = { id: g[0].id, plan: g[0].plans?.name || "Usetally", months, until: formatDate(g[0].period_end, { day: "numeric", month: "long", year: "numeric" }) };
     }
   } catch { /* never block the dashboard */ }
+  // near the end of the free trial: "Keep Usetally", for whoever can pay
+  let trial = null;
+  if (!gift && business.subscription_status === "trialing" && can(member, "settings.billing")) {
+    try {
+      const service = createSupabaseService();
+      const { count: paidBefore } = await service.from("subscription_payments").select("id", { count: "exact", head: true }).eq("business_id", business.id).gt("amount_minor", 0);
+      const deal = offerEligible({ business, paidBefore: (paidBefore || 0) > 0 });
+      const nudge = trialNudge({ allowance: ctx.allowance, createdAt: business.created_at, docsSent: docCount || 0, offer: deal });
+      if (nudge) {
+        const cur = subscriptionCurrencyFor(business);
+        const [{ data: pays }, { count: customers }, { data: plans }] = await Promise.all([
+          supabase.from("payments").select("amount_minor, currency").eq("business_id", business.id).limit(5000),
+          supabase.from("customers").select("id", { count: "exact", head: true }).eq("business_id", business.id),
+          service.from("plans").select("id, name, price_minor, currency, billing_interval, document_limit, allow_company, active, spots, sort_order").eq("currency", cur),
+        ]);
+        const collected = (pays || []).filter((p) => p.currency === business.currency).reduce((t, p) => t + Number(p.amount_minor), 0);
+        const fits = (p) => business.kind !== "company" || p.allow_company;
+        const show = (p, extra = {}) => ({ name: p.name, price: formatMoney(p.price_minor, p.currency), interval: p.billing_interval || "month",
+          perMonth: monthlyEquivalent(p) ? formatMoney(monthlyEquivalent(p), p.currency) : null, limit: p.document_limit ?? null, ...extra });
+        let offer = null;
+        // 25% off a yearly plan while the offer runs: Solo for freelancers, Team for companies
+        if (deal) {
+          const yearly = (plans || []).filter((p) => p.active && p.billing_interval === "year" && p.price_minor > 0 && fits(p)).sort((a, b) => a.price_minor - b.price_minor);
+          const pick = business.kind === "company" ? yearly.find((p) => p.allow_company) : yearly[0];
+          if (pick) {
+            const sale = offerPrice(pick);
+            offer = { ...show(pick), discount: TRIAL_OFFER.percent, price: formatMoney(sale, pick.currency), was: formatMoney(pick.price_minor, pick.currency),
+              perMonth: formatMoney(Math.round(sale / 12 / 100) * 100, pick.currency), endsLabel: TRIAL_OFFER.endsLabel };
+          }
+        }
+        // otherwise the founding price while real spots are left, else the cheapest plan that fits
+        for (const p of (offer ? [] : plans || []).filter((p) => !p.active && p.spots > 0 && p.price_minor > 0 && fits(p))) {
+          const { data: left } = await service.rpc("plan_spots_left", { plan: p.id });
+          if (left > 0) { offer = show(p, { founding: true, spotsLeft: left, spots: p.spots }); break; }
+        }
+        if (!offer) {
+          const paid = (plans || []).filter((p) => p.active && p.price_minor > 0 && fits(p))
+            .sort((a, b) => (a.billing_interval === "month" ? 0 : 1) - (b.billing_interval === "month" ? 0 : 1) || a.price_minor - b.price_minor)[0];
+          if (paid) offer = show(paid);
+        }
+        const free = (plans || []).find((p) => p.active && p.price_minor === 0);
+        trial = { nudge, offer, freeLimit: free?.document_limit ?? null,
+          stats: { sent: docCount || 0, collected: collected > 0 ? money(collected) : null, customers: customers || 0 } };
+      }
+    } catch { /* never block the dashboard */ }
+  }
   // bank transfers customers say they've sent, waiting for someone to check
   const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
     .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
@@ -63,6 +113,7 @@ export default async function Dashboard({ searchParams }) {
       <PageHeader title={`${greeting()}${firstName ? `, ${firstName}` : ""}`} description={`Here's how ${business.name} is doing.`} />
 
       {gift && <GiftCelebration gift={gift} />}
+      {trial && <TrialNudge businessId={business.id} nudge={trial.nudge} stats={trial.stats} offer={trial.offer} freeLimit={trial.freeLimit} />}
       {!String(business.country || "").trim() && can(member, "settings.business") && (
         <Callout tone="warn" icon={AlertCircle} title="Choose your country" action={<Button href="/app/settings" size="sm" variant="primary">Set country</Button>}>
           It decides your tax features and what shows on your invoices.
