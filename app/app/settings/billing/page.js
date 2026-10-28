@@ -9,6 +9,7 @@ import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui
 import { PlanButton } from "./plan-button";
 import { hasYearly, monthlyEquivalent, plansFor, subscriptionCurrencyFor } from "@/lib/plans";
 import { cx } from "@/components/ui";
+import { MetaEvent } from "@/components/marketing-tags";
 
 export const metadata = { title: "Plan & billing" };
 
@@ -41,9 +42,15 @@ export default async function Billing({ searchParams }) {
   else if (b.subscription_status === "trialing") status = settings.trial_mode === "documents" ? `Free trial: ${Math.max(0, (a.limit ?? 0) - (a.used ?? 0))} of ${a.limit ?? 0} free documents left` : settings.trial_mode === "days" ? `Free trial until ${formatDate(b.trial_ends_at)}` : "No free trial";
   else if (active) status = `${b.plans?.name || "Plan"}${b.current_period_end ? ` · paid until ${formatDate(b.current_period_end)}` : ""}${a.limit != null ? ` · ${a.used} of ${a.limit} documents used this month` : ""}`;
   else status = b.subscription_status === "suspended" ? "Suspended. Contact Usetally support." : "Your subscription has ended";
+  // the browser copy of Meta's Purchase (the server already sent it, same event ID)
+  const paid = payment === "succeeded"
+    ? (await service.from("payment_attempts").select("id, amount_minor, currency").eq("business_id", b.id).eq("purpose", "subscription").eq("status", "succeeded")
+        .gt("completed_at", new Date(Date.now() - 2 * 3600_000).toISOString()).order("completed_at", { ascending: false }).limit(1)).data?.[0]
+    : null;
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Plan & billing" description="Your Usetally subscription. This is separate from the payments your customers make to you." />
+      {paid && <MetaEvent name="Purchase" eventId={`purchase-${paid.id}`} value={Number(paid.amount_minor) / 100} currency={paid.currency} />}
       {payment === "succeeded" && <ShowToast title="Payment received" message="Your plan is active. Thank you!" clear={["payment"]} />}
       {payment === "pending" && <ShowToast intent="info" title="Confirming payment" message="Your plan updates once the payment is confirmed. That usually takes under a minute; refresh this page shortly." clear={["payment"]} duration={9000} />}
       {payment === "failed" && <ShowToast intent="error" title="Payment didn't go through" message="Nothing was charged. Try again." clear={["payment"]} />}

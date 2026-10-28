@@ -38,6 +38,9 @@ export async function startBusiness(_prev, form) {
   const { data: row } = await ctx.supabase.from("businesses").select("*").eq("id", id).single();
   dropTax2IfNotReady(fields, row);
   await ctx.supabase.from("businesses").update(fields).eq("id", id);
+  // which ad this business came from, and tell Meta (never blocks sign-up)
+  const { recordSignup } = await import("@/lib/marketing-events");
+  await recordSignup({ businessId: id, email: fields.email || ctx.user.email, phone: fields.phone, countryCode: known?.code, trialStarted: row?.subscription_status === "trialing" && Boolean(row?.trial_ends_at) });
   redirect("/onboarding?step=brand");
 }
 

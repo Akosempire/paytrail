@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { LegalLayout, List, Section } from "@/components/legal-layout";
 import { legalDetails } from "@/lib/legal";
+import { marketingSettings } from "@/lib/meta";
 
 export const revalidate = 3600;
 export const metadata = { title: "Privacy Policy" };
 
 export default async function Privacy() {
   const { company, address, email, updated } = await legalDetails();
+  const metaPixel = Boolean((await marketingSettings().catch(() => null))?.pixelId);
   return (
     <LegalLayout title="Privacy Policy" updated={updated}>
       <p>
@@ -91,8 +93,10 @@ export default async function Privacy() {
 
       <Section title="9. Cookies">
         <p>
-          Usetally uses only essential cookies, to keep you signed in and secure. Your light or dark display choice is saved in your browser.
-          We don't use advertising cookies.
+          Usetally uses essential cookies to keep you signed in and secure. Your light or dark display choice is saved in your browser.
+          {metaPixel
+            ? <> On our website and sign-up pages (never inside the app or on documents a business sends you), we also remember which ad brought you, for 30 days, and use the Meta Pixel so Meta can tell us which ads lead to sign-ups and payments. When you sign up or pay for a plan, we send Meta a scrambled (hashed) copy of your email and your country so it can match the ad. In the EU, UK and Switzerland we ask first, and you can say no.</>
+            : " We don't use advertising cookies."}
         </p>
       </Section>
 

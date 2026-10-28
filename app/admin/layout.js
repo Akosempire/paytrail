@@ -11,6 +11,7 @@ const NAV = [
   { href: "/admin", label: "Overview", icon: "overview" },
   { href: "/admin/businesses", label: "Businesses", icon: "businesses" },
   { href: "/admin/plans", label: "Plans & pricing", icon: "plans" },
+  { href: "/admin/marketing", label: "Marketing", icon: "marketing" },
   { href: "/admin/integrations", label: "Integrations", icon: "integrations" },
   { href: "/admin/tax", label: "Tax filing", icon: "tax" },
   { href: "/admin/health", label: "Health & logs", icon: "health" },

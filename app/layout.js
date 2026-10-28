@@ -5,6 +5,7 @@ import { ToastProvider } from "@/components/ui-client";
 import { UrlToasts } from "@/components/url-toasts";
 import { ServiceWorker } from "@/components/pwa";
 import { Analytics } from "@/components/analytics";
+import { MarketingTags } from "@/components/marketing-tags";
 import { SEO } from "@/lib/seo";
 import { siteUrl } from "@/lib/site";
 
@@ -43,6 +44,8 @@ export default function RootLayout({ children }) {
         <ServiceWorker />
         {/* analytics from Admin → Integrations → Analytics, live site only */}
         {process.env.VERCEL_ENV === "production" && <Analytics />}
+        {/* which ad brought a visitor, the Meta Pixel and (EU/UK only) the cookie choice; see Admin → Marketing */}
+        <MarketingTags pixel={process.env.VERCEL_ENV === "production"} />
       </body>
     </html>
   );

@@ -163,6 +163,29 @@ Bank transfers, cash and POS are recorded by finance with **Record payment**, wh
 
 ---
 
+## Ads: Admin → Marketing
+
+Shows which Meta ads bring sign-ups and paying customers, gives each ad a verdict (❌ Kill, ⚠️ Watch, ✅ Scale) and emails a report every 6 hours.
+
+1. Run `supabase/RUN_NEW_2026-10-28a.sql` in Supabase.
+2. **Admin → Marketing → Meta connection**:
+   - Ad account ID.
+   - Pixel ID.
+   - Access token: a long-lived system user token with `ads_read`.
+   - Conversions API token.
+
+   They're checked with Meta and stored encrypted, and nothing needs a redeploy. Vercel variables `META_*` are only fallbacks.
+3. **Verdicts & report**: set the thresholds and the email reports go to (from reports@usetally.cc; the domain needs DKIM).
+4. In every ad's link, set `utm_content` to a name unique to that ad, and start `utm_campaign` with the country (`ng_test_1`, `uk_test_1`):
+   `https://usetally.cc/?utm_source=facebook&utm_medium=paid&utm_campaign=ng_test_1&utm_content=real_profit`
+5. `CRON_SECRET` must be set in Vercel. Vercel Cron calls `/api/cron/marketing` every 6 hours (see `vercel.json`), and **Sync now** runs the same job.
+
+**Sign-ups** are counted in Usetally, by matching `utm_content`; Meta's own count is shown for comparison. The site remembers the first and last ad touch for 30 days, and saves them on the business when it's created.
+
+**Meta events**: CompleteRegistration and StartTrial when a business is created, and Purchase when a plan is paid. Each is sent from both the browser (Pixel) and the server (Conversions API), with one shared event ID.
+
+**Privacy**: visitors in the EU, EEA, UK and Switzerland are asked first. Ad tags never load inside the app, admin, or a business's customer pages. The privacy policy and sub-processors list mention Meta automatically once a Pixel ID is saved.
+
 ## Local development
 
 ```bash
