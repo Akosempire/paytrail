@@ -74,3 +74,30 @@ test("time adds up per area, is capped, and only the team can read it", async ()
   assert.equal((await as(ada, "select * from public.usage_daily")).rowCount, 0);
   assert.ok((await as(admin, "select * from public.usage_daily where user_id=$1", [ada])).rowCount >= 1);
 });
+
+// ---- TrackOja messages (service role, through /api/support/trackoja) ----
+async function svc(sql, p = []) {
+  const c = await pool.connect();
+  try {
+    await c.query("begin"); await c.query("set local role service_role");
+    const r = await c.query(sql, p); await c.query("commit"); return r;
+  } catch (e) { await c.query("rollback"); throw e; } finally { c.release(); }
+}
+
+test("TrackOja threads: started by the server, read only by the team and that TrackOja user", async () => {
+  const tk = (await svc("select public.feedback_external_start('tk-user-1', 'Ada', 'ADA@shop.test', 'Ikeja branch', 'problem', 'Scanner beeps twice', 'It adds two items', '/sales/checkout') id")).rows[0].id;
+  const t = await one("select * from public.feedback_threads where id=$1", [tk]);
+  assert.equal(t.source, "trackoja"); assert.equal(t.user_id, null); assert.equal(t.author_email, "ada@shop.test");
+  assert.equal((await as(ada, "select id from public.feedback_threads where id=$1", [tk])).rowCount, 0);
+  assert.equal((await as(admin, "select id from public.feedback_threads where id=$1", [tk])).rowCount, 1);
+  await assert.rejects(as(ada, "select public.feedback_reply($1, 'sneaky')", [tk]), /Not allowed/);
+  await assert.rejects(as(ada, "select public.feedback_external_start('x','x','x','x','feature','abc','x','')"));
+  const r = (await as(admin, "select public.feedback_reply($1, 'Fixed in the next update') j", [tk])).rows[0].j;
+  assert.equal(r.from_team, true); assert.equal(r.source, "trackoja");
+  assert.equal((await one("select unread_user from public.feedback_threads where id=$1", [tk])).unread_user, true);
+  await assert.rejects(svc("select public.feedback_external_reply($1, 'tk-user-2', 'not mine')", [tk]), /FB404/);
+  await svc("select public.feedback_external_reply($1, 'tk-user-1', 'Thanks')", [tk]);
+  assert.equal((await one("select unread_admin from public.feedback_threads where id=$1", [tk])).unread_admin, true);
+  await svc("select public.feedback_external_read($1, 'tk-user-1')", [tk]);
+  assert.equal((await one("select unread_user from public.feedback_threads where id=$1", [tk])).unread_user, false);
+});

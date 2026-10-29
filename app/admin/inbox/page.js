@@ -8,18 +8,19 @@ import { KINDS, STATUSES } from "@/lib/feedback-core";
 export const metadata = { title: "Inbox" };
 export const dynamic = "force-dynamic";
 
-const FILTERS = [["active", "Open & planned"], ["unread", "Unread"], ["feature", "Feature ideas"], ["problem", "Problems"], ["done", "Done"], ["all", "All"]];
+const FILTERS = [["active", "Open & planned"], ["unread", "Unread"], ["feature", "Feature ideas"], ["problem", "Problems"], ["trackoja", "From TrackOja"], ["done", "Done"], ["all", "All"]];
 
 export default async function Page({ searchParams }) {
   const ctx = await requirePlatformAdmin();
   const sp = await searchParams;
   const filter = FILTERS.some(([k]) => k === sp.show) ? sp.show : "active";
-  let q = ctx.supabase.from("feedback_threads").select("id, kind, subject, status, author_name, author_email, unread_admin, last_message_at, businesses(name)")
+  let q = ctx.supabase.from("feedback_threads").select("id, kind, subject, status, author_name, author_email, unread_admin, last_message_at, source, origin_label, businesses(name)")
     .order("last_message_at", { ascending: false }).limit(200);
   if (filter === "active") q = q.in("status", ["open", "planned"]);
   if (filter === "unread") q = q.eq("unread_admin", true);
   if (filter === "feature" || filter === "problem") q = q.eq("kind", filter);
   if (filter === "done") q = q.in("status", ["done", "closed"]);
+  if (filter === "trackoja") q = q.eq("source", "trackoja");
   const [{ data: threads, error }, unread, features, open] = await Promise.all([
     q,
     ctx.supabase.from("feedback_threads").select("id", { count: "exact", head: true }).eq("unread_admin", true),
@@ -55,8 +56,8 @@ export default async function Page({ searchParams }) {
               <li key={t.id}>
                 <ListRow href={`/admin/inbox/${t.id}`}
                   title={<span className={cx("inline-flex items-center gap-2", t.unread_admin && "font-semibold")}>{t.unread_admin && <span className="size-2 shrink-0 rounded-full bg-brand" aria-label="Unread" />}{t.subject}</span>}
-                  subtitle={`${t.author_name || t.author_email || "Someone"}${t.businesses?.name ? ` · ${t.businesses.name}` : ""} · ${timeAgo(t.last_message_at)}`}
-                  trailing={<><Badge size="sm">{KINDS[t.kind]?.label}</Badge><Badge tone={STATUSES[t.status]?.tone} size="sm">{STATUSES[t.status]?.label}</Badge></>} />
+                  subtitle={`${t.author_name || t.author_email || "Someone"}${t.businesses?.name ? ` · ${t.businesses.name}` : t.origin_label ? ` · ${t.origin_label}` : ""} · ${timeAgo(t.last_message_at)}`}
+                  trailing={<>{t.source === "trackoja" && <Badge tone="violet" size="sm">TrackOja</Badge>}<Badge size="sm">{KINDS[t.kind]?.label}</Badge><Badge tone={STATUSES[t.status]?.tone} size="sm">{STATUSES[t.status]?.label}</Badge></>} />
               </li>
             ))}
           </ul>

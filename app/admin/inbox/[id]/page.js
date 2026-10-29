@@ -20,7 +20,7 @@ export default async function Page({ params }) {
   const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
   const [{ data: messages }, { data: usage }] = await Promise.all([
     ctx.supabase.from("feedback_messages").select("id, body, from_team, created_at").eq("thread_id", t.id).order("created_at"),
-    ctx.supabase.from("usage_daily").select("seconds, day").eq("user_id", t.user_id).gte("day", since),
+    t.user_id ? ctx.supabase.from("usage_daily").select("seconds, day").eq("user_id", t.user_id).gte("day", since) : Promise.resolve({ data: [] }),
     t.unread_admin ? ctx.supabase.rpc("feedback_mark_read", { thread: t.id }) : Promise.resolve(null),
   ]);
   const secs = (usage || []).reduce((s, r) => s + r.seconds, 0);
@@ -40,10 +40,11 @@ export default async function Page({ params }) {
           <DescriptionList items={[
             ["Name", t.author_name || "—"],
             ["Email", t.author_email ? <a className="text-brand-ink underline" href={`mailto:${t.author_email}`}>{t.author_email}</a> : "—"],
-            ["Business", t.businesses ? <Link className="text-brand-ink underline" href={`/admin/businesses/${t.businesses.id}`}>{t.businesses.name}</Link> : "—"],
+            ["App", t.source === "trackoja" ? "TrackOja" : "Usetally"],
+            [t.source === "trackoja" ? "Store" : "Business", t.businesses ? <Link className="text-brand-ink underline" href={`/admin/businesses/${t.businesses.id}`}>{t.businesses.name}</Link> : t.origin_label || "—"],
             ["Sent from", t.page || "—"],
             ["Started", formatDate(t.created_at)],
-            ["Time in app (30 days)", secs ? `${duration(secs)} over ${days} day${days === 1 ? "" : "s"}` : "None recorded"],
+            t.source !== "trackoja" && ["Time in app (30 days)", secs ? `${duration(secs)} over ${days} day${days === 1 ? "" : "s"}` : "None recorded"],
           ]} />
         </Card>
       </div>

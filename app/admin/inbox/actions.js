@@ -12,7 +12,7 @@ export async function teamReply(threadId, _prev, form) {
   if (!v.ok) return { error: v.error };
   const { data, error } = await ctx.supabase.rpc("feedback_reply", { thread: String(threadId), body: v.value });
   if (error) return { error: friendlyError(error) };
-  if (data?.from_team) after(() => emailPerson({ threadId, to: data.email, name: data.name, subject: data.subject, reply: v.value }));
+  if (data?.from_team) after(() => emailPerson({ threadId, to: data.email, name: data.name, subject: data.subject, reply: v.value, source: data.source }));
   const status = String(form.get("status") || "");
   if (STATUSES[status]) await ctx.supabase.rpc("feedback_set_status", { thread: String(threadId), new_status: status });
   revalidatePath(`/admin/inbox/${threadId}`);
