@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store,
+  Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -15,7 +15,7 @@ import { InstallPrompt, clearOfflinePages } from "@/components/pwa";
 import { Tour, TourButton } from "@/components/tour";
 import { switchBusiness } from "@/app/app/actions";
 
-function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts, canTax }) {
+function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts, canTax, feedbackUnread = 0 }) {
   return [
     { items: [{ href: "/app", label: "Dashboard", icon: LayoutDashboard, exact: true }] },
     { title: "Sell", items: [
@@ -37,6 +37,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts,
       canBilling && { href: "/app/settings/billing", label: "Plan & billing", icon: CreditCard },
       { href: "/app/settings/privacy", label: "Privacy & data", icon: ShieldCheck },
     ].filter(Boolean) },
+    { title: "Help", items: [{ href: "/app/feedback", label: "Ideas & help", icon: MessageSquareHeart, badge: feedbackUnread }] },
   ].filter((g) => g.items.length);
 }
 
@@ -105,6 +106,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
                         on ? "bg-brand-soft text-brand-ink ring-1 ring-inset ring-brand-line/60" : "text-ink-2 hover:bg-hover hover:text-ink")}>
                       <Icon className={cx("size-[18px]", on ? "text-brand" : "text-ink-3")} />
                       {item.label}
+                      {item.badge > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-semibold text-white" aria-label={`${item.badge} new`}>{item.badge}</span>}
                       <PendingDot />
                     </Link>
                   </li>
@@ -184,7 +186,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
             <Link key={item.href} href={item.href} data-tour={`nav:${item.href}`} onClick={(e) => { if (!e.metaKey && !e.ctrlKey && e.button === 0) setGoingTo(item.href); }}
               className="flex min-h-[84px] flex-col justify-between rounded-2xl bg-surface p-3.5 ring-1 ring-line active:bg-hover hover:bg-hover">
               <span className="inline-flex size-9 items-center justify-center rounded-xl bg-brand-soft text-brand-ink"><item.icon className="size-[18px]" /></span>
-              <span className="text-[14.5px] font-semibold text-ink">{item.label}</span>
+              <span className="flex items-center justify-between gap-2 text-[14.5px] font-semibold text-ink">{item.label}{item.badge > 0 && <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-semibold text-white">{item.badge}</span>}</span>
             </Link>
           ))}
         </div>

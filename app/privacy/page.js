@@ -32,6 +32,8 @@ export default async function Privacy() {
           "Payment provider connection details: your secret keys are encrypted before storage and are never shown back to anyone.",
           "Payment results from providers (amount, currency, reference, status). We do not receive or store card numbers; customers enter those on the provider's own page.",
           "Basic technical data such as IP address and browser type, used for security, preventing abuse and fixing problems.",
+          "How you use the app: which screens you use and for how long (counted only while you're active). We don't record what you type or what's on the screen.",
+          "Messages you send us from Ideas & help, with your name, email and the screen you sent it from.",
         ]} />
       </Section>
 
@@ -41,7 +43,8 @@ export default async function Privacy() {
           "To bill you for your Usetally plan (contract).",
           "To keep Usetally secure and prevent fraud (legitimate interests and legal obligations).",
           "To send service emails such as sign-up confirmation, password resets, invitations and documents you choose to send (contract).",
-          "To answer support requests (legitimate interests).",
+          "To answer support requests and feature ideas (legitimate interests).",
+          "To understand which parts of Usetally are used, so we know what to improve (legitimate interests).",
         ]} />
         <p>We don't sell personal data, and we don't use your customers' data for our own marketing.</p>
       </Section>

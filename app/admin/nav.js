@@ -1,10 +1,10 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Activity, Landmark, Blocks, Building2, LayoutDashboard, Megaphone, Settings2, Tags } from "lucide-react";
+import { Activity, Clock, Inbox, Landmark, Blocks, Building2, LayoutDashboard, Megaphone, Settings2, Tags } from "lucide-react";
 import { cx } from "@/components/ui";
 
-const ICONS = { marketing: Megaphone, tax: Landmark, health: Activity, overview: LayoutDashboard, businesses: Building2, plans: Tags, integrations: Blocks, settings: Settings2 };
+const ICONS = { inbox: Inbox, usage: Clock, marketing: Megaphone, tax: Landmark, health: Activity, overview: LayoutDashboard, businesses: Building2, plans: Tags, integrations: Blocks, settings: Settings2 };
 
 export function AdminNav({ items, mobile = false }) {
   const path = usePathname();

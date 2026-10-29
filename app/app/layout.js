@@ -1,5 +1,6 @@
 import { after } from "next/server";
 import { AppShell } from "@/components/app-shell";
+import { UsageBeat } from "@/components/usage-beat";
 import { reconcileSoon } from "@/lib/payments";
 import { pushStockSoon } from "@/lib/pos";
 import { requireBusiness } from "@/lib/context";
@@ -15,6 +16,9 @@ export default async function Layout({ children }) {
   after(() => reconcileSoon(`b:${business.id}`, { businessId: business.id }));
   // and any TrackOja stock update that's due for a retry
   after(() => pushStockSoon(business.id));
+  // replies from the team not read yet (0 until the Ideas & help SQL has run)
+  const feedbackUnread = await ctx.supabase.from("feedback_threads").select("id", { count: "exact", head: true }).eq("user_id", ctx.user.id).eq("unread_user", true)
+    .then((r) => r.count || 0, () => 0);
   return (
     <AppShell
       business={{ id: business.id, name: business.name, kind: business.kind, brand_color: business.brand_color, subscription_status: business.subscription_status, paying: isPaying(business) }}
@@ -31,10 +35,13 @@ export default async function Layout({ children }) {
         canBilling: can(member, "settings.billing"),
         canCosts: can(member, "costs.view"),
         canTax: can(member, "payments.record"),
+        feedbackUnread,
       }}
     >
       {children}
       <OfflineAgent />
+      {/* time in the app by area (Admin → Usage); the platform team's own use isn't counted */}
+      {!ctx.isPlatformAdmin && <UsageBeat />}
     </AppShell>
   );
 }
