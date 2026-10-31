@@ -1,6 +1,6 @@
 "use client";
 import { useDeferredValue, useMemo, useState, useTransition } from "react";
-import { Loader2, SlidersHorizontal, X } from "lucide-react";
+import { LayoutTemplate, Loader2, X } from "lucide-react";
 import { Alert, Button, Card, cx } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { DocPreview } from "@/components/doc-preview";
@@ -36,8 +36,8 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
           <span className="font-medium text-ink-2">{TEMPLATES[model.template].name}</span> · {PAPERS[model.paper].label}
         </p>
         {canEdit && doc.status !== "void" && (
-          <Button size="sm" variant={open ? "soft" : "secondary"} icon={open ? X : SlidersHorizontal} onClick={() => setOpen(!open)} aria-expanded={open}>
-            {open ? "Close" : "Customise"}
+          <Button size="sm" variant={open ? "soft" : "secondary"} icon={open ? X : LayoutTemplate} onClick={() => setOpen(!open)} aria-expanded={open}>
+            {open ? "Close" : "Template"}
           </Button>
         )}
       </div>

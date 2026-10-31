@@ -1,7 +1,7 @@
 "use client";
 import { Check } from "lucide-react";
 import { cx } from "@/components/ui";
-import { PAPERS, SECTIONS, SIGNATURE_BLUE, TEMPLATES, papersFor, templatesFor } from "@/lib/doc-templates";
+import { PAPERS, SECTIONS, SIGNATURE_BLUE, NOTEBOOK_YELLOW, CASEFILE_GREEN, TEMPLATES, accentFor, papersFor, templatesFor } from "@/lib/doc-templates";
 
 // Abstract thumbnail of a template's structure (no real or fake data).
 export function TemplateThumb({ id, accent = SIGNATURE_BLUE }) {
@@ -45,6 +45,24 @@ export function TemplateThumb({ id, accent = SIGNATURE_BLUE }) {
           <span className="mt-auto flex justify-end"><span className="flex w-[48%] justify-between bg-[#16213e] px-1 py-[2px]">{bar("40%", "#fff", 3)}{bar("30%", "#fff", 3)}</span></span>
         </span>
         <span className="mt-auto block h-[4px]" style={{ background: accent }} />
+      </span>
+    );
+  }
+  if (id === "notebook" || id === "casefile") {
+    const nb = id === "notebook";
+    return (
+      <span className="relative flex h-full w-full flex-col shadow-sm ring-1 ring-black/5" style={nb ? { background: "#faf9f6 repeating-linear-gradient(180deg, transparent 0 6px, #e4e4f1 6px 7px)" } : { background: "#fff" }}>
+        {nb ? <span className="absolute inset-y-0 left-[9px] w-[2px] border-x border-[#f2a7c6]" /> : (
+          <span className="flex h-[12px] items-start justify-between border-b-2 px-1.5 pt-[3px]" style={{ background: accent, borderColor: "rgba(0,0,0,.25)" }}><span className="block h-[4px] w-[30%] bg-white" /><span className="mt-[3px] block h-[4px] w-[22%] border border-[#d4a63a] bg-white" /></span>
+        )}
+        <span className={cx("flex flex-1 flex-col gap-[4px] py-1.5 pr-1.5", nb ? "pl-[15px]" : "pl-1.5")}>
+          <span className="flex items-start justify-between">{bar("34%", "#222", 4)}<span className="block h-[8px] w-[34%] rounded-[1px] bg-[#111]" /></span>
+          <span className="mt-1 grid grid-cols-3 gap-1">{[0, 1, 2].map((i) => <span key={i} className="flex flex-col gap-[2px]">{bar("50%", "#999", 2)}{bar("80%", "#555")}</span>)}</span>
+          <span className="mt-1 block border-b border-[#222]" />
+          {[1, 2, 3].map((i) => <span key={i} className="flex justify-between">{bar("44%", "#333")}{bar("16%", "#777")}</span>)}
+          <span className="mt-auto flex items-end justify-between">{bar("30%", "#999")}<span className="block h-[6px] w-[36%] bg-[#111]" style={nb ? { boxShadow: `0 2px 0 ${accent}` } : undefined} /></span>
+          {!nb && <span className="ml-auto mr-1 mt-0.5 block h-[6px] w-[18%] -rotate-6 border border-[#e05a4f]" />}
+        </span>
       </span>
     );
   }
@@ -94,8 +112,13 @@ export function LayoutPanel({ kind, value, onChange, brandColor, showInstruction
     set({ template: id, paper: papers.includes(value.paper) ? value.paper : papers[0] });
   };
   const sections = Object.entries(SECTIONS).filter(([k]) => kind !== "receipt" || !["notes", "terms", "payment_instructions", "bank_details", "item_details"].includes(k));
-  const accents = [["Signature blue", SIGNATURE_BLUE], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"]].filter(([, c]) => /^#[0-9a-f]{6}$/i.test(c || ""));
-  const currentAccent = value.layout?.accent || (value.template === "signature" ? SIGNATURE_BLUE : brandColor);
+  // Notebook's accent is a highlighter, so it offers light colours; Case file's is the band
+  const accents = (value.template === "notebook"
+    ? [["Highlighter yellow", NOTEBOOK_YELLOW], ["Mint", "#9be3b8"], ["Pink", "#f7b2cf"], ["Sky", "#a9d4f5"]]
+    : value.template === "casefile"
+      ? [["Case-file green", CASEFILE_GREEN], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"], ["Brick", "#c2410c"]]
+      : [["Signature blue", SIGNATURE_BLUE], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"]]).filter(([, c]) => /^#[0-9a-f]{6}$/i.test(c || ""));
+  const currentAccent = value.layout?.accent || (["signature", "notebook", "casefile"].includes(value.template) ? accentFor(value.template, null, brandColor) : brandColor);
 
   return (
     <div className="flex flex-col gap-5">
@@ -107,7 +130,7 @@ export function LayoutPanel({ kind, value, onChange, brandColor, showInstruction
             return (
               <button key={t.id} type="button" role="radio" aria-checked={on} onClick={() => pickTemplate(t.id)}
                 className={cx("group relative flex flex-col gap-2 rounded-xl p-2 text-left ring-1 transition focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]", on ? "bg-brand-soft ring-2 ring-brand" : "bg-surface ring-line hover:ring-line-strong")}>
-                <span className="block aspect-[4/5] overflow-hidden rounded-lg bg-tray p-2"><TemplateThumb id={t.id} accent={t.id === value.template ? currentAccent : t.id === "executive" ? brandColor : SIGNATURE_BLUE} /></span>
+                <span className="block aspect-[4/5] overflow-hidden rounded-lg bg-tray p-2"><TemplateThumb id={t.id} accent={t.id === value.template ? currentAccent : t.id === "executive" ? brandColor : ["notebook", "casefile"].includes(t.id) ? accentFor(t.id, null, brandColor) : SIGNATURE_BLUE} /></span>
                 <span className="flex items-center justify-between gap-1 px-0.5">
                   <span className="text-[13px] font-semibold text-ink">{t.name}</span>
                   {on ? <Check className="size-4 text-brand" aria-hidden="true" /> : t.recommended && <span className="rounded-full bg-success-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-success-ink">Default</span>}

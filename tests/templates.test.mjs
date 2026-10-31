@@ -64,3 +64,35 @@ test("hidden sections are left out", () => {
   assert.ok(!m.payBlocks.some((b) => b.bank));
   assert.ok(m.items.every((i) => i.details === ""));
 });
+
+test("Notebook and Case file: every document kind, sheet paper only, their own colours", async () => {
+  const { fits, accentFor, NOTEBOOK_YELLOW, CASEFILE_GREEN } = await import("../lib/doc-templates.js");
+  for (const tpl of ["notebook", "casefile"]) {
+    for (const kind of ["quote", "invoice", "receipt"]) assert.ok(fits(kind, tpl, "a4"));
+    assert.ok(!fits("invoice", tpl, "thermal80"));
+  }
+  assert.equal(accentFor("notebook", null, "#101828"), NOTEBOOK_YELLOW); // a dark brand colour is never the highlighter
+  assert.equal(accentFor("casefile", null, null), CASEFILE_GREEN);
+  assert.equal(accentFor("casefile", null, "#7a2e8f"), "#7a2e8f");
+  assert.equal(accentFor("notebook", "#9be3b8", null), "#9be3b8");
+});
+
+test("sheet templates: stamp, due sentence and pay details follow the document", async () => {
+  const { buildModel } = await import("../lib/doc-model.js");
+  const business = { name: "Mikky Innovate", currency: "NGN", signatory_name: "Michael Adeyemo", signatory_title: "Designer", bank_account_number: "0123456789", bank_name: "GTBank", email: "hi@mikky.ng" };
+  const base = { kind: "invoice", number: "INV-1", template: "casefile", paper: "a4", currency: "NGN", issue_date: "2026-10-29", due_date: "2026-11-12", customer_name: "Chioma", subtotal_minor: 100, total_minor: 100, amount_paid_minor: 0, tax_rate: 0, tax_minor: 0, discount_minor: 0 };
+  const sent = buildModel({ doc: { ...base, status: "sent" }, items: [], business });
+  assert.equal(sent.sheet.stamp, "DUE");
+  assert.equal(sent.sheet.due, "Payment due within 14 days.");
+  assert.equal(sent.sheet.bank.number, "0123456789");
+  assert.equal(sent.sheet.tagline, "Michael Adeyemo · Designer");
+  assert.equal(sent.signature, null); // the name is already under the logo
+  const paid = buildModel({ doc: { ...base, status: "paid", amount_paid_minor: 100 }, items: [], business });
+  assert.equal(paid.sheet.stamp, "PAID");
+  assert.equal(paid.sheet.bank, null);
+  assert.equal(paid.sheet.due, "");
+  const quote = buildModel({ doc: { ...base, kind: "quote", status: "sent", due_date: null, valid_until: "2026-11-30" }, items: [], business });
+  assert.equal(quote.sheet.stamp, "QUOTE");
+  assert.match(quote.sheet.due, /valid until/);
+  assert.equal(buildModel({ doc: { ...base, template: "signature", status: "sent" }, items: [], business }).sheet, null);
+});

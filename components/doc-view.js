@@ -1,5 +1,6 @@
 import { BoldReceipt, LedgerReceipt, accentInks } from "@/components/doc-receipts";
 import { MerchantDoc } from "@/components/doc-merchant";
+import { SheetDoc } from "@/components/doc-sheet";
 // Renders a document model (lib/doc-model.js) as HTML sized in real paper
 // units. Used by the live preview and the print pages; the PDF renderer
 // (lib/pdf.js) follows the same template rules. Works on server and client.
@@ -7,6 +8,15 @@ import { MerchantDoc } from "@/components/doc-merchant";
 export function DocView({ model: m, screen = true }) {
   const thermal = m.paperSpec.thermal;
   const cls = ["pt-doc", `pt-t-${m.template}`, `pt-p-${m.paper}`, thermal ? "pt-thermal" : "pt-sheet", screen ? "pt-screen" : ""].join(" ");
+  // Notebook and Case file: their own layout for every kind of document
+  if (m.sheet) {
+    return (
+      <article className={cls} style={{ "--pt-accent": m.accent, "--pt-w": `${m.paperSpec.w}mm`, "--pt-h": m.paperSpec.h ? `${m.paperSpec.h}mm` : "auto", "--pt-m": `${m.paperSpec.margin}mm` }}
+        aria-label={`${m.title} ${m.number}`}>
+        <SheetDoc m={m} />
+      </article>
+    );
+  }
   // receipts with their own layout
   if (m.merchant || (m.receipt && (m.template === "ledger" || m.template === "bold"))) {
     const Layout = m.merchant ? MerchantDoc : m.template === "ledger" ? LedgerReceipt : BoldReceipt;

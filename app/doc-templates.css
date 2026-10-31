@@ -352,3 +352,103 @@
 .pt-sheet .pt-parties .pt-pname { margin-bottom: 0.8mm; line-height: 1.4; }
 .pt-t-signature .pt-parties { padding: 6mm 7mm; border-radius: 2.5mm; }
 .pt-p-a5.pt-t-signature .pt-parties, .pt-p-half.pt-t-signature .pt-parties { padding: 4.5mm 5mm; gap: 6mm; }
+
+/* ---------- Notebook and Case file (components/doc-sheet.js) ---------- */
+@font-face { font-family: "PT Script Doc"; src: url("/fonts/signature-script.woff2") format("woff2"); font-weight: 400; font-display: swap; }
+.pt-t-notebook, .pt-t-casefile {
+  --sh-mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", "Courier New", monospace;
+  --sh-side: 17mm; --sh-gutter: 18mm; --sh-rule: 8.5mm;
+  display: flex; flex-direction: column; font-size: 9.6pt; line-height: 1.5;
+}
+.pt-t-notebook.pt-p-a5, .pt-t-notebook.pt-p-half, .pt-t-casefile.pt-p-a5, .pt-t-casefile.pt-p-half { --sh-side: 11mm; --sh-gutter: 13mm; --sh-rule: 6mm; font-size: 7.8pt; }
+.pt-sh-page { flex: 1; display: flex; flex-direction: column; padding: 15mm var(--sh-side) 10mm; }
+.pt-p-a5 .pt-sh-page, .pt-p-half .pt-sh-page { padding-top: 10mm; padding-bottom: 7mm; }
+.pt-sh-mono { font-family: var(--sh-mono); text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.74em; color: var(--pt-ink-2); }
+.pt-sh-label { font-family: var(--sh-mono); text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.74em; color: var(--pt-ink-2); margin-bottom: 2mm; }
+
+/* header: logo + name left, a very large title right */
+.pt-sh-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 6mm; }
+.pt-sh-brand { display: flex; align-items: center; gap: 3.5mm; min-width: 0; max-width: 58%; }
+.pt-sh-bwrap { min-width: 0; }
+.pt-sh-logo { display: block; max-height: 12mm; max-width: 24mm; object-fit: contain; flex-shrink: 0; }
+.pt-sh-bname { font-size: 1.9em; font-weight: 700; letter-spacing: -0.035em; line-height: 1.1; }
+.pt-sh-tagline { margin-top: 0.8mm; }
+.pt-sh-titleblock { text-align: right; }
+.pt-sh-title { font-size: 5.1em; font-weight: 700; letter-spacing: -0.06em; line-height: 0.9; color: var(--pt-ink); -webkit-text-stroke: 0.25mm var(--pt-ink); }
+.pt-p-a5 .pt-sh-title, .pt-p-half .pt-sh-title { font-size: 4.2em; }
+.pt-sh-meta { margin-top: 4mm; display: grid; grid-template-columns: auto auto; justify-content: end; gap: 1.6mm 8mm; text-align: left; color: var(--pt-ink); }
+.pt-sh-meta div { display: contents; }
+.pt-sh-meta dt { align-self: center; }
+.pt-sh-meta dd { font-weight: 400; color: var(--pt-ink); }
+
+/* billed to / from / project */
+.pt-sheet .pt-sh-parties { margin-top: 15mm; gap: 8mm; color: var(--pt-ink); line-height: 1.6; }
+.pt-sh-parties.pt-sh-three { grid-template-columns: 1fr 1fr 1fr; }
+.pt-sh-parties .pt-pname { font-weight: 700; }
+.pt-sh-gap { margin-top: 4mm; }
+.pt-p-a5 .pt-sh-parties, .pt-p-half .pt-sh-parties { margin-top: 9mm; }
+
+/* items: mono headings over a solid ink rule */
+.pt-sh-items { margin-top: 12mm; }
+.pt-sh-items th { font-family: var(--sh-mono); font-weight: 400; letter-spacing: 0.16em; font-size: 0.74em; color: var(--pt-ink-2); border-bottom: 0.3mm solid var(--pt-ink); padding: 0 0 3mm; }
+.pt-sh-items td { padding: 4.5mm 0 3mm; border-bottom: none; }
+.pt-sh-items th + th, .pt-sh-items td + td { padding-left: 5mm; }
+.pt-sh-items .pt-item-details { font-weight: 700; color: var(--pt-ink-3); font-size: 0.94em; margin-top: 1mm; }
+.pt-t-casefile .pt-sh-items td { border-bottom: 0.25mm solid var(--pt-line); }
+.pt-p-a5 .pt-sh-items, .pt-p-half .pt-sh-items { margin-top: 8mm; }
+
+.pt-sh-rows { margin-top: 10mm; }
+.pt-sh-rows div { display: flex; justify-content: space-between; gap: 4mm; padding: 2mm 0; border-bottom: 0.25mm solid var(--pt-line); }
+.pt-sh-rows dt { color: var(--pt-ink-2); }
+.pt-sh-rows dd { font-weight: 700; text-align: right; }
+
+/* how to pay + totals */
+.pt-sh-bottom { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.8fr); gap: 10mm; margin-top: 8mm; break-inside: avoid; page-break-inside: avoid; }
+.pt-sh-pay p { line-height: 1.75; }
+.pt-sh-pay b { font-weight: 700; }
+.pt-sh-acct { letter-spacing: 0.03em; }
+.pt-sh-due { margin-top: 0.5mm; }
+.pt-sheet .pt-sh-totals { display: block; margin-top: 0; width: auto; }
+.pt-sh-totals div { display: flex; justify-content: space-between; gap: 4mm; padding: 1.2mm 0; }
+.pt-sh-totals dt { color: var(--pt-ink); }
+.pt-sh-grand { margin-top: 3mm; padding-top: 4mm !important; border-top: 0.35mm solid var(--pt-ink); align-items: flex-end; }
+.pt-sh-grand dt { white-space: nowrap; font-weight: 700; color: var(--pt-ink) !important; font-size: 0.82em; padding-bottom: 1.2mm; }
+.pt-sh-amount { font-size: 3em; font-weight: 700; letter-spacing: -0.045em; line-height: 1; -webkit-text-stroke: 0.2mm var(--pt-ink); white-space: nowrap; }
+.pt-p-a5 .pt-sh-amount, .pt-p-half .pt-sh-amount { font-size: 2.4em; }
+.pt-t-notebook .pt-sh-amount { padding: 0 1mm; background: linear-gradient(transparent 52%, var(--pt-accent) 52%, var(--pt-accent) 96%, transparent 96%); }
+
+/* rubber stamp */
+.pt-sh-stamp { align-self: flex-end; margin: 9mm 9mm 0 0; transform: rotate(-8deg); border: 0.8mm solid #e05a4f; color: #e05a4f; padding: 1.4mm 5mm; font-size: 1.7em; font-weight: 700; letter-spacing: 0.2em; opacity: 0.92; break-inside: avoid; }
+.pt-sh-stamp-good { border-color: #1f8a4c; color: #1f8a4c; }
+.pt-sh-stamp-neutral { border-color: #475467; color: #475467; }
+
+.pt-sh-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; margin-top: 8mm; color: var(--pt-ink-2); break-inside: avoid; }
+.pt-sh-notes .pt-accepted { grid-column: 1 / -1; }
+
+/* footer: mono question left, a handwritten thank you right */
+.pt-sh-foot { padding-top: 6mm; border-top: 0.25mm solid #d6d6d1; display: flex; justify-content: space-between; align-items: flex-end; gap: 6mm; break-inside: avoid; }
+.pt-sh-spacer { flex: 1; min-height: 10mm; }
+.pt-sh-ask { text-transform: none; letter-spacing: 0.06em; font-size: 0.8em; line-height: 1.6; }
+.pt-sh-thanks { font-family: "PT Script Doc", "Brush Script MT", cursive; font-size: 2.3em; line-height: 1; transform: rotate(-4deg); white-space: nowrap; color: var(--pt-ink); }
+
+/* Notebook: cream ruled paper, a pink margin line and punched holes */
+.pt-t-notebook { background-color: #faf9f6;
+  background-image:
+    linear-gradient(90deg, transparent calc(var(--sh-gutter) - 0.25mm), #f2a7c6 calc(var(--sh-gutter) - 0.25mm), #f2a7c6 var(--sh-gutter), transparent var(--sh-gutter), transparent calc(var(--sh-gutter) + 0.5mm), #f2a7c6 calc(var(--sh-gutter) + 0.5mm), #f2a7c6 calc(var(--sh-gutter) + 0.75mm), transparent calc(var(--sh-gutter) + 0.75mm)),
+    repeating-linear-gradient(180deg, transparent 0, transparent calc(var(--sh-rule) - 0.25mm), #e4e4f1 calc(var(--sh-rule) - 0.25mm), #e4e4f1 var(--sh-rule)); }
+.pt-t-notebook .pt-sh-page { padding-left: calc(var(--sh-gutter) + 7mm); }
+.pt-t-notebook .pt-sh-thanks { color: #2a49c9; }
+.pt-nb-holes { position: absolute; left: calc(var(--sh-gutter) / 2 - 2.25mm); top: 37mm; display: flex; flex-direction: column; gap: 32mm; pointer-events: none; }
+.pt-nb-holes i { display: block; width: 4.5mm; height: 4.5mm; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #f3f2ee, #dcdbd6); box-shadow: inset 0 0.3mm 0.6mm rgba(0,0,0,.12); }
+.pt-p-a5 .pt-nb-holes, .pt-p-half .pt-nb-holes { top: 26mm; gap: 23mm; }
+.pt-p-a5 .pt-nb-holes i, .pt-p-half .pt-nb-holes i { width: 3.4mm; height: 3.4mm; }
+
+/* Case file: colour band with a tag and the number */
+.pt-cf-band { position: relative; height: 24mm; background: var(--pt-accent); border-bottom: 2mm solid color-mix(in srgb, var(--pt-accent) 78%, #000); flex-shrink: 0; }
+.pt-cf-tag { position: absolute; left: var(--sh-side); top: 5.5mm; background: #fff; color: var(--pt-ink); font-family: var(--sh-mono); font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.86em; padding: 1.4mm 3.2mm; }
+.pt-cf-no { position: absolute; right: var(--sh-side); top: 12.5mm; background: #fff; color: var(--pt-ink); border: 0.6mm solid #d4a63a; font-family: var(--sh-mono); font-weight: 700; letter-spacing: 0.14em; font-size: 0.86em; padding: 1.2mm 3mm; }
+.pt-p-a5 .pt-cf-band, .pt-p-half .pt-cf-band { height: 17mm; }
+.pt-p-a5 .pt-cf-tag, .pt-p-half .pt-cf-tag { top: 3.5mm; }
+.pt-p-a5 .pt-cf-no, .pt-p-half .pt-cf-no { top: 8.5mm; }
+.pt-t-casefile .pt-sh-page { padding-top: 12mm; }
+.pt-sh-stamp-inline { display: inline-block; margin: 6mm 0 0 4mm; }
