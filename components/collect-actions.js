@@ -40,7 +40,7 @@ function usePopover() {
 const iconBtn = "inline-flex size-9 items-center justify-center rounded-md text-ink-2 ring-1 ring-line hover:bg-hover hover:text-ink focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)] disabled:opacity-50 max-sm:size-11";
 const textBtn = "inline-flex h-9 items-center gap-1.5 rounded-md px-3 text-[13px] font-medium text-ink-2 ring-1 ring-line hover:bg-hover hover:text-ink focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)] disabled:opacity-50 max-sm:h-11";
 const menuItem = "flex min-h-11 w-full items-center gap-2.5 rounded-md px-3 text-left text-sm text-ink-2 hover:bg-hover hover:text-ink";
-const panel = "absolute right-0 top-full z-30 mt-1.5 rounded-xl bg-surface p-1.5 shadow-[var(--shadow-pop)] ring-1 ring-line";
+const panel = "absolute right-0 top-full z-30 max-md:left-0 max-md:right-auto mt-1.5 rounded-xl bg-surface p-1.5 shadow-[var(--shadow-pop)] ring-1 ring-line";
 
 export function CollectActions({ doc, businessName, perms = {}, onChange, labels = false, show = ["remind", "record", "more"], className }) {
   const toast = useToast();
