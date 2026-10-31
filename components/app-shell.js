@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
   Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart, Package, BellRing,
+  PanelLeftOpen, PanelLeftClose,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -14,6 +15,12 @@ import { signOut } from "@/app/(auth)/actions";
 import { InstallPrompt, clearOfflinePages } from "@/components/pwa";
 import { Tour, TourButton } from "@/components/tour";
 import { switchBusiness } from "@/app/app/actions";
+
+// The quote builder needs the width for its three columns, so while it's open
+// the sidebar shrinks to icons. The builder announces itself with this event
+// (components/document-editor.js); people can still open the full sidebar.
+export const BUILDER_EVENT = "usetally:builder";
+export function announceBuilder(on) { window.dispatchEvent(new CustomEvent(BUILDER_EVENT, { detail: { on } })); }
 
 function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts, canTax, feedbackUnread = 0 }) {
   return [
@@ -51,6 +58,14 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   // the link you click lights up at once, before the server answers
   const [goingTo, setGoingTo] = useState(null);
   useEffect(() => { setOpen(false); setSwitcher(false); setCreate(false); setGoingTo(null); }, [pathname]);
+  const [builder, setBuilder] = useState(false);
+  const [wide, setWide] = useState(false); // the full sidebar, opened by hand while in the builder
+  useEffect(() => {
+    const on = (e) => { setBuilder(Boolean(e.detail?.on)); if (!e.detail?.on) setWide(false); };
+    window.addEventListener(BUILDER_EVENT, on);
+    return () => window.removeEventListener(BUILDER_EVENT, on);
+  }, []);
+  const compact = builder && !wide;
   // keyboard: N = new invoice, / = search on this page (not while typing)
   const router = useRouter();
   useEffect(() => {
@@ -70,7 +85,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   const nav = navFor({ kind: business.kind, ...perms });
   const here = goingTo || pathname;
   // screens with their own save bar at the bottom (editor, business settings) don't show the tabs
-  const tabs = !/\/(new|edit)$/.test(pathname) && pathname !== "/app/settings";
+  const tabs = !/\/(new|edit)$/.test(pathname) && pathname !== "/app/settings" && pathname !== "/app/quotes";
   const active = (item) => item.exact ? here === item.href : here === item.href || here.startsWith(item.href + "/");
 
   const sidebar = (
@@ -167,6 +182,29 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
     </div>
   );
 
+  // the builder's narrow sidebar: icons only, with their names as tooltips
+  const rail = (
+    <div className="flex h-full flex-col items-center gap-1 py-4">
+      <Link href="/app" aria-label={business.name} title={business.name} className="mb-2 rounded-lg p-1 hover:bg-hover"><Avatar name={business.name} src={logo} color={logo ? null : business.brand_color} size="sm" /></Link>
+      <nav className="flex flex-1 flex-col items-center gap-1 overflow-y-auto scroll-thin" aria-label="Main">
+        {nav.flatMap((g) => g.items).map((item) => {
+          const Icon = item.icon;
+          const on = active(item);
+          return (
+            <Link key={item.href} href={item.href} aria-label={item.label} title={item.label} aria-current={on ? "page" : undefined} data-tour={`nav:${item.href}`}
+              onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) setGoingTo(item.href); }}
+              className={cx("relative inline-flex size-10 shrink-0 items-center justify-center rounded-lg transition-colors duration-75", on ? "bg-brand-soft text-brand ring-1 ring-inset ring-brand-line/60" : "text-ink-3 hover:bg-hover hover:text-ink")}>
+              <Icon className="size-[18px]" />
+              {item.badge > 0 && <span className="absolute top-1 right-1 size-2 rounded-full bg-brand" aria-label={`${item.badge} new`} />}
+            </Link>
+          );
+        })}
+      </nav>
+      <button type="button" onClick={() => setWide(true)} aria-label="Show the full menu" title="Show the full menu"
+        className="inline-flex size-10 items-center justify-center rounded-lg text-ink-3 hover:bg-hover hover:text-ink"><PanelLeftOpen className="size-[18px]" /></button>
+    </div>
+  );
+
   // phones: Menu is a full page (big rows in thumb reach), not a drawer
   const inBar = new Set(TABS.map((t) => t.href).filter(Boolean));
   const shortcuts = nav.filter((g) => g.title !== "Settings").flatMap((g) => g.items).filter((x) => !inBar.has(x.href));
@@ -250,10 +288,16 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   );
 
   return (
-    <div className="min-h-dvh bg-canvas">
+    <div className="min-h-dvh bg-canvas" style={{ "--sidebar-w": compact ? "72px" : "264px" }}>
       <InstallPrompt />
       <Tour userId={tour?.userId} done={tour?.done} />
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[264px] border-r border-line bg-surface lg:block">{sidebar}</aside>
+      <aside className={cx("fixed inset-y-0 left-0 z-30 hidden border-r border-line bg-surface lg:block", compact ? "w-[72px]" : "w-[264px]")}>
+        {compact ? rail : sidebar}
+        {builder && wide && (
+          <button type="button" onClick={() => setWide(false)} aria-label="Shrink the menu to icons" title="Shrink the menu to icons"
+            className="absolute top-4 -right-4 inline-flex size-8 items-center justify-center rounded-full bg-surface text-ink-3 shadow-[var(--shadow-xs)] ring-1 ring-line hover:text-ink"><PanelLeftClose className="size-4" /></button>
+        )}
+      </aside>
       {create && (
         <div className="fixed inset-0 z-40 lg:hidden">
           <div className="absolute inset-0 animate-fade-in bg-[#101828]/45" onClick={() => setCreate(false)} />
@@ -273,7 +317,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           </div>
         </div>
       )}
-      <div className="lg:pl-[264px]">
+      <div className={compact ? "lg:pl-[72px]" : "lg:pl-[264px]"}>
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-canvas/85 px-4 backdrop-blur sm:px-6 lg:px-8">
           {/* paying businesses see their own brand; trial and Free see Usetally's */}
           <Link href="/app" className="flex min-w-0 items-center gap-2.5 lg:hidden" aria-label={business.paying ? business.name : "Usetally home"}>
@@ -291,7 +335,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
             <Link href="/app/menu" className="inline-flex size-10 items-center justify-center rounded-md ring-1 ring-line-strong lg:hidden" aria-label="Menu" data-tour="menu"><Menu className="size-5" /></Link>
           )}
         </header>
-        <main className={cx("mx-auto w-full max-w-[1200px] px-4 py-6 sm:px-6 lg:px-8 lg:py-8", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : pathname === "/app/menu" ? menuPage : children}</main>
+        <main className={cx("mx-auto w-full px-4 py-6 sm:px-6 lg:px-8 lg:py-8", builder ? "max-w-[1760px]" : "max-w-[1200px]", tabs && "max-lg:pb-28")}>{goingTo && goingTo !== pathname ? <PageSkeleton /> : pathname === "/app/menu" ? menuPage : children}</main>
       </div>
       {tabs && (
         <nav aria-label="Quick" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur lg:hidden print:hidden">

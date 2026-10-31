@@ -104,7 +104,7 @@ export async function deleteDraft(id, kind) {
   const { error } = await ctx.supabase.rpc("delete_draft", { doc_id: id });
   if (error) return { error: friendlyError(error) };
   refresh();
-  redirect(kind === "invoice" ? "/app/invoices" : "/app/quotes");
+  redirect(kind === "invoice" ? "/app/invoices" : "/app/quotes/all");
 }
 
 export async function convertToInvoice(id) {
