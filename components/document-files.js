@@ -1,8 +1,8 @@
 "use client";
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, FileSpreadsheet, FileText, Image as ImageIcon, Loader2, Paperclip, Plus, Trash2, Upload } from "lucide-react";
-import { Badge, Button, Card, CardHeader, cx } from "@/components/ui";
+import { Badge, Button, Card, cx } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { ACCEPT, MAX_FILES, MAX_FILE_BYTES, fileTypeOf, formatSize } from "@/lib/file-types";
 import { deleteDocumentFile, setFileShared, uploadDocumentFile } from "@/app/app/documents/file-actions";
@@ -56,7 +56,22 @@ export function DocumentFiles({ documentId, files, canAdd, canShare, userId, rea
     start(() => router.refresh());
   }
   const pick = (e) => { const l = e.target.files; if (l?.length) add(l); e.target.value = ""; };
-  const onDrop = (e) => { e.preventDefault(); setDrag(false); if (canAdd && ready && e.dataTransfer.files?.length) add(e.dataTransfer.files); };
+
+  // the whole page takes a dropped file: a full-screen hint shows only while dragging one
+  const latestAdd = useRef(add);
+  latestAdd.current = add;
+  useEffect(() => {
+    if (!canAdd || !ready) return;
+    let depth = 0;
+    const hasFiles = (e) => [...(e.dataTransfer?.types || [])].includes("Files");
+    const enter = (e) => { if (!hasFiles(e)) return; depth++; setDrag(true); };
+    const over = (e) => { if (hasFiles(e)) e.preventDefault(); };
+    const leave = (e) => { if (!hasFiles(e)) return; depth = Math.max(0, depth - 1); if (!depth) setDrag(false); };
+    const drop = (e) => { if (!hasFiles(e)) return; e.preventDefault(); depth = 0; setDrag(false); if (e.dataTransfer.files?.length) latestAdd.current(e.dataTransfer.files); };
+    window.addEventListener("dragenter", enter); window.addEventListener("dragover", over);
+    window.addEventListener("dragleave", leave); window.addEventListener("drop", drop);
+    return () => { window.removeEventListener("dragenter", enter); window.removeEventListener("dragover", over); window.removeEventListener("dragleave", leave); window.removeEventListener("drop", drop); };
+  }, [canAdd, ready]);
 
   const share = (f) => { setBusy(f.id); start(async () => {
     const r = await setFileShared(f.id, !f.shared);
@@ -69,28 +84,32 @@ export function DocumentFiles({ documentId, files, canAdd, canShare, userId, rea
     if (r.error) toast.error({ title: "Not removed", message: r.error }); else { toast.success({ title: "File removed", message: r.message }); router.refresh(); }
   }); };
 
-  const addButton = canAdd && ready && (
-    <Button size="sm" icon={Plus} disabled={full} onClick={() => input.current?.click()} aria-label="Attach a file">Attach</Button>
-  );
-
+  // one line until there are files: "Files · + Attach"
+  const empty = files.length === 0 && uploading.length === 0;
   return (
-    <Card onDragOver={(e) => { if (canAdd && ready) { e.preventDefault(); setDrag(true); } }} onDragLeave={() => setDrag(false)} onDrop={onDrop}
-      className={cx(drag && "ring-2 ring-brand")}>
-      <CardHeader title="Files" icon={Paperclip} description={files.length ? `${files.length} attached` : "Contracts, delivery notes, proof of payment"} actions={addButton} />
+    <Card>
+      <div className="flex items-center gap-3 px-4 py-3">
+        <Paperclip className="size-4 shrink-0 text-ink-3" aria-hidden />
+        <p className="min-w-0 flex-1 text-[13px]" title={!ready ? problem : undefined}>
+          <span className="font-medium text-ink">Files</span>
+          {files.length > 0 && <span className="text-ink-3"> · {files.length}</span>}
+          {empty && ready && canAdd && <span className="text-ink-3 max-sm:hidden"> · or drop one anywhere</span>}
+          {!ready && <span className="text-ink-3"> · not set up yet</span>}
+        </p>
+        {canAdd && ready && <button type="button" disabled={full} onClick={() => input.current?.click()} className="inline-flex min-h-9 items-center gap-1 text-[13px] font-semibold text-brand-ink hover:underline disabled:opacity-50 max-sm:min-h-11"><Plus className="size-4" aria-hidden />Attach</button>}
+      </div>
       <input ref={input} type="file" multiple accept={ACCEPT} className="hidden" onChange={pick} />
-      <div className="px-5 pb-5">
-        {!ready ? (
-          <p className="rounded-lg bg-tray px-3.5 py-3 text-[13px] leading-relaxed text-ink-2">{problem}</p>
-        ) : files.length === 0 && uploading.length === 0 ? (
-          canAdd ? (
-            <button type="button" onClick={() => input.current?.click()}
-              className="flex w-full flex-col items-center gap-1.5 rounded-xl border border-dashed border-line-strong px-4 py-5 text-center text-[13px] text-ink-2 hover:border-brand hover:bg-hover">
-              <Upload className="size-5 text-ink-3" aria-hidden="true" />
-              <span className="font-medium text-ink">Attach a file</span>
-              <span className="text-ink-3">PDF, photo, Word or Excel · up to 4 MB</span>
-            </button>
-          ) : <p className="text-[13px] text-ink-3">No files yet.</p>
-        ) : (
+      {drag && (
+        <div className="pointer-events-none fixed inset-0 z-[60] flex items-center justify-center bg-[#101828]/45 p-6 backdrop-blur-[2px]" aria-live="polite">
+          <div className="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-brand bg-surface px-10 py-8 text-center shadow-[var(--shadow-dialog)]">
+            <Upload className="size-7 text-brand-ink" aria-hidden />
+            <p className="text-[15px] font-semibold text-ink">Drop to attach</p>
+            <p className="text-[13px] text-ink-3">PDF, photo, Word or Excel · up to 4 MB</p>
+          </div>
+        </div>
+      )}
+      {ready && !empty && <div className="px-5 pb-4">
+        {(
           <ul className="-mx-2 flex flex-col">
             {files.map((f) => {
               const Icon = iconFor(f.content_type);
@@ -130,7 +149,7 @@ export function DocumentFiles({ documentId, files, canAdd, canShare, userId, rea
           </ul>
         )}
         {ready && canShare && files.length > 0 && <p className="mt-2 text-xs text-ink-3">Files are private to your team until you tap <Eye className="inline size-3.5 align-[-2px]" aria-label="the eye" /> to show one on the customer's link.</p>}
-      </div>
+      </div>}
       <Modal open={Boolean(confirm)} onClose={() => setConfirm(null)} title="Remove this file?" description={confirm ? `${confirm.name} will be deleted for everyone${confirm.shared ? ", including your customer" : ""}.` : ""}
         footer={<><Button onClick={() => setConfirm(null)}>Keep it</Button><Button variant="destructive" icon={Trash2} onClick={() => remove(confirm)}>Remove</Button></>} />
     </Card>

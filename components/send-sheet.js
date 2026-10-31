@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui-client";
 import { DEFAULT_MESSAGE, VARIABLES, defaultSubject, fillTemplate, looksLikeEmail, messageParagraphs, nextRecurrence, parseEmails, qrPayload, sendVars, upcoming, whatsappText, whatsappUrl } from "@/lib/send-core";
 import { formatDate } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
+import { reminderText, todayIso } from "@/lib/collect-core";
 import { cancelScheduled, scheduleSend, sendNow, setRecurrence, shareDocument, undoSend } from "@/app/app/documents/send-actions";
 
 const TABS = [
@@ -193,7 +194,7 @@ export function SendSheet({ open, onClose, doc, business, link, pdfHref, emailRe
             </div>
           )}
 
-          {tab === "whatsapp" && <WhatsAppTab doc={doc} business={business} link={link} draft={draft} onShared={shared} />}
+          {tab === "whatsapp" && <WhatsAppTab doc={doc} business={business} link={link} draft={draft} onShared={shared} reminder={reminder} />}
           {tab === "link" && <LinkTab link={link} draft={draft} onShared={shared} quote={quote} />}
           {tab === "qr" && <QrTab link={link} number={doc.number} draft={draft} onShared={shared} />}
           {tab === "pdf" && <PdfTab pdfHref={pdfHref} number={doc.number} onShared={() => shared("pdf")} draft={draft} />}
@@ -296,8 +297,8 @@ function DraftNote({ draft, quote }) {
   return <p className="rounded-lg bg-subtle px-3 py-2.5 text-[13px] text-ink-2 ring-1 ring-inset ring-line">Sharing marks it as sent, so your client can open the link.</p>;
 }
 
-function WhatsAppTab({ doc, business, link, draft, onShared }) {
-  const [text, setText] = useState(() => whatsappText(doc, business.name, link));
+function WhatsAppTab({ doc, business, link, draft, onShared, reminder = false }) {
+  const [text, setText] = useState(() => (reminder ? reminderText(doc, business.name, link, todayIso()) : whatsappText(doc, business.name, link)));
   const [phone, setPhone] = useState(doc.customer_phone || "");
   const canShare = typeof navigator !== "undefined" && Boolean(navigator.share);
   async function open() {
