@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { preload } from "react-dom";
-import { ArrowDown, EyeOff, Landmark, Plus } from "lucide-react";
+import { EyeOff, Landmark, Plus } from "lucide-react";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
 import { TemplateThumb } from "@/components/layout-panel";
@@ -104,12 +104,9 @@ export default async function Home({ searchParams }) {
               Quotes.<br />Invoices.<br /><span className="text-hero-accent">Payments.</span>
             </h1>
             <p className="mt-4 max-w-[440px] text-[15px] leading-relaxed text-hero-ink-2 sm:max-w-[520px] sm:text-[17px] lg:mt-6 lg:max-w-[560px] lg:text-[19px] [@media(max-height:700px)]:text-[14px] [@media(max-height:700px)]:leading-snug">Send branded quotes, turn them into invoices, and get paid by transfer, Bachs, Paystack or Stripe, straight into your own account. See your real profit and the tax you owe, with receipts sent automatically.</p>
-            <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-6 lg:mt-9">
+            <div className="mt-6 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-3 lg:mt-9">
               <PrimaryCta href="/signup">Get started free</PrimaryCta>
-              <a href="#how-it-works" className="group hidden items-center justify-start gap-2 self-start text-[15px] font-medium sm:inline-flex sm:self-auto [@media(max-height:700px)]:max-lg:hidden">
-                <span className="border-b border-hero-line pb-0.5 transition-colors group-hover:border-hero-ink">See how it works</span>
-                <ArrowDown className="size-4 transition-transform group-hover:translate-y-0.5" aria-hidden="true" />
-              </a>
+              <SecondaryCta href="/try">Try it, no sign-up</SecondaryCta>
             </div>
           </div>
           <HeroFilm className="hero-film-mask order-first aspect-[826/778] h-[36svh] max-h-[420px] w-auto shrink-0 lg:order-none lg:mr-[-40px] lg:ml-0 lg:h-auto lg:max-h-none lg:w-full lg:aspect-[10/9] [@media(max-height:700px)]:h-[29svh]" />
@@ -212,7 +209,7 @@ export default async function Home({ searchParams }) {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row lg:flex-col lg:items-stretch">
               <PrimaryCta href="/signup" block>Get started free</PrimaryCta>
-              <SecondaryCta href="#pricing" onDark block>See pricing</SecondaryCta>
+              <SecondaryCta href="/try" onDark block>Try it first, no sign-up</SecondaryCta>
             </div>
           </div>
           <EyeOff className="pointer-events-none absolute -right-10 -bottom-12 size-64 text-white/[.03]" aria-hidden="true" />

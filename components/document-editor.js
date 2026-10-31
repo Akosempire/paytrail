@@ -22,7 +22,8 @@ const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label
 // onSave/onSaved: used by offline mode, which saves to the device instead of the server
 // pos: { store } when the business is connected to TrackOja POS (products can be added from it)
 // recentIds / owes / suggestions: recent customers, what each still owes, items used before (optional; offline mode has none)
-export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [] }) {
+// guest: "Try it" on the website (no account): new customer only, kept on this device, Send asks them to sign up
+export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -30,7 +31,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const currency = doc?.currency || business.currency;
   const money = (v) => formatMoney(v, currency);
 
-  const [customerMode, setCustomerMode] = useState("existing"); // existing = search/pick; new = typing a new customer in
+  const [customerMode, setCustomerMode] = useState(guest ? "new" : "existing"); // existing = search/pick; new = typing a new customer in
   const [customerId, setCustomerId] = useState(doc?.customer_id || "");
   const [customer, setCustomer] = useState({ name: "", company: "", email: "", phone: "", address: "", postcode: "", postcode_area: "", postcode_verified: false });
   // where the goods go (e.g. a WhatsApp order): address, postcode for the rider, who receives it
@@ -153,7 +154,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   // Drafts already on the server save themselves there. New documents are kept
   // on this device until you save them (so no invoice number is used up), and
   // anything that can't reach the server is kept here too until it can.
-  const snapKey = `usetally:builder:${kind}:${doc?.id || "new"}`;
+  const snapKey = guest ? `usetally:try:builder:${kind}` : `usetally:builder:${kind}:${doc?.id || "new"}`;
   const serverAutosave = Boolean(doc?.id && !onSave && (doc.status || "draft") === "draft");
   const snapshot = JSON.stringify({ customerMode, customerId, customer, delivery, deliveryOn, title, issueDate, endDate, items, inclusive, costs, discount, taxRate, taxLabel, tax2Rate, tax2Label, notes, terms });
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | local | offline | unsaved
@@ -307,7 +308,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const termChips = quote ? VALIDITY_CHIPS : TERM_CHIPS;
   const termDays = daysBetween(issueDate, endDate);
   const statusText = { saving: "Saving…", saved: "Saved", local: "Saved on this device", offline: "Offline · changes will sync", unsaved: serverAutosave ? "Unsaved changes" : "Not saved yet" }[saveState];
-  const sendLabel = missing ? missing.label : needsApproval ? "Submit for approval" : `Save & send ${quote ? "quote" : "invoice"}`;
+  const sendLabel = missing ? missing.label : guest ? `Send ${quote ? "quote" : "invoice"}` : needsApproval ? "Submit for approval" : `Save & send ${quote ? "quote" : "invoice"}`;
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-40 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px]">
@@ -393,7 +394,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             <Field label="Title" htmlFor="title" optional className="sm:col-span-3"><Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={quote ? "Website redesign for Obi Foods" : "Monthly retainer — October"} /></Field>
             <Field label="Issue date" htmlFor="issue"><Input id="issue" type="date" value={issueDate} onChange={(e) => { const v = e.target.value; if (!v) return; setEndDate((d) => addDaysIso(v, daysBetween(issueDate, d))); setIssueDate(v); }} className="h-11 sm:h-10" /></Field>
             <Field label={quote ? "Valid until" : "Due date"} htmlFor="end"><Input id="end" type="date" value={endDate} onChange={(e) => e.target.value && setEndDate(e.target.value)} className="h-11 sm:h-10" /></Field>
-            <Field label="Currency" hint="Change the default in Settings."><Input value={currency} disabled /></Field>
+            <Field label="Currency" hint={guest ? "Set it under Your business." : "Change the default in Settings."}><Input value={currency} disabled /></Field>
             <div className="flex flex-col gap-2 sm:col-span-3">
               <p className="text-sm font-medium text-ink" aria-live="polite">{dueSentence(endDate, today, { quote, issueIso: issueDate })}</p>
               <div className="flex flex-wrap gap-1.5" role="group" aria-label={quote ? "Valid for" : "Payment terms"}>
@@ -619,7 +620,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
         )}
       </aside>
 
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur lg:left-[264px]">
+      <div className={cx("fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur", !guest && "lg:left-[264px]")}>
         {/* phones: total on top, two equal buttons, clear of the home bar; problems show as toasts */}
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-2.5 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] sm:gap-3 sm:px-6 sm:pb-3 lg:px-8">
           <div className="w-full min-w-0 sm:w-auto sm:flex-1">
@@ -639,7 +640,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               <input type="checkbox" checked={emailCustomer} onChange={(e) => setEmailCustomer(e.target.checked)} className="size-4 accent-[var(--color-brand)]" />Email to customer
             </label>
           )}
-          <Button variant="secondary" icon={pending ? Loader2 : Save} loading={pending} onClick={() => submit("draft")} className="h-12 flex-1 sm:h-10 sm:flex-none">Save draft</Button>
+          {!guest && <Button variant="secondary" icon={pending ? Loader2 : Save} loading={pending} onClick={() => submit("draft")} className="h-12 flex-1 sm:h-10 sm:flex-none">Save draft</Button>}
           <Button variant="primary" icon={missing ? null : needsApproval ? ShieldCheck : Send} disabled={pending} onClick={send} aria-keyshortcuts="Control+Enter Meta+Enter"
             title={missing ? undefined : "Ctrl/⌘ + Enter"} className="h-12 flex-[1.6] sm:h-10 sm:flex-none">{sendLabel}</Button>
         </div>

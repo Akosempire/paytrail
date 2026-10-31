@@ -8,6 +8,7 @@ import { can, ROLES } from "@/lib/permissions";
 import { logoUrl } from "@/lib/site";
 import { isPaying } from "@/lib/plans";
 import { OfflineAgent } from "@/components/offline-agent";
+import { GuestDraftImport } from "@/components/guest-draft-import";
 
 export default async function Layout({ children }) {
   const ctx = await requireBusiness();
@@ -40,6 +41,8 @@ export default async function Layout({ children }) {
     >
       {children}
       <OfflineAgent />
+      {/* an invoice they started on /try before signing up */}
+      <GuestDraftImport canCreate={can(member, "documents.create")} />
       {/* time in the app by area (Admin → Usage); the platform team's own use isn't counted */}
       {!ctx.isPlatformAdmin && <UsageBeat />}
     </AppShell>

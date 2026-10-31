@@ -2,7 +2,8 @@
 import { CountrySelect } from "@/components/country-select";
 import { RegionSelect, TaxFields } from "@/components/tax-fields";
 import { countryByName } from "@/lib/countries";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { GUEST_KEY, readGuestDraft } from "@/lib/guest-draft";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Briefcase, Building2, Check, PlugZap, Receipt, UserRound } from "lucide-react";
 import { Callout, Card, Field, Input, Select, Textarea, cx } from "@/components/ui";
@@ -87,6 +88,17 @@ export function StepStart({ ownerName, firstBusiness, ipCountry }) {
   // Canada asks for the province: it decides GST, HST, PST or QST
   const [countryCode, setCountryCode] = useState("");
   const [region, setRegion] = useState("");
+  // started an invoice on /try first: bring over what they typed about their business
+  useEffect(() => {
+    let b = null;
+    try { b = readGuestDraft(localStorage.getItem(GUEST_KEY), Date.now(), CURRENCIES)?.business; } catch { b = null; }
+    if (!b) return;
+    if (b.currency) setCurrency(b.currency);
+    for (const k of ["name", "email", "phone", "address"]) {
+      const el = document.getElementById(k);
+      if (el && !el.value && b[k]) el.value = b[k];
+    }
+  }, []);
   return (
     <form action={action}>
       <input type="hidden" name="kind" value={kind} />
