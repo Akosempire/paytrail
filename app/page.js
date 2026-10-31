@@ -1,9 +1,8 @@
 import Link from "next/link";
 import { preload } from "react-dom";
-import { EyeOff, Landmark, Plus } from "lucide-react";
+import { EyeOff, Plus } from "lucide-react";
 import { HeroFilm } from "@/components/hero-film";
 import { InstallPrompt } from "@/components/pwa";
-import { TemplateThumb } from "@/components/layout-panel";
 import { Chapters, PainStory } from "@/components/landing/story";
 import { DotField } from "@/components/landing/dot-field";
 import { ReceiptTape } from "@/components/landing/receipt-tape";
@@ -30,18 +29,10 @@ const publicData = publicPlans;
 // page metadata replaces (not merges) the layout's openGraph, so repeat it in full
 export const metadata = { alternates: { canonical: "/" }, openGraph: { type: "website", siteName: "Usetally", title: SEO.title, description: SEO.short, url: "/", locale: "en" } };
 
-const PAPER = "rounded-[18px] bg-hero-paper shadow-[0_1px_2px_rgba(20,16,8,.05),0_18px_40px_-24px_rgba(20,16,8,.3)] ring-1 ring-black/[.05] dark:ring-white/[.06]";
 const WRAP = "mx-auto max-w-[1280px] px-4 sm:px-6 lg:px-10";
 const KICKER = "text-[13px] font-semibold tracking-[0.14em] text-hero-accent uppercase";
 const H2 = "font-display text-[clamp(32px,4.4vw,56px)] leading-[1.04] font-semibold tracking-[-0.035em]";
 
-const PROVIDERS = [
-  ["Bank transfer", "Confirm in one tap"],
-  ["Bachs", "Recommended"],
-  ["Paystack", "Cards, bank transfer and USSD"],
-  ["Flutterwave", "Cards and mobile money"],
-  ["Stripe", "US, UK, Europe and 40+ countries"],
-];
 
 const FAQ = SEO.faq;
 
@@ -127,40 +118,6 @@ export default async function Home({ searchParams }) {
 
       {/* ------------------------------------------------ teams */}
       <Team wrap={WRAP} kicker={KICKER} h2={H2} />
-
-      {/* ------------------------------------------------ get paid + print */}
-      <section className="bg-hero-tint/60 py-24" aria-labelledby="paid-title">
-        <div className={`grid gap-14 lg:grid-cols-2 ${WRAP}`}>
-          <div>
-            <p className={KICKER}>Get paid</p>
-            <h2 id="paid-title" className={`mt-4 ${H2}`}>Your account. Your money.</h2>
-            <p className="mt-5 max-w-[520px] text-[17px] leading-relaxed text-hero-ink-2">Connect the provider you already use with our step-by-step guide. Money goes straight to you. {BRAND.name} never holds it.</p>
-            <ul className="mt-8 divide-y divide-hero-line border-y border-hero-line">
-              {PROVIDERS.map(([name, where]) => (
-                <li key={name} className="flex items-center justify-between gap-4 py-3.5">
-                  <span className="flex items-center gap-3 text-[16px] font-semibold whitespace-nowrap">{name === "Bank transfer" ? <Landmark className="size-4 text-hero-ink-2" aria-hidden="true" /> : <span className="size-2 rounded-full bg-hero-accent" aria-hidden="true" />}{name}</span>
-                  {where === "Recommended"
-                    ? <span className="rounded-full border border-hero-accent px-2.5 py-0.5 font-mono text-[10.5px] tracking-[0.14em] text-hero-accent uppercase">Recommended</span>
-                    : <span className="text-right text-[13.5px] text-hero-ink-2">{where}</span>}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <p className={KICKER}>Print anywhere</p>
-            <h2 className={`mt-4 ${H2}`}>Every document, any paper.</h2>
-            <p className="mt-5 max-w-[520px] text-[17px] leading-relaxed text-hero-ink-2">Four templates that carry your logo and colour. Download PDFs or print on A4, Letter, A5, half letter, or 80 mm and 58 mm receipt rolls.</p>
-            <div className="mt-8 grid grid-cols-4 gap-2.5">
-              {[["essential", "Essential"], ["signature", "Signature"], ["executive", "Executive"], ["pos", "POS"]].map(([id, name]) => (
-                <figure key={id} className="flex flex-col gap-2">
-                  <div className="aspect-[4/5] overflow-hidden rounded-xl bg-hero-paper p-2 ring-1 ring-black/[.05] dark:ring-white/[.06]"><TemplateThumb id={id} /></div>
-                  <figcaption className="text-center text-[12.5px] font-medium text-hero-ink-2">{name}</figcaption>
-                </figure>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ------------------------------------------------ pricing */}
       {allPlans.length > 0 && (() => {
