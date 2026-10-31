@@ -40,12 +40,21 @@ export async function EditorPage({ kind, id, customerId }) {
   for (const d of openInvoices || []) owes[d.customer_id] = (owes[d.customer_id] || 0) + Math.max(0, Number(d.total_minor) - Number(d.amount_paid_minor || 0));
   const seen = new Set();
   const suggestions = [];
+  // saved products first (Products page), then items used before; missing table = not set up yet
+  const { data: products } = await Promise.resolve(ctx.supabase.from("products").select("name, unit_price_minor").eq("business_id", ctx.business.id).is("archived_at", null).order("updated_at", { ascending: false }).limit(200))
+    .then((r) => r, () => ({ data: null }));
+  for (const p of products || []) {
+    const k = String(p.name || "").trim().toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    suggestions.push({ description: String(p.name).trim(), unit_price_minor: Number(p.unit_price_minor) || 0 });
+  }
   for (const i of pastItems) {
     const k = String(i.description || "").trim().toLowerCase();
     if (!k || seen.has(k)) continue;
     seen.add(k);
     suggestions.push({ description: String(i.description).trim(), unit_price_minor: Number(i.unit_price_minor) || 0 });
-    if (suggestions.length >= 120) break;
+    if (suggestions.length >= 300) break;
   }
   const b = ctx.business;
   const quote = kind === "quote";
