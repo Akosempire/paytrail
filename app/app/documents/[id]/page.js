@@ -1,7 +1,8 @@
 import { ShowToast } from "@/components/show-toast";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, EyeOff, Printer, Link2, Receipt, Wallet, History, ExternalLink, MessageCircle, ArrowRight, ShieldCheck } from "lucide-react";
+import { ArrowLeft, EyeOff, Printer, Link2, Receipt, Wallet, History, ExternalLink, MessageCircle, ArrowRight, ShieldCheck, Clock, CalendarClock, Repeat } from "lucide-react";
+import { after } from "next/server";
 import { requireBusiness } from "@/lib/context";
 import { getDocument } from "@/lib/documents";
 import { can } from "@/lib/permissions";
@@ -13,7 +14,12 @@ import { CopyButton } from "@/components/ui-client";
 import { DocumentLayoutEditor } from "@/components/document-layout-editor";
 import { payLinkFor } from "@/lib/pdf-response";
 import { DocumentActions } from "@/components/document-actions";
-import { StatusBadge, activityText } from "@/components/doc-bits";
+import { StatusBadge } from "@/components/doc-bits";
+import { DocTimeline } from "@/components/doc-timeline";
+import { PaidCelebration } from "@/components/paid-celebration";
+import { pickupSoon, savedMessage } from "@/lib/send-queue";
+import { daysBetween, nextReminder } from "@/lib/send-core";
+import { absoluteLogoUrl } from "@/lib/site";
 import { DocumentFiles } from "@/components/document-files";
 import { PaymentClaims } from "@/components/payment-claims";
 import { EInvoiceCard } from "@/components/einvoice-card";
@@ -22,6 +28,27 @@ import { r2Ready } from "@/lib/storage";
 import { readyTemplates } from "@/lib/templates-ready";
 
 // files attached to this document (null when the table isn't installed yet)
+// emails waiting to go (scheduled or a repeat); [] until the send-sheet SQL is run
+async function waitingSends(ctx, documentId) {
+  const { data, error } = await ctx.supabase.from("document_sends").select("id, to_email, send_after, kind")
+    .eq("document_id", documentId).eq("status", "queued").neq("kind", "now").order("send_after");
+  return error ? [] : (data || []).map((s) => ({ ...s, label: new Date(s.send_after).toLocaleString("en-GB", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Africa/Lagos" }) }));
+}
+
+// the next payment reminder for an unpaid invoice, from Settings → Reminders.
+// { date } or { date: null } when there's none; null when reminders aren't set up
+async function reminderPlan(ctx, doc, today) {
+  if (doc.kind !== "invoice" || !doc.due_date || !doc.customer_email) return null;
+  const [{ data: rules, error }, { data: log }, { data: biz }] = await Promise.all([
+    ctx.supabase.from("reminder_rules").select("id, offset_days, enabled").eq("business_id", doc.business_id),
+    ctx.supabase.from("reminder_log").select("rule_id").eq("document_id", doc.id),
+    ctx.supabase.from("businesses").select("reminders_enabled").eq("id", doc.business_id).maybeSingle(),
+  ]);
+  if (error || !rules?.length) return null;
+  if (biz && biz.reminders_enabled === false) return { date: null, off: true };
+  return { date: nextReminder({ dueDate: doc.due_date, rules, sentRuleIds: (log || []).map((l) => l.rule_id), today }) };
+}
+
 async function filesFor(ctx, documentId) {
   const { data, error } = await ctx.supabase.from("document_files").select("id, name, content_type, size_bytes, shared, uploaded_by, uploaded_by_name, created_at")
     .eq("document_id", documentId).order("created_at");
@@ -57,6 +84,19 @@ export default async function DocumentPage({ params, searchParams }) {
     .eq("document_id", doc.id).eq("status", "pending").order("created_at");
   const claims = (claimRows || []).map((c) => ({ ...c, amountLabel: money(c.amount_minor), paidLabel: formatDate(c.paid_on, { day: "numeric", month: "short" }), when: timeAgo(c.created_at) }));
   const storageOn = await r2Ready();
+  // emails waiting in the queue go out now if their time has come (the daily job is the backstop)
+  after(() => pickupSoon(ctx.business.id));
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
+  const unpaid = !quote && ["sent", "viewed", "partially_paid"].includes(doc.status);
+  const overdueDays = unpaid && doc.due_date && doc.due_date < today ? daysBetween(doc.due_date, today) : 0;
+  const [scheduled, plan, message] = await Promise.all([waitingSends(ctx, doc.id), unpaid ? reminderPlan(ctx, doc, today) : null, savedMessage(ctx.supabase, ctx.business.id)]);
+  const canSendDoc = can(ctx.member, "documents.send") || (ctx.member.role === "junior_finance" && !ctx.business.require_approval);
+  const send = {
+    business: { name: ctx.business.name, brand_color: ctx.business.brand_color, logoUrl: absoluteLogoUrl(ctx.business.logo_path) },
+    savedMessage: message, canSaveDefault: can(ctx.member, "settings.business"), canRepeat: ["owner", "manager", "finance"].includes(ctx.member.role) && doc.source !== "pos",
+    scheduled, overdue: overdueDays > 0,
+  };
+  const nextDate = plan?.date ? formatDate(plan.date, { weekday: "short", day: "numeric", month: "short" }) : null;
   const extraTemplates = await readyTemplates(ctx.supabase);
 
   return (
@@ -73,10 +113,31 @@ export default async function DocumentPage({ params, searchParams }) {
           <p className="mt-1 text-sm text-ink-2">{doc.title || (quote ? "Quotation" : "Invoice")} · {doc.customer_name}{doc.customer_company ? `, ${doc.customer_company}` : ""}</p>
         </div>
         <DocumentActions doc={doc} balance={balance} emailReady={await emailConfigured()} link={link} printHref={`/print/doc/${doc.id}`} pdfHref={`/app/documents/${doc.id}/pdf?download`}
-          perms={{ canSend: can(ctx.member, "documents.send"), needsApproval: ctx.member.role === "junior_finance" && ctx.business.require_approval, canApprove: can(ctx.member, "documents.approve"),
+          send={send} autoOpen={sp.remind ? "reminder" : sp.send ? "send" : undefined} key={sp.remind || sp.send ? `open-${sp.remind ? "r" : "s"}` : "actions"}
+          perms={{ canSendDoc, canSend: can(ctx.member, "documents.send"), needsApproval: ctx.member.role === "junior_finance" && ctx.business.require_approval, canApprove: can(ctx.member, "documents.approve"),
             canRecord: can(ctx.member, "payments.record"), canConvert: can(ctx.member, "documents.convert"), canVoid: can(ctx.member, "documents.void") }} />
       </div>
 
+      {doc.status === "paid" && <PaidCelebration docId={doc.id} paidAt={doc.paid_at} />}
+      {overdueDays > 0 && (
+        <Callout tone="warn" icon={Clock} title={`${overdueDays} day${overdueDays === 1 ? "" : "s"} overdue`}
+          action={canSendDoc && doc.customer_email ? <span className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] font-semibold">
+            <Link className="text-brand-ink hover:underline" href={`/app/documents/${doc.id}?remind=1`}>Send now</Link>
+            {plan && can(ctx.member, "settings.business") && <Link className="text-brand-ink hover:underline" href="/app/settings/reminders">Edit reminders</Link>}
+          </span> : null}>
+          {money(balance)} is still to pay. {!doc.customer_email ? "Add an email for this client to send reminders." : plan?.off ? "Automatic reminders are off." : nextDate ? `Next reminder goes ${nextDate}.` : plan ? "No more automatic reminders are planned." : ""}
+        </Callout>
+      )}
+      {(draft || doc.status === "sent") && scheduled.length > 0 && (
+        <Callout tone="info" icon={CalendarClock} title={scheduled[0].kind === "recurring" ? "Sending soon" : `Scheduled for ${scheduled[0].label}`}>
+          The email goes to {scheduled[0].to_email}{draft ? ", and it is marked as sent then" : ""}. Change or cancel it from Send.
+        </Callout>
+      )}
+      {doc.recur_interval && (
+        <Callout tone="info" icon={Repeat} title={`Repeats ${doc.recur_interval}`}>
+          The next one is made on {formatDate(doc.recur_next_on, { weekday: "short", day: "numeric", month: "short" })}{doc.recur_auto_send ? ` and emailed to ${doc.customer_email}` : " as a draft for you to check"}.
+        </Callout>
+      )}
       {sp.converted && <ShowToast title="Invoice created from the quote" message="Items and hidden costs were copied across. It's ready to share with your customer." clear={["converted"]} />}
       {sp.sent && <ShowToast title={`${quote ? "Quote" : "Invoice"} sent`} message={`Your customer can open it from the link, ${quote ? "accept it and pay" : "and pay online"}.`} clear={["sent"]} />}
       <PaymentClaims claims={claims} documentId={doc.id} currency={doc.currency} canConfirm={can(ctx.member, "payments.record")} />
@@ -171,17 +232,7 @@ export default async function DocumentPage({ params, searchParams }) {
 
           <Card>
             <CardHeader title="Activity" icon={History} />
-            <ol className="space-y-3.5 px-5 py-4">
-              {activity.map((a) => (
-                <li key={a.id} className="flex gap-3 text-[13px]">
-                  <span className="mt-1.5 size-2 shrink-0 rounded-full bg-line-strong" />
-                  <span className="min-w-0">
-                    <span className="text-ink"><strong className="font-medium">{a.actor_label || "Customer"}</strong> {activityText(a)}{a.detail?.amount_minor ? ` — ${money(a.detail.amount_minor)}` : ""}{a.detail?.name ? `: ${a.detail.name}` : ""}</span>
-                    <span className="block text-xs text-ink-3">{timeAgo(a.created_at)}</span>
-                  </span>
-                </li>
-              ))}
-            </ol>
+            <DocTimeline activity={activity} doc={doc} money={money} />
           </Card>
         </aside>
       </div>

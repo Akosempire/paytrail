@@ -1,19 +1,26 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X } from "lucide-react";
+import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X, BellRing, Repeat } from "lucide-react";
 import { Button, buttonClass, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { formatMoney, minorToInput, toMinor } from "@/lib/money";
-import { convertToInvoice, deleteDraft, duplicateDocument, recordPayment, resendEmail, returnToDraft, sendDocument, submitForApproval, voidDocument } from "@/app/app/documents/actions";
+import { convertToInvoice, deleteDraft, duplicateDocument, returnToDraft, sendDocument, submitForApproval, voidDocument } from "@/app/app/documents/actions";
+import { recordPaymentNotify, shareDocument } from "@/app/app/documents/send-actions";
+import { SendSheet } from "@/components/send-sheet";
+import { celebrateOnce } from "@/components/paid-celebration";
 
-export function DocumentActions({ doc, perms, emailReady, balance, link, printHref, pdfHref }) {
+// send: the send sheet's data (business, saved message, schedules); without it
+// the old one-click send is used
+export function DocumentActions({ doc, perms, emailReady, balance, link, printHref, pdfHref, send, autoOpen }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
   const [busy, setBusy] = useState(null);
   const [modal, setModal] = useState(null);
   const [more, setMore] = useState(false);
+  const [sheet, setSheet] = useState(send && autoOpen ? { tab: "email", mode: autoOpen } : null); // { tab, mode }
+  const openSheet = (tab = "email", mode = "send") => { setMore(false); setSheet({ tab, mode }); };
   const quote = doc.kind === "quote";
   const draft = ["draft", "pending_approval"].includes(doc.status);
 
@@ -34,7 +41,9 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
   const secondary = [];
   if (doc.status === "draft") {
     primary.push(<Button key="edit" href={`/app/documents/${doc.id}/edit`} icon={Pencil}>Edit</Button>);
-    if (perms.canSend || !perms.needsApproval) primary.push(<Button key="send" variant="primary" icon={spin("send", Send)} onClick={() => run("send", () => sendDocument(doc.id, { email: emailReady }))}>{emailReady && doc.customer_email ? "Send to customer" : "Mark as sent"}</Button>);
+    if (perms.canSend || !perms.needsApproval) primary.push(send
+      ? <Button key="send" variant="primary" icon={Send} onClick={() => openSheet("email")}>Send {quote ? "quote" : "invoice"}</Button>
+      : <Button key="send" variant="primary" icon={spin("send", Send)} onClick={() => run("send", () => sendDocument(doc.id, { email: emailReady }))}>{emailReady && doc.customer_email ? "Send to customer" : "Mark as sent"}</Button>);
     else primary.push(<Button key="submit" variant="primary" icon={spin("submit", ShieldCheck)} onClick={() => run("submit", () => submitForApproval(doc.id))}>Submit for approval</Button>);
     secondary.push({ key: "delete", label: "Delete draft", icon: Trash2, danger: true, onClick: () => setModal("delete") });
   }
@@ -42,17 +51,23 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
     primary.push(<Button key="edit" href={`/app/documents/${doc.id}/edit`} icon={Pencil}>Edit</Button>);
     if (perms.canApprove) {
       primary.push(<Button key="return" icon={Undo2} onClick={() => setModal("return")}>Return</Button>);
-      primary.push(<Button key="approve" variant="primary" icon={spin("send", ShieldCheck)} onClick={() => run("send", () => sendDocument(doc.id, { email: emailReady, expected: doc.updated_at }))}>Approve & send</Button>);
+      primary.push(send
+        ? <Button key="approve" variant="primary" icon={ShieldCheck} onClick={() => openSheet("email")}>Approve & send</Button>
+        : <Button key="approve" variant="primary" icon={spin("send", ShieldCheck)} onClick={() => run("send", () => sendDocument(doc.id, { email: emailReady, expected: doc.updated_at }))}>Approve & send</Button>);
     }
   }
   if (!draft && doc.status !== "void") {
     if (!quote && perms.canRecord && ["sent", "viewed", "partially_paid"].includes(doc.status)) primary.push(<Button key="pay" variant="primary" icon={Wallet} onClick={() => setModal("payment")}>Record payment</Button>);
     if (quote && perms.canConvert && !doc.converted_invoice_id && ["sent", "viewed", "accepted"].includes(doc.status)) primary.push(<Button key="convert" variant={doc.status === "accepted" ? "primary" : "secondary"} icon={spin("convert", FileOutput)} onClick={() => run("convert", () => convertToInvoice(doc.id))}>Convert to invoice</Button>);
-    if (emailReady && doc.customer_email && doc.status !== "paid") secondary.push({ key: "resend", label: "Email again", icon: Mail, onClick: () => run("resend", () => resendEmail(doc.id)) });
+    const unpaid = !quote && ["sent", "viewed", "partially_paid"].includes(doc.status);
+    if (send && unpaid && perms.canSendDoc && send.overdue) primary.unshift(<Button key="remind" icon={BellRing} onClick={() => openSheet("email", "reminder")}>Send reminder</Button>);
+    else if (send && unpaid && perms.canSendDoc) secondary.push({ key: "remind", label: "Send reminder", icon: BellRing, onClick: () => openSheet("email", "reminder") });
+    if (send && doc.status !== "paid" && perms.canSendDoc) secondary.push({ key: "resend", label: "Email again", icon: Mail, onClick: () => openSheet("email", "share") });
+    if (send && !quote && send.canRepeat) secondary.push({ key: "repeat", label: doc.recur_interval ? `Repeats ${doc.recur_interval}` : "Make recurring", icon: Repeat, onClick: () => openSheet("email", "share") });
     if (perms.canVoid && Number(doc.amount_paid_minor) === 0 && !["paid", "accepted"].includes(doc.status)) secondary.push({ key: "void", label: "Void", icon: Ban, danger: true, onClick: () => setModal("void") });
   }
   const live = !draft && doc.status !== "void";
-  if (live && link) primary.push(<Button key="share" variant={primary.length ? "secondary" : "primary"} icon={Share2} onClick={() => share()}>Share</Button>);
+  if (live && link) primary.push(<Button key="share" variant={primary.length ? "secondary" : "primary"} icon={Share2} onClick={() => (send ? openSheet("link", "share") : share())}>Share</Button>);
   const tools = [
     { key: "print", label: "Print", icon: Printer, href: printHref },
     { key: "open", label: "Open PDF in a new tab", icon: ExternalLink, href: `/app/documents/${doc.id}/pdf`, blank: true },
@@ -61,7 +76,7 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
 
   async function copy() {
     setMore(false);
-    try { await navigator.clipboard.writeText(link); toast("Link copied."); } catch { toast("Couldn't copy the link.", "error"); }
+    try { await navigator.clipboard.writeText(link); toast("Link copied."); if (send) shareDocument(doc.id, "link"); } catch { toast("Couldn't copy the link.", "error"); }
   }
   async function share() {
     const text = `${quote ? "Quotation" : "Invoice"} ${doc.number}`;
@@ -105,8 +120,19 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
         )}
       </div>
 
-      <PaymentModal open={modal === "payment"} onClose={() => setModal(null)} doc={doc} balance={balance}
-        onSubmit={(form) => run("pay", async () => { const r = await recordPayment(doc.id, form); if (!r.error) setModal(null); return r; })} pending={pending && busy === "pay"} />
+      <PaymentModal open={modal === "payment"} onClose={() => setModal(null)} doc={doc} balance={balance} canEmail={emailReady && Boolean(doc.customer_email)}
+        onSubmit={(form) => run("pay", async () => {
+          const r = await recordPaymentNotify(doc.id, form);
+          if (r.error) return r;
+          setModal(null);
+          if (r.paid) celebrateOnce(doc.id);
+          const receipt = r.receiptTo ? `Receipt sent to ${r.receiptTo}.` : r.receiptError ? `The receipt is ready, but the email didn't go: ${r.receiptError}` : "Receipt issued.";
+          if (r.receiptError) toast.warning({ title: r.paid ? "Paid in full!" : "Payment recorded", message: receipt });
+          else toast.success({ title: r.paid ? "Paid in full!" : "Payment recorded", message: receipt });
+          return null;
+        })} pending={pending && busy === "pay"} />
+      {send && <SendSheet open={Boolean(sheet)} onClose={() => setSheet(null)} doc={doc} link={link} pdfHref={pdfHref || `/app/documents/${doc.id}/pdf?download`} emailReady={emailReady}
+        initialTab={sheet?.tab} mode={sheet?.mode} business={send.business} savedMessage={send.savedMessage} canSaveDefault={send.canSaveDefault} canRepeat={send.canRepeat} scheduled={send.scheduled} />}
       <ReturnModal open={modal === "return"} onClose={() => setModal(null)} pending={pending && busy === "return"}
         onSubmit={(reason) => run("return", async () => { const r = await returnToDraft(doc.id, reason); if (!r.error) setModal(null); return r; })} />
       <Modal open={modal === "void"} onClose={() => setModal(null)} title={`Void ${doc.number}?`} description="The customer's link will show it as cancelled. This can't be undone."
@@ -121,8 +147,8 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
   );
 }
 
-function PaymentModal({ open, onClose, doc, balance, onSubmit, pending }) {
-  const [form, setForm] = useState({ amount: minorToInput(balance), method: "bank_transfer", reference: "", date: new Date().toISOString().slice(0, 10), note: "", wht: "" });
+function PaymentModal({ open, onClose, doc, balance, onSubmit, pending, canEmail }) {
+  const [form, setForm] = useState({ amount: minorToInput(balance), method: "bank_transfer", reference: "", date: new Date().toISOString().slice(0, 10), note: "", wht: "", emailReceipt: Boolean(canEmail) });
   const [withheld, setWithheld] = useState(false);
   const [rate, setRate] = useState("5");
   // WHT is worked out on the amount before VAT: the share of this balance that isn't VAT
@@ -164,6 +190,7 @@ function PaymentModal({ open, onClose, doc, balance, onSubmit, pending }) {
         <Field label="Date received" htmlFor="pd"><Input id="pd" type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} /></Field>
         <Field label="Reference" htmlFor="pr" optional><Input id="pr" value={form.reference} onChange={(e) => setForm({ ...form, reference: e.target.value })} placeholder="Bank narration / teller no." /></Field>
         <Field label="Note" htmlFor="pn" optional className="sm:col-span-2"><Textarea id="pn" rows={2} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} /></Field>
+        {canEmail && <div className="sm:col-span-2"><Checkbox label={`Email the receipt to ${doc.customer_email}`} checked={form.emailReceipt} onChange={(e) => setForm({ ...form, emailReceipt: e.target.checked })} /></div>}
       </div>
       <p className="mt-4 text-[13px] text-ink-3">Check your bank app first. Online payments (Stripe, Paystack, Flutterwave, Bachs) are recorded automatically, so don't add them here.</p>
     </Modal>

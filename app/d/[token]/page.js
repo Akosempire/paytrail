@@ -40,6 +40,8 @@ export default async function PublicDocument({ params, searchParams }) {
     const { data: changed } = await service.from("documents").update({ status: "viewed", viewed_at: new Date().toISOString() }).eq("id", doc.id).eq("status", "sent").select("id");
     if (changed?.length) {
       await service.from("activity").insert({ business_id: doc.business_id, document_id: doc.id, actor_label: doc.customer_name || "Customer", action: "document.viewed" });
+      // tell the team (at most once a day per invoice; lib/send-queue.js)
+      after(() => import("@/lib/send-queue").then((m) => m.notifyViewed(doc.id)).catch(() => null));
       doc.status = "viewed";
     }
   }
@@ -109,6 +111,8 @@ export default async function PublicDocument({ params, searchParams }) {
             claim={lastClaim && lastClaim.status !== "confirmed" && !paid ? { status: lastClaim.status, amount: money(lastClaim.amount_minor), date: formatDate(lastClaim.paid_on, { day: "numeric", month: "short" }), reply: lastClaim.reply } : null}
             proofUpload={storageOn}
             invoiceNumber={invoice?.number}
+            paidOn={paid ? formatDate(target.paid_at || receipts[receipts.length - 1]?.issued_at || new Date(), { day: "numeric", month: "short" }) : null}
+            receiptHref={paid && receipts.length ? `/r/${receipts[receipts.length - 1].access_token}/pdf?download` : null}
           />
           {receipts.length > 0 && (
             <div className="rounded-xl bg-white p-4 ring-1 ring-[#eaecf0]">
