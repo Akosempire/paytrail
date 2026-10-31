@@ -146,7 +146,6 @@ export function SheetDoc({ m }) {
           </div>
           <p className="pt-sh-thanks">Thank you!</p>
         </footer>
-        {m.poweredBy && <p className="pt-made">Powered by Usetally · usetally.cc</p>}
       </div>
     </>
   );

@@ -161,8 +161,11 @@
 .pt-delivery .pt-label { margin-bottom: 1mm; }
 .pt-postcode { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-weight: 700; letter-spacing: 0.04em; color: var(--pt-ink); }
 .pt-t-pos .pt-delivery { order: 5; margin-top: 2mm; padding: 1.5mm 0; border-width: 0.3mm 0; border-radius: 0; }
-.pt-made { margin-top: 3mm; text-align: center; color: var(--pt-ink-3); font-size: 0.72em; letter-spacing: 0.02em; }
-.pt-t-pos .pt-made { order: 12; }
+/* "Made with Usetally": pinned to the bottom edge of the sheet, small and light */
+.pt-made { margin: 0; padding: 0 0 3mm; text-align: center; color: #a3a3a3; font-size: 6.4pt; letter-spacing: 0.03em; }
+.pt-made a { color: inherit; text-decoration: none; }
+.pt-sheet .pt-made { position: absolute; left: 0; right: 0; bottom: 0; padding-bottom: 3.5mm; }
+.pt-thermal .pt-made { padding-top: 1mm; }
 .pt-t-pos .pt-doctitle { font-size: 1.05em; margin-top: 2mm; }
 .pt-t-pos .pt-received { margin-top: 2mm; padding: 2mm 0 0; background: none; text-align: center; }
 .pt-t-pos .pt-received-amount { font-size: 1.9em; }

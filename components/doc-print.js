@@ -12,6 +12,7 @@ export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint
   const ref = useRef(null);
   const [pageCss, setPageCss] = useState("");
   const [fit, setFit] = useState(1); // < 1: shrunk a little so it prints on one page
+  const [fill, setFill] = useState(0); // mm: a one-page document fills the page, so its foot line sits at the bottom
   const spec = PAPERS[model.paper];
 
   useEffect(() => {
@@ -28,7 +29,11 @@ export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint
         // Notebook and Case file print edge to edge (paper colour, band); they keep their own margins
         const edge = Boolean(model.sheet);
         setPageCss(`@page { size: ${spec.w}mm ${spec.h}mm; margin: ${edge ? 0 : spec.margin}mm; }`);
-        setFit(fitZoom(ref.current.querySelector(".pt-doc"), spec, edge));
+        const el = ref.current.querySelector(".pt-doc");
+        const z = fitZoom(el, spec, edge);
+        setFit(z);
+        const room = edge ? spec.h : spec.h - 2 * spec.margin;
+        setFill(z < 1 || needMm(el, spec, edge) <= room - 1 ? (room - 1) / z : 0);
       }
       if (autoPrint) setTimeout(() => window.print(), 250);
     })();
@@ -37,7 +42,7 @@ export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint
 
   return (
     <div className="pt-print-root min-h-dvh bg-[#e9e9e6] px-3 py-6 print:p-0">
-      <style>{`${pageCss} @media print { html, body { background: #fff !important; }${fit < 1 ? ` .pt-print-root .pt-doc { zoom: ${fit}; }` : ""} }`}</style>
+      <style>{`${pageCss} @media print { html, body { background: #fff !important; }${fit < 1 ? ` .pt-print-root .pt-doc { zoom: ${fit}; }` : ""}${fill ? ` .pt-print-root .pt-sheet.pt-doc { min-height: ${fill.toFixed(1)}mm !important; }` : ""} }`}</style>
       <div className="pt-print-chrome mx-auto mb-5 flex max-w-3xl flex-wrap items-center gap-2 text-[13px]">
         {backHref && <Link href={backHref} className="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 font-medium text-[#344054] hover:bg-white/70"><ArrowLeft className="size-4" />Back</Link>}
         <label className="ml-auto flex items-center gap-2 text-[#475467]">Paper
@@ -60,15 +65,22 @@ export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint
 // How much to shrink a document that only just spills onto a second page
 // (same steps as the PDF, lib/pdf.js FIT_ZOOMS). 1 = fits already, or too long
 // to shrink without making the text hard to read: it prints on more pages.
-export function fitZoom(el, spec, edge) {
-  if (!el) return 1;
+// the printed height of a document's content, in mm (its foot line isn't counted: it sits in the gap at the bottom)
+export function needMm(el, spec, edge) {
+  if (!el) return 0;
   const keep = el.style.minHeight;
   el.style.minHeight = "0";
-  const px = el.getBoundingClientRect().height;
+  const made = el.querySelector(":scope > .pt-made");
+  const px = el.getBoundingClientRect().height + (made && getComputedStyle(made).position === "absolute" ? made.getBoundingClientRect().height : 0);
   el.style.minHeight = keep;
   const mmH = (px * 25.4) / 96;
   // without edge-to-edge printing the margins come from the page, not the document, and don't shrink
-  const need = edge ? mmH : mmH - 2 * spec.margin, room = edge ? spec.h : spec.h - 2 * spec.margin;
+  return edge ? mmH : mmH - 2 * spec.margin;
+}
+
+export function fitZoom(el, spec, edge) {
+  if (!el) return 1;
+  const need = needMm(el, spec, edge), room = edge ? spec.h : spec.h - 2 * spec.margin;
   if (need <= room - 1) return 1;
   const z = Math.floor(((room - 1) / need) * 100) / 100;
   return z >= 0.82 ? z : 1;

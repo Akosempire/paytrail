@@ -15,6 +15,7 @@ export function DocView({ model: m, screen = true }) {
       <article className={cls} style={{ "--pt-accent": m.accent, "--pt-w": `${m.paperSpec.w}mm`, "--pt-h": m.paperSpec.h ? `${m.paperSpec.h}mm` : "auto", "--pt-m": `${m.paperSpec.margin}mm` }}
         aria-label={`${m.title} ${m.number}`}>
         <SheetDoc m={m} />
+        <MadeWith m={m} />
       </article>
     );
   }
@@ -26,6 +27,7 @@ export function DocView({ model: m, screen = true }) {
       <article className={cls} style={{ "--pt-accent": m.accent, "--pt-on-accent": inks.onAccent, "--pt-accent-on-dark": inks.accentOnDark, "--pt-w": `${m.paperSpec.w}mm`, "--pt-h": m.paperSpec.h ? `${m.paperSpec.h}mm` : "auto", "--pt-m": `${m.paperSpec.margin}mm` }}
         aria-label={`${m.title} ${m.number}`}>
         <Layout m={m} />
+        <MadeWith m={m} />
       </article>
     );
   }
@@ -152,8 +154,14 @@ export function DocView({ model: m, screen = true }) {
         )}
 
         {(m.business.footer || thermal) && <footer className="pt-foot">{m.business.footer || "Thank you"}</footer>}
-        {m.poweredBy && <p className="pt-made">Powered by Usetally · usetally.cc</p>}
       </div>
+      <MadeWith m={m} />
     </article>
   );
+}
+
+// Free plan and trial: a quiet line at the very foot of the page, never in the way of the document
+function MadeWith({ m }) {
+  if (!m.poweredBy) return null;
+  return <p className="pt-made">Made with Usetally · <a href="https://usetally.cc" target="_blank" rel="noopener noreferrer">usetally.cc</a></p>;
 }
