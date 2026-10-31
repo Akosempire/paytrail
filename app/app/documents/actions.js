@@ -7,6 +7,7 @@ import { cleanPayload, getDocument } from "@/lib/documents";
 import { can } from "@/lib/permissions";
 import { emailConfigured, sendEmail } from "@/lib/email";
 import { documentEmail, receiptEmail } from "@/lib/emails";
+import { receiptForEmail, withDocument } from "@/lib/email-document";
 import { CURRENCIES, formatMoney, toMinor } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { logoUrl, absoluteLogoUrl, siteUrl } from "@/lib/site";
@@ -167,7 +168,7 @@ export async function emailReceipt(receiptId) {
   const link = `${siteUrl()}/r/${receipt.access_token}`;
   const r = await sendEmail({
     to: receipt.documents.customer_email, fromName: b.name, replyTo: b.email || undefined,
-    ...receiptEmail({ business: b, logo: absoluteLogoUrl(b.logo_path), receipt, documentNumber: receipt.documents.number, link }),
+    ...withDocument(({ color, attached }) => receiptEmail({ business: b, logo: absoluteLogoUrl(b.logo_path), receipt, documentNumber: receipt.documents.number, link, color, attached }), await receiptForEmail(ctx.supabase, receipt, b)),
   });
   return r.sent ? { message: "Receipt emailed." } : { error: "The email could not be sent." };
 }
