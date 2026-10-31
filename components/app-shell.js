@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Link, { useLinkStatus } from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
   Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart, Package, BellRing,
@@ -51,6 +51,22 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   // the link you click lights up at once, before the server answers
   const [goingTo, setGoingTo] = useState(null);
   useEffect(() => { setOpen(false); setSwitcher(false); setCreate(false); setGoingTo(null); }, [pathname]);
+  // keyboard: N = new invoice, / = search on this page (not while typing)
+  const router = useRouter();
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target;
+      if (t?.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t?.tagName || "") || document.querySelector("[aria-modal='true']")) return;
+      if (e.key === "n" || e.key === "N") { e.preventDefault(); router.push("/app/invoices/new"); }
+      else if (e.key === "/") {
+        const box = [...document.querySelectorAll("main input[type='search'], main input[role='combobox'], main input[name='q']")].find((el) => el.offsetParent);
+        if (box) { e.preventDefault(); box.focus(); }
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [router]);
   const nav = navFor({ kind: business.kind, ...perms });
   const here = goingTo || pathname;
   // screens with their own save bar at the bottom (editor, business settings) don't show the tabs
