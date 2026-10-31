@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { emailConfigured } from "@/lib/email";
 import { Callout, PageHeader } from "@/components/ui";
 import { DocumentEditor } from "@/components/document-editor";
+import { DraftStrip, QuoteSwitcher } from "@/components/quote-switcher";
 
 // shared by "new quote", "new invoice" and "edit draft"
 export async function EditorPage({ kind, id, customerId }) {
@@ -58,14 +59,36 @@ export async function EditorPage({ kind, id, customerId }) {
   }
   const b = ctx.business;
   const quote = kind === "quote";
+  // quotes: the builder's header switches between quotes and offers recent drafts
+  let quoteNav = null;
+  if (quote) {
+    const [{ count }, { data: recentQuotes }] = await Promise.all([
+      ctx.supabase.from("documents").select("id", { count: "exact", head: true }).eq("business_id", b.id).eq("kind", "quote"),
+      ctx.supabase.from("documents").select("id, number, status, customer_name, total_minor, currency, due_date, valid_until").eq("business_id", b.id).eq("kind", "quote").order("updated_at", { ascending: false }).limit(8),
+    ]);
+    const list = recentQuotes || [];
+    quoteNav = { count: count || 0, recent: list, drafts: list.filter((d) => d.status === "draft" && d.id !== id).slice(0, 3) };
+  }
   const blocked = ctx.allowance && !ctx.allowance.allowed;
   return (
-    <div className="flex flex-col gap-6">
-      <Link href={id ? `/app/documents/${id}` : quote ? "/app/quotes" : "/app/invoices"} className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-ink-2 hover:text-ink">
-        <ArrowLeft className="size-4" />{id ? "Back to document" : quote ? "Quotes" : "Invoices"}
-      </Link>
-      <PageHeader title={id ? `Edit ${full.doc.number}` : quote ? "New quotation" : "New invoice"}
-        description={quote ? (showCosts ? "Price the job, add your hidden costs to check your profit, then send it." : "Price the job, then send it.") : "Bill your customer directly, without a quote first."} />
+    <div className={quote ? "flex flex-col gap-4" : "flex flex-col gap-6"}>
+      {quote ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              {id && <Link href={`/app/documents/${id}`} className="mb-1 inline-flex items-center gap-1.5 text-[13px] font-medium text-ink-2 hover:text-ink"><ArrowLeft className="size-4" />Back to {full.doc.number}</Link>}
+              <h1 className="text-title-1 text-ink">{id ? `Edit ${full.doc.number}` : "New quotation"}</h1>
+            </div>
+            <QuoteSwitcher count={quoteNav.count} recent={quoteNav.recent} current={id || null} />
+          </div>
+          {!id && <DraftStrip drafts={quoteNav.drafts} />}
+        </div>
+      ) : <>
+        <Link href={id ? `/app/documents/${id}` : "/app/invoices"} className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-ink-2 hover:text-ink">
+          <ArrowLeft className="size-4" />{id ? "Back to document" : "Invoices"}
+        </Link>
+        <PageHeader title={id ? `Edit ${full.doc.number}` : "New invoice"} description="Bill your customer directly, without a quote first." />
+      </>}
       {blocked && <Callout tone="warn" title="You can save drafts, but not send yet">{ctx.allowance.reason === "deletion_pending" ? "This business is scheduled for deletion. Cancel it in Settings → Privacy & data to send again." : <>Your free trial or plan limit has been reached. {can(ctx.member, "settings.billing") ? <Link className="font-semibold underline" href="/app/settings/billing">Choose a plan</Link> : "Ask the account owner to choose a plan."}</>}</Callout>}
       <DocumentEditor
         kind={kind}
@@ -83,6 +106,7 @@ export async function EditorPage({ kind, id, customerId }) {
         recentIds={recentIds}
         owes={owes}
         suggestions={suggestions}
+        userId={ctx.user.id}
       />
     </div>
   );

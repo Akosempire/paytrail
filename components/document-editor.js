@@ -7,12 +7,13 @@ import { buildModel } from "@/lib/doc-model";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { Switch, useToast } from "@/components/ui-client";
 import { computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
-import { COST_CATEGORIES } from "@/lib/format";
+import { COST_CATEGORIES, formatDate } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
 import { PasteList } from "@/components/paste-list";
 import { PostcodeField } from "@/components/postcode-field";
 import { TrackOjaPicker } from "@/components/trackoja-picker";
 import { CustomerPicker } from "@/components/customer-picker";
+import { QuoteStudio, FoldRow } from "@/components/quote-studio";
 import { TERM_CHIPS, VALIDITY_CHIPS, addDaysIso, daysBetween, dueSentence, evalQty, formatAmountInput, isEmail, missingStep, qtyValue, suggestEmail, unformatAmountInput } from "@/lib/builder-core";
 
 // externalId: the TrackOja product a line came from ("Add from TrackOja")
@@ -23,7 +24,7 @@ const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label
 // pos: { store } when the business is connected to TrackOja POS (products can be added from it)
 // recentIds / owes / suggestions: recent customers, what each still owes, items used before (optional; offline mode has none)
 // guest: "Try it" on the website (no account): new customer only, kept on this device, Send asks them to sign up
-export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false }) {
+export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false, userId = "" }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -75,6 +76,9 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
 
   const selectedCustomer = useMemo(() => customers.find((c) => c.id === customerId), [customers, customerId]);
   const [view, setView] = useState("edit"); // phones: edit | preview
+  // quote builder: rarely-changed parts are folded to one line (Details, Notes & terms)
+  const [folds, setFolds] = useState({ details: false, notes: Boolean(doc?.notes) });
+  const setFold = (k, v) => setFolds((f) => ({ ...f, [k]: v }));
 
   // live preview of what the customer will see, from the unsaved form
   const who = customerMode === "existing" ? selectedCustomer || {} : customer;
@@ -149,6 +153,13 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     el.scrollIntoView({ block: "center", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
     el.focus({ preventScroll: true });
   }
+
+  useEffect(() => {
+    if (!quote || guest || doc?.id || window.matchMedia("(pointer: coarse)").matches) return;
+    const t = setTimeout(() => document.getElementById(customerMode === "new" ? "cn" : "customer-search")?.focus({ preventScroll: true }), 120);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ---- autosave -------------------------------------------------------------
   // Drafts already on the server save themselves there. New documents are kept
@@ -236,7 +247,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   // Send: if something's missing, the button says what and takes you there
   function send() {
     if (pending) return;
-    if (missing) { setAttempted(true); focusField(missingField); return; }
+    if (missing) { setAttempted(true); setView("edit"); setTimeout(() => focusField(missingField), 0); return; }
     submit(needsApproval ? "submit" : "send");
   }
   useEffect(() => {
@@ -301,6 +312,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     } else if (part.matches(".pt-totals")) id = discountOn ? "discount" : "add-discount";
     else if (part.matches(".pt-blocks")) id = "notes";
     else id = "end";
+    if (id === "end") setFold("details", true);
+    if (id === "notes") setFold("notes", true);
     setView("edit");
     setTimeout(() => focusField(id), 0);
   }
@@ -310,25 +323,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const statusText = { saving: "Saving…", saved: "Saved", local: "Saved on this device", offline: "Offline · changes will sync", unsaved: serverAutosave ? "Unsaved changes" : "Not saved yet" }[saveState];
   const sendLabel = missing ? missing.label : guest ? `Send ${quote ? "quote" : "invoice"}` : needsApproval ? "Submit for approval" : `Save & send ${quote ? "quote" : "invoice"}`;
 
-  return (
-    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-40 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px]">
-      <div className="sticky top-16 z-10 -mx-4 -mt-2 bg-canvas/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden" role="tablist" aria-label="Editor view">
-        <div className="grid grid-cols-2 gap-0.5 rounded-lg bg-tray p-1">
-          {[["edit", "Edit", PencilLine], ["preview", "Preview", Eye]].map(([v, l, Icon]) => (
-            <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)}
-              className={cx("inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]", view === v ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3")}>
-              <Icon className="size-4" />{l}
-            </button>
-          ))}
-        </div>
-      </div>
-      {view === "preview" && (
-        <div className="flex min-w-0 flex-col gap-2 lg:hidden">
-          <div className="rounded-2xl bg-tray p-2 [&_.pt-parties]:cursor-pointer [&_.pt-items]:cursor-pointer [&_.pt-lines]:cursor-pointer [&_.pt-totals]:cursor-pointer [&_.pt-blocks]:cursor-pointer [&_.pt-meta]:cursor-pointer" onClickCapture={onPreviewClick}><DocPreview model={previewModel} label="Live preview" /></div>
-          <p className="text-center text-[12px] text-ink-3">Tap any part to edit it. Template and paper size can be changed after saving.</p>
-        </div>
-      )}
-      <div className={cx("flex min-w-0 flex-col gap-6", view === "preview" && "max-lg:hidden")}>
+  // ---- the pieces, laid out below as the classic editor (invoices) or the
+  // three-column quote builder (components/quote-studio.js)
+  const studio = quote && !guest;
+  const formatShortDate = (iso) => (iso ? formatDate(iso, { day: "numeric", month: "short" }) : "no date");
+  const customerCard = (
         <Card id="customer-card" className="relative z-20" style={{ overflow: "visible" }}>
           <CardHeader title="Customer" icon={Users} actions={customerMode === "new" && customers.length > 0 && (
             <button type="button" onClick={() => { setCustomerMode("existing"); setTimeout(() => focusField("customer-search"), 0); }} className="inline-flex min-h-9 items-center text-[13px] font-medium text-brand-ink hover:underline">Choose an existing customer</button>
@@ -370,7 +369,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             )}
           </div>
         </Card>
-
+  );
+  const deliveryCard = (
         <Card>
           <div className="flex items-center justify-between gap-3 px-5 py-4">
             <div className="flex min-w-0 items-center gap-3">
@@ -387,9 +387,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             </div>
           )}
         </Card>
-
-        <Card>
-          <CardHeader title={quote ? "Quotation details" : "Invoice details"} description={doc?.number ? `Number ${doc.number}` : "Numbered automatically when saved"} />
+  );
+  const detailsBody = (
           <div className="grid gap-4 p-5 sm:grid-cols-3">
             <Field label="Title" htmlFor="title" optional className="sm:col-span-3"><Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={quote ? "Website redesign for Obi Foods" : "Monthly retainer — October"} /></Field>
             <Field label="Issue date" htmlFor="issue"><Input id="issue" type="date" value={issueDate} onChange={(e) => { const v = e.target.value; if (!v) return; setEndDate((d) => addDaysIso(v, daysBetween(issueDate, d))); setIssueDate(v); }} className="h-11 sm:h-10" /></Field>
@@ -405,18 +404,18 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               </div>
             </div>
           </div>
-        </Card>
-
-        <Card>
+  );
+  const itemsCard = (
+        <Card className="@container">
           <CardHeader title="Items" description="What your customer sees and pays for." />
-          <div className="hidden grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] gap-3 border-b border-line bg-subtle px-5 py-2 text-[12px] font-medium text-ink-3 md:grid">
+          <div className="hidden grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] gap-3 border-b border-line bg-subtle px-5 py-2 text-[12px] font-medium text-ink-3 @2xl:grid">
             <span>Description</span><span className="text-right">Qty</span><span className="text-right">Unit price</span><span className="text-right">Amount</span><span />
           </div>
           <ul className="divide-y divide-line">
             {items.map((item, idx) => {
               const line = Math.round(qtyValue(item.quantity) * (toMinor(item.price) || 0));
               return (
-                <li key={item.key} className="grid gap-2.5 px-5 py-4 md:grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] md:items-start md:gap-3">
+                <li key={item.key} className="grid gap-2.5 px-5 py-4 @2xl:grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] @2xl:items-start @2xl:gap-3">
                   <div className="flex flex-col gap-2">
                     <Input id={`item-${idx}-desc`} aria-label={`Item ${idx + 1} description`} aria-invalid={flag(`item-${idx}-desc`) || undefined} list={suggestions.length ? datalistId : undefined} value={item.description} onPaste={onDescPaste} onKeyDown={(e) => onRowEnter(e, idx)} onChange={(e) => onDescChange(item, e.target.value)} placeholder="e.g. Brand identity design" className="h-11 text-[16px] sm:h-10 sm:text-sm" />
                     {item.externalId && (
@@ -433,7 +432,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                       </select>
                     </label>
                   </div>
-                  <div className="grid grid-cols-[80px_1fr] gap-2.5 md:contents">
+                  <div className="grid grid-cols-[80px_1fr] gap-2.5 @2xl:contents">
                     <div className="relative">
                       <Input id={`item-${idx}-qty`} aria-label={`Item ${idx + 1} quantity`} inputMode="decimal" title="You can type sums like 3*8" value={item.quantity} onKeyDown={(e) => onRowEnter(e, idx)}
                         onChange={(e) => setItem(item.key, { quantity: e.target.value.replace(/[^\d.+\-*/()x×÷ ]/gi, "").slice(0, 40) })}
@@ -445,12 +444,12 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                       onFocus={() => setItem(item.key, { price: unformatAmountInput(item.price) })} onBlur={() => setItem(item.key, { price: formatAmountInput(item.price) })}
                       onChange={(e) => setItem(item.key, { price: e.target.value })} placeholder="0.00" className="h-11 text-right text-[16px] tabular sm:h-10 sm:text-sm" />
                   </div>
-                  <div className="flex items-center justify-between md:block md:pt-2.5 md:text-right">
-                    <span className="text-[13px] text-ink-3 md:hidden">Amount</span>
+                  <div className="flex items-center justify-between @2xl:block @2xl:pt-2.5 @2xl:text-right">
+                    <span className="text-[13px] text-ink-3 @2xl:hidden">Amount</span>
                     <span className="font-medium text-ink tabular">{money(line)}</span>
                   </div>
                   <button type="button" onClick={() => removeItem(item, idx)} aria-label={`Remove item ${idx + 1}${item.description ? ` (${item.description})` : ""}`}
-                    className="inline-flex size-11 items-center justify-center justify-self-end rounded-md text-ink-3 hover:bg-danger-soft hover:text-danger-ink md:size-9">
+                    className="inline-flex size-11 items-center justify-center justify-self-end rounded-md text-ink-3 hover:bg-danger-soft hover:text-danger-ink @2xl:size-9">
                     <Trash2 className="size-4" />
                   </button>
                 </li>
@@ -517,26 +516,23 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             </dl>
           </div>
         </Card>
-
-        <Card>
-          <CardHeader title="Notes & terms" description="Shown at the bottom of the document." />
+  );
+  const notesBody = (
           <div className="grid gap-4 p-5 sm:grid-cols-2">
             <Field label="Notes to customer" htmlFor="notes" optional><Textarea id="notes" rows={4} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Thanks for the opportunity! Timeline: 3 weeks from deposit." /></Field>
             <Field label="Terms" htmlFor="terms" optional><Textarea id="terms" rows={4} value={terms} onChange={(e) => setTerms(e.target.value)} /></Field>
           </div>
-        </Card>
-      </div>
-
-      <aside className={cx("flex flex-col gap-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)] lg:self-start lg:overflow-y-auto lg:pb-2 [&>*]:shrink-0", view === "preview" && "max-lg:hidden")}>
-        {costsVisible ? (
-          <Card className="ring-violet/30">
+  );
+  const costsHead = (
             <div className="flex items-start gap-3 border-b border-line bg-violet-soft/60 px-5 py-4">
               <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-surface ring-1 ring-violet/30"><EyeOff className="size-4 text-violet" /></span>
               <div>
-                <h3 className="text-title-3 text-ink">Your costs</h3>
-                <p className="text-[12.5px] text-ink-2">Hidden from the customer. Only people you allow can see these.</p>
+                <h3 className="text-title-3 text-ink">Costs & profit</h3>
+                <p className="text-[12.5px] text-ink-2">Only your team sees this. Hidden from the customer.</p>
               </div>
             </div>
+  );
+  const costsList = (
             <ul className="divide-y divide-line">
               {costs.length === 0 && <li className="px-5 py-4 text-[13px] text-ink-3">Add what this job costs you, like data, electricity, transport or software, to see your real profit.</li>}
               {costs.map((c) => (
@@ -555,6 +551,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                 </li>
               ))}
             </ul>
+  );
+  const costsAdd = (
             <div className="relative flex gap-2 border-t border-line px-5 py-3">
               <Button size="sm" icon={Plus} onClick={() => setCosts((l) => [...l, blankCost()])}>Add cost</Button>
               {presets.length > 0 && (
@@ -573,6 +571,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                 </>
               )}
             </div>
+  );
+  const costsSummary = (
             <dl className="space-y-2 border-t border-line bg-subtle px-5 py-4 text-[13px]">
               <Row label="Customer pays" value={money(totals.total)} strong />
               <Row label={`Your revenue (before ${taxLabel || "tax"})`} value={money(revenue)} />
@@ -587,6 +587,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               </div>
               {profit < 0 && <Alert intent="warning" size="sm" title="You'd lose money">Your costs are higher than the price of this job.</Alert>}
             </dl>
+  );
+  const costsHelper = (<>
             {costTotal > 0 && (
               <div className="border-t border-line px-5 py-4">
                 <p className="flex items-center gap-1.5 text-[13px] font-medium text-ink"><Calculator className="size-4 text-brand" />Pricing helper</p>
@@ -599,8 +601,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                 {revenue < suggested && <p className="mt-1 text-xs text-warn-ink">You're {money(suggested - revenue)} below that.</p>}
               </div>
             )}
-          </Card>
-        ) : (
+  </>);
+  const summaryCard = (
           <Card>
             <CardHeader title="Summary" />
             <dl className="space-y-2 px-5 py-4 text-sm">
@@ -608,21 +610,18 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               <Row label="Total" value={money(totals.total)} strong />
             </dl>
           </Card>
-        )}
-        <Card className="hidden lg:block">
-          <CardHeader title="Live preview" icon={Eye} description="What your customer will see. Click any part to edit it." />
-          <div className="bg-tray p-3 [&_.pt-parties]:cursor-pointer [&_.pt-items]:cursor-pointer [&_.pt-lines]:cursor-pointer [&_.pt-totals]:cursor-pointer [&_.pt-blocks]:cursor-pointer [&_.pt-meta]:cursor-pointer" onClickCapture={onPreviewClick}><DocPreview model={previewModel} label="Live preview" /></div>
-        </Card>
-        {needsApproval && (
+  );
+  const approvalNote = (
+        needsApproval && (
           <div className="flex gap-2.5 rounded-xl bg-violet-soft p-4 text-[13px] text-violet-ink ring-1 ring-inset ring-violet/25">
             <ShieldCheck className="mt-0.5 size-4 shrink-0" />A manager or finance officer approves your drafts before they reach the customer.
           </div>
-        )}
-      </aside>
-
-      <div className={cx("fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur", !guest && "lg:left-[264px]")}>
+        )
+  );
+  const footerBar = (
+      <div className={cx("fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur", !guest && "lg:left-[var(--sidebar-w,264px)]")}>
         {/* phones: total on top, two equal buttons, clear of the home bar; problems show as toasts */}
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-2.5 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] sm:gap-3 sm:px-6 sm:pb-3 lg:px-8">
+        <div className={cx("mx-auto flex flex-wrap items-center gap-2.5 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] sm:gap-3 sm:px-6 sm:pb-3 lg:px-8", studio ? "max-w-[1760px]" : "max-w-[1200px]")}>
           <div className="w-full min-w-0 sm:w-auto sm:flex-1">
             <div className="flex items-baseline justify-between gap-3 sm:block">
               <p className="text-[13px] text-ink-3"><span className="text-[15px] font-semibold text-ink tabular sm:text-[13px]">{money(totals.total)}</span> total{costsVisible && costTotal > 0 && <> · <span className={profit < 0 ? "text-danger-ink" : "text-success-ink"}>{money(profit)} profit</span></>}</p>
@@ -645,6 +644,71 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             title={missing ? undefined : "Ctrl/⌘ + Enter"} className="h-12 flex-[1.6] sm:h-10 sm:flex-none">{sendLabel}</Button>
         </div>
       </div>
+  );
+
+  if (studio) {
+    return (
+      <QuoteStudio userId={userId} view={view} setView={setView} costsVisible={costsVisible} profit={profit} pct={pct} revenue={revenue} money={money}
+        previewModel={previewModel} onPreviewClick={onPreviewClick} folds={folds} setFold={setFold}
+        costs={<>{costsHead}{costsSummary}{costsList}{costsAdd}{costsHelper}</>}
+        quote={<>
+          {customerCard}
+          {itemsCard}
+          <FoldRow id="details" title="Details" value={`${title ? `${title} · ` : ""}Valid to ${formatShortDate(endDate)} · ${currency}`} open={folds.details} onToggle={(v) => setFold("details", v)}>{detailsBody}</FoldRow>
+          {deliveryCard}
+          <FoldRow id="notes" title="Notes & terms" value={notes || terms ? [notes && "Note", terms && "Terms"].filter(Boolean).join(" and ") + " added" : "None yet"} open={folds.notes} onToggle={(v) => setFold("notes", v)}>{notesBody}</FoldRow>
+          {approvalNote}
+        </>}
+        footer={footerBar} />
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-6 pb-40 sm:pb-28 lg:grid-cols-[minmax(0,1fr)_340px] xl:grid-cols-[minmax(0,1fr)_400px]">
+      <div className="sticky top-16 z-10 -mx-4 -mt-2 bg-canvas/95 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:hidden" role="tablist" aria-label="Editor view">
+        <div className="grid grid-cols-2 gap-0.5 rounded-lg bg-tray p-1">
+          {[["edit", "Edit", PencilLine], ["preview", "Preview", Eye]].map(([v, l, Icon]) => (
+            <button key={v} type="button" role="tab" aria-selected={view === v} onClick={() => setView(v)}
+              className={cx("inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-[13px] font-medium focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]", view === v ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3")}>
+              <Icon className="size-4" />{l}
+            </button>
+          ))}
+        </div>
+      </div>
+      {view === "preview" && (
+        <div className="flex min-w-0 flex-col gap-2 lg:hidden">
+          <div className="rounded-2xl bg-tray p-2 [&_.pt-parties]:cursor-pointer [&_.pt-items]:cursor-pointer [&_.pt-lines]:cursor-pointer [&_.pt-totals]:cursor-pointer [&_.pt-blocks]:cursor-pointer [&_.pt-meta]:cursor-pointer" onClickCapture={onPreviewClick}><DocPreview model={previewModel} label="Live preview" /></div>
+          <p className="text-center text-[12px] text-ink-3">Tap any part to edit it. Template and paper size can be changed after saving.</p>
+        </div>
+      )}
+      <div className={cx("flex min-w-0 flex-col gap-6", view === "preview" && "max-lg:hidden")}>
+        {customerCard}
+        {deliveryCard}
+        <Card>
+          <CardHeader title={quote ? "Quotation details" : "Invoice details"} description={doc?.number ? `Number ${doc.number}` : "Numbered automatically when saved"} />
+          {detailsBody}
+        </Card>
+        {itemsCard}
+        <Card>
+          <CardHeader title="Notes & terms" description="Shown at the bottom of the document." />
+          {notesBody}
+        </Card>
+      </div>
+
+      <aside className={cx("flex flex-col gap-4 lg:sticky lg:top-24 lg:max-h-[calc(100dvh-8rem)] lg:self-start lg:overflow-y-auto lg:pb-2 [&>*]:shrink-0", view === "preview" && "max-lg:hidden")}>
+        {costsVisible ? (
+          <Card className="ring-violet/30">
+            {costsHead}{costsList}{costsAdd}{costsSummary}{costsHelper}
+          </Card>
+        ) : summaryCard}
+        <Card className="hidden lg:block">
+          <CardHeader title="Live preview" icon={Eye} description="What your customer will see. Click any part to edit it." />
+          <div className="bg-tray p-3 [&_.pt-parties]:cursor-pointer [&_.pt-items]:cursor-pointer [&_.pt-lines]:cursor-pointer [&_.pt-totals]:cursor-pointer [&_.pt-blocks]:cursor-pointer [&_.pt-meta]:cursor-pointer" onClickCapture={onPreviewClick}><DocPreview model={previewModel} label="Live preview" /></div>
+        </Card>
+        {approvalNote}
+      </aside>
+
+      {footerBar}
     </div>
   );
 }
