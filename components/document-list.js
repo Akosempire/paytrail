@@ -13,7 +13,8 @@ import { collectSummary, compactMoney, defaultInvoiceTab, sortForTab, todayIso }
 export async function DocumentListPage({ ctx, kind, searchParams }) {
   const quote = kind === "quote";
   const q = searchParams.q || "";
-  const asked = searchParams.status || searchParams.tab || "";
+  // "unpaid" is what the dashboard links to; the list calls it "open"
+  const asked = String(searchParams.status || searchParams.tab || "").replace(/^unpaid$/, "open");
   const counts = await documentCounts(ctx, kind);
   // Invoices open on Unpaid when anything is owed (unless the URL asks for a tab, or it's a search)
   const status = quote ? asked : defaultInvoiceTab(asked || (q ? "all" : ""), counts.open);
@@ -21,7 +22,9 @@ export async function DocumentListPage({ ctx, kind, searchParams }) {
   const today = todayIso();
   const currency = ctx.business.currency || "NGN";
   let rows = await listDocuments(ctx, { kind, status: query, q });
-  const base = quote ? "/app/quotes" : "/app/invoices";
+  // quotes: /app/quotes is the builder; the list lives at /app/quotes/all
+  const base = quote ? "/app/quotes/all" : "/app/invoices";
+  const newHref = quote ? "/app/quotes" : "/app/invoices/new";
   let summary = null, money = null;
   if (!quote) {
     rows = sortForTab(rows, status, today);
@@ -66,7 +69,7 @@ export async function DocumentListPage({ ctx, kind, searchParams }) {
     <div className="flex flex-col gap-6">
       <PageHeader title={quote ? "Quotes" : "Invoices"}
         description={quote ? "Price jobs, send them, and turn accepted quotes into invoices." : "Bills you've sent and what's still owed."}
-        actions={<Button href={`${base}/new`} variant="primary" icon={Plus}>{quote ? "New quote" : "New invoice"}</Button>} />
+        actions={quote ? null : <Button href={newHref} variant="primary" icon={Plus}>New invoice</Button>} />
       {!quote && counts.all > 0 && (
         <p className="-mt-2 text-[15px] text-ink-2" aria-live="polite">
           {summary.count ? <><span className="font-semibold text-ink tabular">{formatMoney(summary.total, currency)}</span>{summary.text.slice(formatMoney(summary.total, currency).length)}</> : summary.text}
@@ -92,7 +95,7 @@ export async function DocumentListPage({ ctx, kind, searchParams }) {
         <EmptyState icon={quote ? FileText : Receipt} title={empty.title} description={empty.description}
           action={filtered
             ? <Button href={base} variant="secondary">{q ? "Clear search" : "Clear filter"}</Button>
-            : <Button href={`${base}/new`} variant="primary" icon={Plus}>{quote ? "Create a quote" : "Create an invoice"}</Button>} />
+            : quote ? null : <Button href={newHref} variant="primary" icon={Plus}>Create an invoice</Button>} />
       ) : !quote ? (
         <InvoiceRows rows={rows} today={today} businessName={ctx.business.name}
           perms={{ canSend: can(ctx.member, "documents.send"), canRecord: can(ctx.member, "payments.record") }} />

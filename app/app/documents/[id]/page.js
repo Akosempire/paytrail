@@ -127,7 +127,7 @@ export default async function DocumentPage({ params, searchParams }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <Link href={quote ? "/app/quotes" : "/app/invoices"} className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-ink-2 hover:text-ink">
+      <Link href={quote ? "/app/quotes/all" : "/app/invoices"} className="inline-flex items-center gap-1.5 self-start text-[13px] font-medium text-ink-2 hover:text-ink">
         <ArrowLeft className="size-4" />{quote ? "Quotes" : "Invoices"}
       </Link>
       <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
