@@ -19,12 +19,34 @@ export async function EditorPage({ kind, id, customerId }) {
     kind = full.doc.kind;
   }
   const showCosts = can(ctx.member, "costs.view");
-  const [{ data: customers }, { data: presets }, { data: posLink }] = await Promise.all([
+  const [{ data: customers }, { data: presets }, { data: posLink }, { data: recentDocs }, { data: openInvoices }] = await Promise.all([
     ctx.supabase.from("customers").select("id, name, company, email, phone, address").eq("business_id", ctx.business.id).is("archived_at", null).order("name"),
     showCosts ? ctx.supabase.from("cost_presets").select("*").eq("business_id", ctx.business.id).order("label") : Promise.resolve({ data: [] }),
     // TrackOja POS: "Add from TrackOja" when the business is connected (errors = not set up yet)
-    ctx.supabase.from("pos_connections").select("id, store_name").eq("business_id", ctx.business.id).is("revoked_at", null).maybeSingle().then((r) => r, () => ({ data: null })),
+    Promise.resolve(ctx.supabase.from("pos_connections").select("id, store_name").eq("business_id", ctx.business.id).is("revoked_at", null).maybeSingle()).then((r) => r, () => ({ data: null })),
+    // builder helpers: recent customers first, what each still owes, and items used before
+    ctx.supabase.from("documents").select("id, customer_id").eq("business_id", ctx.business.id).order("created_at", { ascending: false }).limit(100),
+    ctx.supabase.from("documents").select("customer_id, total_minor, amount_paid_minor").eq("business_id", ctx.business.id).eq("kind", "invoice").in("status", ["sent", "viewed", "partially_paid"]).not("customer_id", "is", null).limit(2000),
   ]);
+  // items from the most recent documents (items have no date of their own)
+  const recentDocIds = (recentDocs || []).map((d) => d.id);
+  const { data: itemRows } = recentDocIds.length
+    ? await ctx.supabase.from("document_items").select("document_id, description, unit_price_minor").eq("business_id", ctx.business.id).in("document_id", recentDocIds).limit(1000)
+    : { data: [] };
+  const docRank = new Map(recentDocIds.map((d, i) => [d, i]));
+  const pastItems = (itemRows || []).sort((a, b) => docRank.get(a.document_id) - docRank.get(b.document_id));
+  const recentIds = [...new Set((recentDocs || []).map((d) => d.customer_id).filter(Boolean))].slice(0, 20);
+  const owes = {};
+  for (const d of openInvoices || []) owes[d.customer_id] = (owes[d.customer_id] || 0) + Math.max(0, Number(d.total_minor) - Number(d.amount_paid_minor || 0));
+  const seen = new Set();
+  const suggestions = [];
+  for (const i of pastItems) {
+    const k = String(i.description || "").trim().toLowerCase();
+    if (!k || seen.has(k)) continue;
+    seen.add(k);
+    suggestions.push({ description: String(i.description).trim(), unit_price_minor: Number(i.unit_price_minor) || 0 });
+    if (suggestions.length >= 120) break;
+  }
   const b = ctx.business;
   const quote = kind === "quote";
   const blocked = ctx.allowance && !ctx.allowance.allowed;
@@ -49,6 +71,9 @@ export async function EditorPage({ kind, id, customerId }) {
         perms={{ canViewCosts: showCosts, isJunior: ctx.member.role === "junior_finance" }}
         emailReady={await emailConfigured()}
         pos={posLink ? { store: posLink.store_name || "TrackOja" } : null}
+        recentIds={recentIds}
+        owes={owes}
+        suggestions={suggestions}
       />
     </div>
   );
