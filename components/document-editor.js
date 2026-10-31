@@ -1,10 +1,10 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, ClipboardPaste, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, Calculator, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine, Check, CloudOff, CircleAlert } from "lucide-react";
+import { Boxes, ClipboardPaste, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine, Check, CloudOff, CircleAlert } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
-import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
+import { Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { Switch, useToast } from "@/components/ui-client";
 import { CURRENCIES, computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
 import { COST_CATEGORIES, formatDate } from "@/lib/format";
@@ -535,38 +535,58 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             <Field label="Terms" htmlFor="terms" optional><Textarea id="terms" rows={4} value={terms} onChange={(e) => setTerms(e.target.value)} /></Field>
           </div>
   );
+  // Costs & profit, kept calm: profit first in one big number, one line of
+  // detail, one line of pricing advice, then the costs as compact rows
   const costsHead = (
-            <div className="flex items-start gap-3 border-b border-line bg-violet-soft/60 px-5 py-4">
-              <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-surface ring-1 ring-violet/30"><EyeOff className="size-4 text-violet" /></span>
-              <div>
-                <h3 className="text-title-3 text-ink">Costs & profit</h3>
-                <p className="text-[12.5px] text-ink-2">Only your team sees this. Hidden from the customer.</p>
+            <div className="flex items-center justify-between gap-3 px-5 pt-4">
+              <h3 className="text-title-3 text-ink">Costs & profit</h3>
+              <span className="inline-flex items-center gap-1 rounded-full bg-violet-soft px-2 py-0.5 text-[11.5px] font-medium text-violet-ink" title="Only your team sees this. It's never shown to the customer."><EyeOff className="size-3" aria-hidden="true" />Team only</span>
+            </div>
+  );
+  const marginText = revenue > 0 ? `${Math.round(pct)}%` : "—";
+  const costsSummary = (
+            <div className="px-5 pt-3 pb-4">
+              <p className="text-[12px] text-ink-3">Profit</p>
+              <div className="flex items-baseline justify-between gap-3">
+                <p className={cx("text-[24px] font-semibold leading-tight tracking-tight tabular", profit < 0 ? "text-danger-ink" : costTotal > 0 || revenue > 0 ? "text-success-ink" : "text-ink")}>{money(profit)}</p>
+                <span className={cx("rounded-full px-2 py-0.5 text-[12px] font-semibold tabular", revenue <= 0 ? "bg-subtle text-ink-3" : pct < 0 ? "bg-danger-soft text-danger-ink" : pct < 15 ? "bg-warn-soft text-warn-ink" : "bg-success-soft text-success-ink")} title="Margin">{marginText}</span>
               </div>
+              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-line" aria-hidden="true"><div className={cx("h-full rounded-full transition-all", pct < 0 ? "bg-danger" : pct < 15 ? "bg-warn" : "bg-success")} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} /></div>
+              <p className="mt-2 text-[12.5px] text-ink-3 tabular">{money(revenue)} price before {taxLabel || "tax"} − {money(costTotal)} costs</p>
+              {costTotal > 0 && (
+                <p className={cx("mt-2 text-[12.5px]", revenue < suggested ? (profit < 0 ? "text-danger-ink" : "text-warn-ink") : "text-success-ink")}>
+                  {profit < 0 && <span className="font-medium">You'd lose money. </span>}
+                  For a{" "}
+                  <input aria-label="Target margin, percent" value={targetMargin} onChange={(e) => setTargetMargin(e.target.value.replace(/[^\d.]/g, "").slice(0, 4))}
+                    className="h-6 w-9 rounded-sm bg-surface px-1 text-center text-[12.5px] text-ink ring-1 ring-line-strong focus:outline-none focus:ring-brand tabular" />
+                  % margin, charge at least <span className="font-semibold tabular">{money(suggested)}</span>{revenue >= suggested && " ✓"}
+                </p>
+              )}
             </div>
   );
   const costsList = (
-            <ul className="divide-y divide-line">
-              {costs.length === 0 && <li className="px-5 py-4 text-[13px] text-ink-3">Add what this job costs you, like data, electricity, transport or software, to see your real profit.</li>}
+            <ul className="flex flex-col gap-2.5 border-t border-line px-5 py-3">
+              {costs.length === 0 && <li className="text-[13px] text-ink-3">Add what this job costs you (data, fuel, transport, software…) to see your real profit.</li>}
               {costs.map((c) => (
-                <li key={c.key} className="flex flex-col gap-2 px-5 py-3">
-                  <div className="flex gap-2">
-                    <Input aria-label="Cost name" value={c.label} onChange={(e) => setCost(c.key, { label: e.target.value })} placeholder="e.g. Data subscription" className="h-9" />
+                <li key={c.key}>
+                  <div className="flex items-center gap-1.5">
+                    <Input aria-label="Cost name" value={c.label} onChange={(e) => setCost(c.key, { label: e.target.value })} placeholder="e.g. Data subscription" className="h-9 min-w-0 flex-1" />
+                    <input aria-label="Cost amount" inputMode="decimal" value={c.amount} onChange={(e) => setCost(c.key, { amount: e.target.value })} placeholder="0"
+                      className="h-9 w-24 shrink-0 rounded-md bg-surface px-2.5 text-right text-[13px] tabular ring-1 ring-inset ring-line-strong focus:ring-brand focus:outline-none" />
                     <button type="button" onClick={() => setCosts((l) => l.filter((x) => x.key !== c.key))} aria-label="Remove cost" className="inline-flex size-9 shrink-0 items-center justify-center rounded-md text-ink-3 hover:bg-danger-soft hover:text-danger-ink"><Trash2 className="size-4" /></button>
                   </div>
-                  <div className="grid grid-cols-[1fr_110px] gap-2">
-                    <Select aria-label="Cost category" controlSize="sm" value={c.category} onChange={(e) => setCost(c.key, { category: e.target.value })}>
-                      {Object.entries(COST_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
-                    </Select>
-                    <input aria-label="Cost amount" inputMode="decimal" value={c.amount} onChange={(e) => setCost(c.key, { amount: e.target.value })} placeholder="0"
-                      className="h-8 w-full rounded-sm bg-surface px-2.5 text-right text-[13px] tabular ring-1 ring-inset ring-line-strong focus:ring-brand focus:outline-none" />
-                  </div>
+                  <select aria-label="Cost category" value={c.category} onChange={(e) => setCost(c.key, { category: e.target.value })}
+                    style={{ width: "auto", fieldSizing: "content" }}
+                    className="mt-0.5 -ml-0.5 inline-block max-w-full cursor-pointer rounded bg-transparent py-0.5 pr-1 text-[12px] text-ink-3 hover:text-ink focus:outline-none focus-visible:shadow-[var(--shadow-focus)]">
+                    {Object.entries(COST_CATEGORIES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                  </select>
                 </li>
               ))}
             </ul>
   );
   const costsAdd = (
-            <div className="relative flex gap-2 border-t border-line px-5 py-3">
-              <Button size="sm" icon={Plus} onClick={() => setCosts((l) => [...l, blankCost()])}>Add cost</Button>
+            <div className="relative flex gap-1 px-4 pb-3">
+              <Button size="sm" variant="ghost" icon={Plus} onClick={() => setCosts((l) => [...l, blankCost()])}>Add cost</Button>
               {presets.length > 0 && (
                 <>
                   <Button size="sm" variant="ghost" iconRight={ChevronDown} onClick={() => setPresetOpen(!presetOpen)}>From presets</Button>
@@ -584,36 +604,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               )}
             </div>
   );
-  const costsSummary = (
-            <dl className="space-y-2 border-t border-line bg-subtle px-5 py-4 text-[13px]">
-              <Row label="Customer pays" value={money(totals.total)} strong />
-              <Row label={`Your revenue (before ${taxLabel || "tax"})`} value={money(revenue)} />
-              <Row label="Your costs" value={`− ${money(costTotal)}`} />
-              <div className="flex items-center justify-between border-t border-line pt-2.5">
-                <dt className="font-semibold text-ink">Profit</dt>
-                <dd className={cx("text-title-3 tabular", profit < 0 ? "text-danger-ink" : "text-success-ink")}>{money(profit)}</dd>
-              </div>
-              <div>
-                <div className="mb-1 flex justify-between text-xs text-ink-3"><span>Margin</span><span className="font-semibold tabular">{revenue > 0 ? `${pct.toFixed(1)}%` : "—"}</span></div>
-                <div className="h-2 overflow-hidden rounded-full bg-line"><div className={cx("h-full rounded-full transition-all", pct < 0 ? "bg-danger" : pct < 15 ? "bg-warn" : "bg-success")} style={{ width: `${Math.max(0, Math.min(100, pct))}%` }} /></div>
-              </div>
-              {profit < 0 && <Alert intent="warning" size="sm" title="You'd lose money">Your costs are higher than the price of this job.</Alert>}
-            </dl>
-  );
-  const costsHelper = (<>
-            {costTotal > 0 && (
-              <div className="border-t border-line px-5 py-4">
-                <p className="flex items-center gap-1.5 text-[13px] font-medium text-ink"><Calculator className="size-4 text-brand" />Pricing helper</p>
-                <div className="mt-2 flex items-center gap-2 text-[13px] text-ink-2">
-                  For a
-                  <input aria-label="Target margin" value={targetMargin} onChange={(e) => setTargetMargin(e.target.value.replace(/[^\d.]/g, ""))} className="h-7 w-12 rounded-sm px-1.5 text-right ring-1 ring-line-strong" />
-                  % margin, charge at least
-                </div>
-                <p className="mt-1.5 text-title-3 text-ink tabular">{money(suggested)} <span className="text-xs font-normal text-ink-3">before {taxLabel || "tax"}</span></p>
-                {revenue < suggested && <p className="mt-1 text-xs text-warn-ink">You're {money(suggested - revenue)} below that.</p>}
-              </div>
-            )}
-  </>);
+  // the pricing advice now lives in one line under the profit (costsSummary)
+  const costsHelper = null;
   const summaryCard = (
           <Card>
             <CardHeader title="Summary" />
