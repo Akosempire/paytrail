@@ -139,3 +139,25 @@ export async function recordPaymentNotify(id, form) {
   }
   return { ...r, paid: doc?.status === "paid", receiptTo, receiptError };
 }
+
+// One-tap "Remind" (dashboard, invoices list, invoice page): emails the customer
+// a short reminder with the link to pay. Same queue as Send, so it can be undone
+// for 10 seconds and shows on the invoice's timeline.
+export async function sendReminder(id) {
+  const ctx = await requireBusiness();
+  if (!maySend(ctx)) return { error: "A manager or finance officer needs to send reminders." };
+  const { data: doc } = await ctx.supabase.from("documents")
+    .select("id, kind, status, number, currency, total_minor, amount_paid_minor, due_date, customer_name, customer_email, access_token")
+    .eq("id", id).eq("business_id", ctx.business.id).maybeSingle();
+  if (!doc) return { error: "Invoice not found." };
+  if (!["sent", "viewed", "partially_paid"].includes(doc.status)) return { error: "Only unpaid invoices that have been sent need a reminder." };
+  if (!looksLikeEmail(doc.customer_email)) return { error: "There's no email for this customer. Remind them on WhatsApp instead." };
+  const { reminderText, todayIso } = await import("@/lib/collect-core");
+  return sendNow(id, {
+    to: doc.customer_email,
+    subject: `Reminder: invoice ${doc.number} from ${ctx.business.name}`,
+    // the email has its own "View and pay" button, so the text leaves the link out
+    message: reminderText(doc, ctx.business.name, "", todayIso()),
+    includePdf: true,
+  });
+}
