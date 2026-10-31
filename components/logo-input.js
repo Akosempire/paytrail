@@ -229,6 +229,7 @@ export function LogoInput({ name = "logo", initial = null, onChange, children, w
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(null); // { decoded, initial }
   const kept = useRef(null); // the last prepared file, restored if a new crop is cancelled
+  const [over, setOver] = useState(false); // an image is being dragged over the drop area
 
   async function pick(e) {
     const chosen = e.target.files?.[0];
@@ -273,7 +274,13 @@ export function LogoInput({ name = "logo", initial = null, onChange, children, w
   return (
     <>
       {children({
-        preview, busy: busy && !editing,
+        preview, busy: busy && !editing, over,
+        // spread on the label to accept a dragged-in image too
+        dropProps: {
+          onDragOver: (e) => { e.preventDefault(); setOver(true); },
+          onDragLeave: () => setOver(false),
+          onDrop: (e) => { e.preventDefault(); setOver(false); const f = e.dataTransfer?.files?.[0]; if (f) pick({ target: { files: [f] } }); },
+        },
         // name={null}: the caller takes the file from onChange and submits it itself
         input: <input ref={input} type="file" name={name || undefined} accept="image/*,.svg,.heic,.heif" className="sr-only" onChange={pick} />,
         icon: busy && !editing ? <Loader2 className="size-5 animate-spin text-ink-3" /> : <ImagePlus className="size-5 text-ink-3" />,

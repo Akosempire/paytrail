@@ -4,13 +4,15 @@ import { RegionSelect, TaxFields } from "@/components/tax-fields";
 import { countryByName } from "@/lib/countries";
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight, Briefcase, Building2, Check, PlugZap, UserRound } from "lucide-react";
+import { ArrowLeft, ArrowRight, Briefcase, Building2, Check, PlugZap, Receipt, UserRound } from "lucide-react";
 import { Callout, Card, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { FormMessage, SubmitButton } from "@/components/ui-client";
 import { CURRENCIES, formatMoney } from "@/lib/money";
 import { finishOnboarding, saveBrand, saveMoney, startBusiness } from "./actions";
 import { LogoInput } from "@/components/logo-input";
 import { TermsField } from "@/components/terms-field";
+import { BankPicker } from "@/components/bank-picker";
+import { DueDaysField, PrefixField } from "@/components/invoice-defaults";
 
 const SWATCHES = ["#1570EF", "#079455", "#7A5AF8", "#DC6803", "#D92D20", "#0E9384", "#101828", "#C11574"];
 
@@ -127,7 +129,7 @@ export function StepStart({ ownerName, firstBusiness, ipCountry }) {
   );
 }
 
-export function DocumentPreview({ name, color, logo, kind = "QUOTATION", currency = "NGN", footer }) {
+export function DocumentPreview({ name, color, logo, kind = "QUOTATION", currency = "NGN", footer, number = "QT-0001", note }) {
   return (
     <div className="overflow-hidden rounded-xl bg-white text-[#101828] shadow-[var(--shadow-pop)] ring-1 ring-[#eaecf0]" style={{ "--doc-brand": color }}>
       <div className="h-1.5 doc-brand-bg" />
@@ -135,7 +137,7 @@ export function DocumentPreview({ name, color, logo, kind = "QUOTATION", currenc
         <div className="flex items-start justify-between gap-4">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {logo ? <img src={logo} alt="" className="h-10 max-w-[140px] object-contain" /> : <span className="text-[15px] font-bold">{name || "Your business"}</span>}
-          <span className="text-right text-[11px] font-semibold tracking-[0.12em] doc-brand-text">{kind}<span className="mt-0.5 block font-mono text-[10px] tracking-normal text-[#98a2b3]">QT-0001</span></span>
+          <span className="text-right text-[11px] font-semibold tracking-[0.12em] doc-brand-text">{kind}<span className="mt-0.5 block font-mono text-[10px] tracking-normal text-[#98a2b3]">{number}</span></span>
         </div>
         <div className="mt-5 rounded-lg bg-[#f8f9fb] p-3 text-[11px]">
           <p className="text-[#98a2b3]">Prepared for</p><p className="font-semibold">Obi Foods Ltd</p>
@@ -148,6 +150,7 @@ export function DocumentPreview({ name, color, logo, kind = "QUOTATION", currenc
           </tbody>
         </table>
         <div className="mt-3 flex justify-end"><div className="rounded-lg px-3 py-2 text-right text-white doc-brand-bg"><span className="block text-[10px] opacity-80">Total</span><span className="text-[15px] font-semibold tabular">{formatMoney(65000000, currency)}</span></div></div>
+        {note && <div className="mt-4 space-y-0.5 text-[10px] text-[#475467]">{note}</div>}
         {footer && <p className="mt-4 border-t border-[#eaecf0] pt-3 text-[10px] text-[#98a2b3]">{footer}</p>}
       </div>
     </div>
@@ -168,11 +171,11 @@ export function StepBrand({ business, logo: initialLogo }) {
         <div className="grid gap-8 md:grid-cols-[1fr_300px]">
           <div className="flex flex-col gap-6">
             <Field label="Logo" hint="Any image, any size: PNG, JPG, SVG, WebP or a phone photo. We trim empty edges and resize it for you.">
-              <LogoInput onChange={setLogo}>{({ busy, input, icon }) => (
-                <label className="flex cursor-pointer items-center gap-4 rounded-xl border border-dashed border-line-strong bg-subtle p-4 hover:border-brand">
+              <LogoInput onChange={setLogo}>{({ busy, input, icon, over, dropProps }) => (
+                <label {...dropProps} className={cx("flex cursor-pointer items-center gap-4 rounded-xl border border-dashed bg-subtle p-4 hover:border-brand", over ? "border-brand bg-brand-soft" : "border-line-strong")}>
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {logo && !busy ? <img src={logo} alt="" className="h-12 w-24 rounded bg-white object-contain ring-1 ring-line" /> : <span className="inline-flex size-12 items-center justify-center rounded-lg bg-surface ring-1 ring-line">{icon}</span>}
-                  <span className="text-sm"><span className="font-medium text-brand-ink">{busy ? "Preparing…" : logo ? "Change logo" : "Upload logo"}</span><span className="block text-[13px] text-ink-3">Click to choose a file</span></span>
+                  <span className="text-sm"><span className="font-medium text-brand-ink">{busy ? "Preparing…" : logo ? "Change logo" : "Upload logo"}</span><span className="block text-[13px] text-ink-3">{over ? "Drop it here" : "Drop an image here, or tap to choose"}</span></span>
                   {input}
                 </label>
               )}</LogoInput>
@@ -204,43 +207,63 @@ export function StepBrand({ business, logo: initialLogo }) {
   );
 }
 
-export function StepMoney({ business }) {
+export function StepMoney({ business, logo }) {
   const [state, action] = useActionState(saveMoney, null);
+  const [currency, setCurrency] = useState(business.currency || "NGN");
+  const [days, setDays] = useState(business.invoice_due_days ?? 14);
+  const [prefix, setPrefix] = useState(business.invoice_prefix || "INV");
+  const [bank, setBank] = useState(business.bank_name || "");
+  const [acctName, setAcctName] = useState(business.bank_account_name || business.name || "");
+  const [acctNo, setAcctNo] = useState(business.bank_account_number || "");
+  const nigeria = currency === "NGN" || /nigeria/i.test(business.country || "");
+  const note = (
+    <>
+      <p className="font-medium">{days ? `Due in ${days} day${days === 1 ? "" : "s"}` : "Due on receipt"}</p>
+      {(bank || acctNo) && <p>Pay to {[bank, acctName, acctNo].filter(Boolean).join(" · ")}</p>}
+    </>
+  );
   return (
     <form action={action}>
       <input type="hidden" name="business_id" value={business.id} />
-      <StepCard title="Money & numbering" description="Defaults for new documents. You can override them on any quote or invoice."
+      <StepCard title="Invoice defaults" description="How you get paid and when invoices are due. You can change these on any invoice, and later in Settings."
         footer={<>{backLink("/onboarding?step=brand")}{skipLink("/onboarding?step=finish", "Skip")}<span className="flex-1 max-sm:hidden" /><SubmitButton size="lg" iconRight={ArrowRight} pendingText="Saving…" className="max-sm:flex-1">Continue</SubmitButton></>}>
         <FormMessage state={state} />
-        <section className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          <Field label="Currency" htmlFor="currency"><Select id="currency" name="currency" defaultValue={business.currency}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-        </section>
-        <section><TaxFields countryCode={countryByName(business.country || "")?.code || ""} regionCode={business.region || ""} defaults={business} /></section>
-        <section>
-          <p className="text-[13px] font-medium text-ink-2">Bank details for transfers</p>
-          <p className="mb-2.5 text-xs text-ink-3">Printed on invoices so customers can pay by transfer. You record those payments yourself.</p>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field label="Bank" htmlFor="bn"><Input id="bn" name="bank_name" defaultValue={business.bank_name} placeholder="GTBank" /></Field>
-            <Field label="Account name" htmlFor="ban"><Input id="ban" name="bank_account_name" defaultValue={business.bank_account_name || business.name} /></Field>
-            <Field label="Account number" htmlFor="bno"><Input id="bno" name="bank_account_number" defaultValue={business.bank_account_number} inputMode="numeric" /></Field>
-          </div>
-        </section>
-        <More label="Tax name, due dates, numbering and terms (optional)">
-          <div className="flex flex-col gap-5">
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field label="Quotes valid for (days)" htmlFor="qv"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={business.quote_validity_days} /></Field>
-              <Field label="Invoices due after (days)" htmlFor="idd"><Input id="idd" name="invoice_due_days" type="number" min="0" max="365" defaultValue={business.invoice_due_days} /></Field>
+        <div className="grid gap-8 md:grid-cols-[minmax(0,1fr)_300px]">
+          <div className="flex min-w-0 flex-col gap-6">
+            <section>
+              <p className="text-[13px] font-medium text-ink-2">Bank details for transfers</p>
+              <p className="mb-2.5 text-xs text-ink-3">Printed on invoices so customers can pay by transfer. You record those payments yourself.</p>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field label="Bank" htmlFor="bn" className="sm:col-span-2"><BankPicker id="bn" value={bank} onChange={setBank} suggest={nigeria} placeholder={nigeria ? "Start typing: GTBank, OPay, Moniepoint…" : "Your bank"} /></Field>
+                <Field label="Account name" htmlFor="ban"><Input id="ban" name="bank_account_name" value={acctName} onChange={(e) => setAcctName(e.target.value)} /></Field>
+                <Field label="Account number" htmlFor="bno"><Input id="bno" name="bank_account_number" value={acctNo} onChange={(e) => setAcctNo(e.target.value)} inputMode="numeric" maxLength={nigeria ? 10 : 34} /></Field>
+              </div>
+            </section>
+            <DueDaysField defaultValue={business.invoice_due_days ?? 14} onChange={setDays} />
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="Currency" htmlFor="currency"><Select id="currency" name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+              <PrefixField id="ip" name="invoice_prefix" label="Invoice numbers" defaultValue={business.invoice_prefix || "INV"} seq={business.invoice_seq} onChange={setPrefix} />
             </div>
-            <div className="grid grid-cols-3 gap-3 sm:gap-4">
-              <Field label="Quote prefix" htmlFor="qp" hint="QT-0001"><Input id="qp" name="quote_prefix" defaultValue={business.quote_prefix} maxLength={8} /></Field>
-              <Field label="Invoice prefix" htmlFor="ip" hint="INV-0001"><Input id="ip" name="invoice_prefix" defaultValue={business.invoice_prefix} maxLength={8} /></Field>
-              <Field label="Receipt prefix" htmlFor="rp" hint="RCT-0001"><Input id="rp" name="receipt_prefix" defaultValue={business.receipt_prefix} maxLength={8} /></Field>
-            </div>
-            <Field label="Terms & conditions" htmlFor="terms" optional>
-              <TermsField defaultValue={business.default_terms} validityDays={business.quote_validity_days} dueDays={business.invoice_due_days} />
-            </Field>
+            <section><TaxFields countryCode={countryByName(business.country || "")?.code || ""} regionCode={business.region || ""} defaults={business} /></section>
+            <More label="Quotes, receipts and terms (optional)">
+              <div className="flex flex-col gap-5">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4">
+                  <Field label="Quotes valid for (days)" htmlFor="qv" className="col-span-2 sm:col-span-1"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={business.quote_validity_days} /></Field>
+                  <PrefixField id="qp" name="quote_prefix" label="Quote prefix" defaultValue={business.quote_prefix || "QT"} seq={business.quote_seq} />
+                  <PrefixField id="rp" name="receipt_prefix" label="Receipt prefix" defaultValue={business.receipt_prefix || "RCT"} seq={business.receipt_seq} />
+                </div>
+                <Field label="Default notes & terms" htmlFor="terms" optional hint="Printed at the bottom of every new quote and invoice.">
+                  <TermsField defaultValue={business.default_terms} validityDays={business.quote_validity_days} dueDays={days} />
+                </Field>
+              </div>
+            </More>
           </div>
-        </More>
+          <div>
+            <p className="mb-2.5 text-[13px] font-medium text-ink-2">Your invoices will look like this</p>
+            <DocumentPreview name={business.name} color={business.brand_color || "#1570EF"} logo={logo} kind="INVOICE" currency={currency}
+              number={`${prefix}-${String(Number(business.invoice_seq || 0) + 1).padStart(4, "0")}`} footer={business.footer_note} note={note} />
+          </div>
+        </div>
       </StepCard>
     </form>
   );
@@ -252,10 +275,10 @@ export function StepFinish({ business }) {
   return (
     <form action={action}>
       <input type="hidden" name="business_id" value={business.id} />
-      <StepCard title="Almost done" description={company ? "Invite your team now, or later from Settings → Team." : "Last step: how do you want to get paid?"}
+      <StepCard title="You're set. Create your first invoice" description={company ? "It takes about a minute. Invite your team now too, or later from Settings → Team." : "It takes about a minute. You can connect online payments now or whenever you're ready."}
         footer={<>{backLink("/onboarding?step=money")}<span className="flex-1 max-sm:hidden" />
-          <SubmitButton size="lg" variant="secondary" name="next" value="payments" icon={PlugZap} className="max-sm:flex-1 max-sm:px-3"><span className="max-sm:hidden">Finish & connect payments</span><span className="sm:hidden">Payments</span></SubmitButton>
-          <SubmitButton size="lg" iconRight={ArrowRight} name="next" value="app" pendingText="Finishing…" className="max-sm:flex-1 max-sm:px-3"><span className="max-sm:hidden">Go to dashboard</span><span className="sm:hidden">Dashboard</span></SubmitButton></>}>
+          <SubmitButton size="lg" variant="secondary" name="next" value="app" className="max-sm:flex-1 max-sm:px-3"><span className="max-sm:hidden">Go to dashboard</span><span className="sm:hidden">Dashboard</span></SubmitButton>
+          <SubmitButton size="lg" icon={Receipt} name="next" value="invoice" pendingText="Finishing…" className="max-sm:flex-[1.6] max-sm:px-3"><span className="max-sm:hidden">Create your first invoice</span><span className="sm:hidden">First invoice</span></SubmitButton></>}>
         <FormMessage state={state} />
         {company && (
           <section className="grid gap-4 sm:grid-cols-[1fr_220px]">
@@ -276,6 +299,7 @@ export function StepFinish({ business }) {
             <Briefcase className="size-5 text-brand" />
             <p className="mt-2 text-title-3 text-ink">Online payments</p>
             <p className="mt-1 text-[13px] text-ink-2">Connect Stripe, Paystack, Flutterwave or Bachs so customers can pay by card or transfer from the quote link. A paid quote becomes a paid invoice with a receipt.</p>
+            <SubmitButton size="sm" variant="secondary" name="next" value="payments" icon={PlugZap} className="mt-3 max-sm:h-11">Finish & connect payments</SubmitButton>
           </div>
           <div className="rounded-xl bg-tray p-4">
             <Building2 className="size-5 text-success" />

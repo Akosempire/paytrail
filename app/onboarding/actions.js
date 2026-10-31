@@ -95,6 +95,7 @@ export async function finishOnboarding(_prev, form) {
     link: "/admin/businesses",
   });
   revalidatePath("/", "layout");
-  const next = form.get("next") === "payments" ? "/app/settings/payments?welcome=1" : "/app?welcome=1";
+  const want = form.get("next");
+  const next = want === "payments" ? "/app/settings/payments?welcome=1" : want === "invoice" ? "/app/invoices/new" : "/app?welcome=1";
   redirect(next);
 }

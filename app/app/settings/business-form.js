@@ -9,6 +9,8 @@ import { Save } from "lucide-react";
 import { LogoInput } from "@/components/logo-input";
 import { SignatureField } from "@/components/signature-field";
 import { TermsField } from "@/components/terms-field";
+import { DueDaysField, PrefixField } from "@/components/invoice-defaults";
+import { BankPicker } from "@/components/bank-picker";
 import { Card, CardHeader, Checkbox, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { SubmitButton, Switch, useActionToast, FormMessage } from "@/components/ui-client";
 import { CURRENCIES } from "@/lib/money";
@@ -94,18 +96,18 @@ export function BusinessForm({ business: b, logo: initialLogo, signature: signat
           <div className="grid gap-4 p-5 sm:grid-cols-3">
             <Field label="Currency" htmlFor="cur" hint="For new documents."><Select id="cur" name="currency" defaultValue={b.currency}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
             <Field label="Quote validity (days)" htmlFor="qv"><Input id="qv" name="quote_validity_days" type="number" min="1" max="365" defaultValue={b.quote_validity_days} /></Field>
-            <Field label="Invoice due after (days)" htmlFor="id"><Input id="id" name="invoice_due_days" type="number" min="0" max="365" defaultValue={b.invoice_due_days} /></Field>
+            <div className="sm:col-span-3"><DueDaysField defaultValue={b.invoice_due_days} /></div>
             <div className="border-y border-line py-4 sm:col-span-3"><TaxFields countryCode={countryCode} regionCode={region} defaults={b} /></div>
-            <Field label="Quote prefix" htmlFor="qp" hint={`Next: ${b.quote_prefix}-${String(b.quote_seq + 1).padStart(4, "0")}`}><Input id="qp" name="quote_prefix" defaultValue={b.quote_prefix} maxLength={8} /></Field>
-            <Field label="Invoice prefix" htmlFor="ip" hint={`Next: ${b.invoice_prefix}-${String(b.invoice_seq + 1).padStart(4, "0")}`}><Input id="ip" name="invoice_prefix" defaultValue={b.invoice_prefix} maxLength={8} /></Field>
-            <Field label="Receipt prefix" htmlFor="rp" hint={`Next: ${b.receipt_prefix}-${String(b.receipt_seq + 1).padStart(4, "0")}`}><Input id="rp" name="receipt_prefix" defaultValue={b.receipt_prefix} maxLength={8} /></Field>
+            <PrefixField id="qp" name="quote_prefix" label="Quote prefix" defaultValue={b.quote_prefix} seq={b.quote_seq} />
+            <PrefixField id="ip" name="invoice_prefix" label="Invoice prefix" defaultValue={b.invoice_prefix} seq={b.invoice_seq} />
+            <PrefixField id="rp" name="receipt_prefix" label="Receipt prefix" defaultValue={b.receipt_prefix} seq={b.receipt_seq} />
           </div>
         </Card>
 
         <Card>
           <CardHeader title="Bank details" description="Printed on invoices for customers who pay by transfer." />
           <div className="grid gap-4 p-5 sm:grid-cols-3">
-            <Field label="Bank" htmlFor="bn"><Input id="bn" name="bank_name" defaultValue={b.bank_name} /></Field>
+            <Field label="Bank" htmlFor="bn"><BankPicker id="bn" defaultValue={b.bank_name || ""} suggest={b.currency === "NGN" || /nigeria/i.test(b.country || "")} placeholder="Your bank" /></Field>
             <Field label="Account name" htmlFor="ban"><Input id="ban" name="bank_account_name" defaultValue={b.bank_account_name} /></Field>
             <Field label="Account number" htmlFor="bno"><Input id="bno" name="bank_account_number" defaultValue={b.bank_account_number} inputMode="numeric" /></Field>
           </div>

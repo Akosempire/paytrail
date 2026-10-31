@@ -4,7 +4,7 @@ import Link, { useLinkStatus } from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
-  Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart,
+  Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart, Package, BellRing,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -22,6 +22,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts,
       { href: "/app/quotes", label: "Quotes", icon: FileText },
       { href: "/app/invoices", label: "Invoices", icon: Receipt },
       { href: "/app/customers", label: "Customers", icon: Users },
+      { href: "/app/products", label: "Products", icon: Package },
     ] },
     { title: "Money", items: [
       { href: "/app/payments", label: "Payments & receipts", icon: Wallet },
@@ -31,6 +32,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts,
     { title: "Settings", items: [
       canSettings && { href: "/app/settings", label: "Business & branding", icon: Building2, exact: true },
       canSettings && { href: "/app/settings/documents", label: "Documents & printing", icon: Printer },
+      canSettings && { href: "/app/settings/reminders", label: "Emails & reminders", icon: BellRing },
       canPayments && { href: "/app/settings/payments", label: "Payment setup", icon: PlugZap },
       canPayments && { href: "/app/settings/pos", label: "TrackOja POS", icon: Store },
       kind === "company" && { href: "/app/settings/team", label: canTeam ? "Team & roles" : "Team", icon: UsersRound },

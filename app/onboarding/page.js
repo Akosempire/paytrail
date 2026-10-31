@@ -12,7 +12,7 @@ export const metadata = { title: "Set up your business" };
 const STEPS = [
   { key: "start", label: "Your business" },
   { key: "brand", label: "Branding" },
-  { key: "money", label: "Money & numbering" },
+  { key: "money", label: "Invoice defaults" },
   { key: "finish", label: "Finish" },
 ];
 
@@ -59,7 +59,7 @@ export default async function Onboarding({ searchParams }) {
         </ol>
         {step === "start" && <StepStart ownerName={name} firstBusiness={!ctx.memberships.length} ipCountry={ipCountry} />}
         {step === "brand" && <StepBrand business={pending} logo={logoUrl(pending.logo_path)} />}
-        {step === "money" && <StepMoney business={pending} />}
+        {step === "money" && <StepMoney business={pending} logo={logoUrl(pending.logo_path)} />}
         {step === "finish" && <StepFinish business={pending} />}
       </div>
     </div>
