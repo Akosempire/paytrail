@@ -1,7 +1,8 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X, BellRing, Repeat } from "lucide-react";
+import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X, BellRing, Repeat, ImageDown } from "lucide-react";
+import { requestDocImage } from "@/components/doc-image";
 import { Button, buttonClass, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { formatMoney, minorToInput, toMinor } from "@/lib/money";
@@ -100,6 +101,7 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
       {/* on phones the main actions share the full width; PDF and More wrap below when there's no room */}
       {primary.length > 0 && <div className="flex flex-1 gap-2 sm:flex-none [&>*]:flex-1 sm:[&>*]:flex-none">{primary}</div>}
       <a href={pdfHref || `/app/documents/${doc.id}/pdf?download`} className={buttonClass()}><Download className="size-4 shrink-0" aria-hidden />PDF</a>
+      <Button icon={ImageDown} onClick={requestDocImage} title="Save as a picture, for WhatsApp and the like">Image</Button>
       <div className="relative">
         <Button icon={MoreHorizontal} aria-label="More actions" aria-expanded={more} onClick={() => setMore(!more)} className="!px-2.5" />
         {more && (

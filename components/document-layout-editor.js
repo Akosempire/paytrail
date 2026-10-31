@@ -1,5 +1,5 @@
 "use client";
-import { useDeferredValue, useMemo, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { LayoutTemplate, Loader2, X } from "lucide-react";
 import { Alert, Button, Card, cx } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
@@ -8,6 +8,8 @@ import { LayoutPanel } from "@/components/layout-panel";
 import { buildModel } from "@/lib/doc-model";
 import { PAPERS, TEMPLATES, resolveLayout } from "@/lib/doc-templates";
 import { saveDocumentLayout } from "@/app/app/documents/actions";
+import { DocView } from "@/components/doc-view";
+import { IMAGE_EVENT, exportDocImage } from "@/components/doc-image";
 
 // The document as the customer will see it, with print/PDF and an optional
 // layout panel. Financial values come from the saved document only.
@@ -23,6 +25,24 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
   const model = useMemo(() => buildModel({ doc: { ...doc, ...deferred }, items, business, payLink }), [doc, items, business, payLink, deferred]);
   const dirty = JSON.stringify(value) !== JSON.stringify(initial);
   const issued = !["draft", "pending_approval"].includes(doc.status);
+
+  // "Image" (next to PDF): a full-size copy, off screen, is turned into a PNG
+  const shot = useRef(null);
+  const [imaging, setImaging] = useState(false);
+  useEffect(() => {
+    const go = async () => {
+      if (imaging) return;
+      setImaging(true);
+      try {
+        await new Promise((r) => setTimeout(r, 50)); // let the off-screen copy render
+        const how = await exportDocImage(shot.current?.firstElementChild, doc.number || "document");
+        if (how === "downloaded") toast("Image saved. Send it on WhatsApp, or wherever you like.");
+      } catch { toast.error("Couldn't make the image. Try the PDF instead."); }
+      finally { setImaging(false); }
+    };
+    window.addEventListener(IMAGE_EVENT, go);
+    return () => window.removeEventListener(IMAGE_EVENT, go);
+  }, [imaging, doc.number, toast]);
 
   const save = () => start(async () => {
     const r = await saveDocumentLayout(doc.id, value, { asDefault });
@@ -42,6 +62,11 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
         )}
       </div>
 
+      {imaging && (
+        <div aria-hidden="true" style={{ position: "fixed", left: -10000, top: 0, pointerEvents: "none" }}>
+          <div ref={shot}><DocView model={model} /></div>
+        </div>
+      )}
       <div className={cx("grid grid-cols-[minmax(0,1fr)] gap-4", open && "xl:grid-cols-[minmax(0,1fr)_340px]")}>
         <div className="min-w-0 rounded-2xl bg-tray p-3 sm:p-5">
           <DocPreview model={model} />

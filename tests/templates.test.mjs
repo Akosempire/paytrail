@@ -108,3 +108,18 @@ test("a document that only just spills over is shrunk onto one page; long ones k
   assert.equal(await pagesOf(n), 1);
   assert.ok((await pagesOf(40)) >= 2);
 });
+
+test("open invoices carry a scannable pay link; paid ones and receipts don't", async () => {
+  const link = "https://usetally.cc/d/Xk3pQ9vT2mLw8RzN4bYc6HjF1sDa7GeK0uVoPiZqWxE";
+  const open = buildModel({ doc: doc({ status: "sent" }), items: items(), business, payLink: link });
+  assert.equal(open.payNow.link, link);
+  assert.equal(open.payNow.short, "usetally.cc/d/Xk3pQ9…");
+  assert.ok(open.payNow.qr.length >= 21 && open.payNow.qr.every((r) => /^[01]+$/.test(r) && r.length === open.payNow.qr.length));
+  assert.match(open.payNow.amount, /due$/);
+  assert.equal(buildModel({ doc: doc({ status: "paid", amount_paid_minor: doc().total_minor }), items: items(), business, payLink: link }).payNow, null);
+  assert.equal(buildModel({ doc: doc({ status: "sent" }), items: items(), business }).payNow, null);
+  const pdf = await PDFDocument.load(await renderPdf(open));
+  const { PDFName } = await import("pdf-lib");
+  const annots = pdf.getPage(pdf.getPageCount() - 1).node.lookup(PDFName.of("Annots")) || pdf.getPage(0).node.lookup(PDFName.of("Annots"));
+  assert.ok(annots && annots.size() >= 1, "the pay link is clickable in the PDF");
+});

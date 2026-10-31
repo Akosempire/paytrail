@@ -1,3 +1,4 @@
+import { PayNow } from "@/components/doc-paynow";
 // The "Notebook" and "Case file" templates (app/doc-templates.css, .pt-t-notebook
 // and .pt-t-casefile). Same content, two dressings: ruled notebook paper with a
 // margin line and a highlighted total, or a colour band with the number and a
@@ -10,7 +11,7 @@ export function SheetDoc({ m }) {
   // rubber stamp: Case file always shows the status; Notebook only when paid or void.
   // With nothing under "How to pay" (paid, receipts) it sits in that empty space.
   const word = casefile ? x.stamp : m.stamp;
-  const stampInline = Boolean(word) && !(x.bank || x.due || x.instructions || x.payLink || m.receipt);
+  const stampInline = Boolean(word) && !(x.bank || x.due || x.instructions || m.payNow || m.receipt);
   return (
     <>
       {casefile ? (
@@ -92,7 +93,7 @@ export function SheetDoc({ m }) {
         <section className="pt-sh-bottom">
           <div className="pt-sh-pay">
             {stampInline && <div className={`pt-sh-stamp pt-sh-stamp-inline pt-sh-stamp-${x.stampTone}`} aria-hidden="true">{word}</div>}
-            {(x.bank || x.due || x.instructions || x.payLink) && <p className="pt-sh-label">How to pay</p>}
+            {(x.bank || x.due || x.instructions || m.payNow) && <p className="pt-sh-label">How to pay</p>}
             {x.bank && (
               <>
                 {x.bank.bank && <p><b>Bank</b> {x.bank.bank}</p>}
@@ -101,8 +102,8 @@ export function SheetDoc({ m }) {
               </>
             )}
             {x.instructions && <p className="pt-pre">{x.instructions}</p>}
-            {x.payLink && <p className="pt-link">Pay online: {x.payLink}</p>}
             {x.due && <p className="pt-sh-due">{x.due}</p>}
+            {m.payNow && <PayNow p={m.payNow} />}
             {m.receipt && <p className="pt-sh-due">{m.receipt.fullyPaid ? "Paid in full. Thank you for your business." : "Part payment received. Thank you."}</p>}
           </div>
           <dl className="pt-totals pt-sh-totals">

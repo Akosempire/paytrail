@@ -1,6 +1,7 @@
 import { BoldReceipt, LedgerReceipt, accentInks } from "@/components/doc-receipts";
 import { MerchantDoc } from "@/components/doc-merchant";
 import { SheetDoc } from "@/components/doc-sheet";
+import { PayNow } from "@/components/doc-paynow";
 // Renders a document model (lib/doc-model.js) as HTML sized in real paper
 // units. Used by the live preview and the print pages; the PDF renderer
 // (lib/pdf.js) follows the same template rules. Works on server and client.
@@ -121,8 +122,9 @@ export function DocView({ model: m, screen = true }) {
           </section>
         )}
 
-        {(m.payBlocks.length > 0 || m.notes || m.terms || m.accepted) && (
+        {(m.payNow || m.payBlocks.length > 0 || m.notes || m.terms || m.accepted) && (
           <section className="pt-blocks">
+            {m.payNow && <div className="pt-block"><PayNow p={m.payNow} /></div>}
             {m.payBlocks.map((b) => (
               <div key={b.title} className="pt-block">
                 <p className="pt-label">{b.title}</p>

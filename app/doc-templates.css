@@ -454,3 +454,22 @@
 .pt-p-a5 .pt-cf-no, .pt-p-half .pt-cf-no { top: 8.5mm; }
 .pt-t-casefile .pt-sh-page { padding-top: 12mm; }
 .pt-sh-stamp-inline { display: inline-block; margin: 6mm 0 0 4mm; }
+
+/* "Scan or tap to pay" (components/doc-paynow.js) */
+.pt-paynow { display: flex; align-items: center; gap: 3.5mm; color: inherit; text-decoration: none; break-inside: avoid; page-break-inside: avoid; }
+.pt-paynow-qr { width: 22mm; height: 22mm; flex-shrink: 0; }
+.pt-p-a5 .pt-paynow-qr, .pt-p-half .pt-paynow-qr { width: 18mm; height: 18mm; }
+.pt-thermal .pt-paynow { flex-direction: column; text-align: center; gap: 1.5mm; }
+.pt-thermal .pt-paynow-qr { width: 30mm; height: 30mm; }
+.pt-p-thermal58 .pt-paynow-qr { width: 26mm; height: 26mm; }
+.pt-paynow-text { display: flex; flex-direction: column; gap: 0.6mm; min-width: 0; }
+.pt-paynow .pt-label { margin-bottom: 0; }
+.pt-paynow-amt { font-weight: 700; font-size: 1.12em; color: var(--pt-ink); }
+.pt-paynow-link { color: #175cd3; text-decoration: underline; text-underline-offset: 0.4mm; overflow-wrap: anywhere; }
+.pt-thermal .pt-blocks .pt-paynow { margin: 0 auto; }
+.pt-sh-pay .pt-paynow { margin-top: 3mm; }
+.pt-sh-pay .pt-paynow .pt-label { font-family: var(--sh-mono); font-weight: 400; letter-spacing: 0.16em; color: var(--pt-ink-2); }
+.mc-paynow { margin-top: 4mm; }
+/* a long total moves below its label instead of running into it */
+.pt-sh-grand { flex-wrap: wrap; }
+.pt-sh-grand dd { margin-left: auto; }

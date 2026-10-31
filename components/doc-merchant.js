@@ -1,5 +1,6 @@
 // "Merchant" layout for quotes, invoices and receipts (app/doc-templates.css,
 // .mc-*). lib/pdf.js draws the same layout. Used by DocView.
+import { PayNow } from "@/components/doc-paynow";
 
 export function MerchantDoc({ m }) {
   const x = m.merchant;
@@ -105,6 +106,8 @@ export function MerchantDoc({ m }) {
           <div><p className="mc-bank-k">Account number</p><p>{x.bank.number}</p></div>
         </section>
       )}
+
+      {m.payNow && <PayNow p={m.payNow} className="mc-paynow" />}
 
       {m.business.footer && <p className="mc-foot">{m.business.footer}</p>}
     </div>
