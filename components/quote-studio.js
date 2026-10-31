@@ -32,7 +32,8 @@ export function FoldRow({ id, title, value, open, onToggle, children }) {
   );
 }
 
-export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue, money, previewModel, onPreviewClick, view, setView, costs, quote, footer }) {
+// label: "Quote" or "Invoice" (the middle column and its phone tab); both builders use this layout
+export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue, money, previewModel, onPreviewClick, view, setView, costs, quote, footer, label = "Quote" }) {
   const area = useRef(null);
   const [areaW, setAreaW] = useState(0);
   const [lg, setLg] = useState(false);
@@ -108,7 +109,7 @@ export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue
   }
   const reset = () => { setShare(DEFAULT_PCT); remember(DEFAULT_PCT); };
 
-  const tabs = [...(costsVisible ? [["costs", "Costs", EyeOff]] : []), ["edit", "Quote", PencilLine], ["preview", "Preview", Eye]];
+  const tabs = [...(costsVisible ? [["costs", "Costs", EyeOff]] : []), ["edit", label, PencilLine], ["preview", "Preview", Eye]];
   const costsCard = <Card className="ring-violet/30">{costs}</Card>;
 
   return (
@@ -150,7 +151,7 @@ export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue
         )}
 
         {/* 2 · the quote */}
-        <section aria-label="Quote" className={cx("flex min-w-0 flex-1 flex-col gap-4", !lg && view !== "edit" && "hidden")} style={lg ? { minWidth: Math.min(MIN_INPUTS, (areaW || 1200) - costsW - HANDLE - MIN_PREVIEW) } : undefined}>
+        <section aria-label={label} className={cx("flex min-w-0 flex-1 flex-col gap-4", !lg && view !== "edit" && "hidden")} style={lg ? { minWidth: Math.min(MIN_INPUTS, (areaW || 1200) - costsW - HANDLE - MIN_PREVIEW) } : undefined}>
           {quote}
         </section>
 

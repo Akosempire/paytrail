@@ -328,8 +328,9 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const sendLabel = missing ? missing.label : guest ? `Send ${quote ? "quote" : "invoice"}` : needsApproval ? "Submit for approval" : `Save & send ${quote ? "quote" : "invoice"}`;
 
   // ---- the pieces, laid out below as the classic editor (invoices) or the
-  // three-column quote builder (components/quote-studio.js)
-  const studio = quote && !guest;
+  // three-column builder (components/quote-studio.js) for quotes and invoices;
+  // the guest page on the website (/try) keeps the simpler two-column layout
+  const studio = !guest;
   const formatShortDate = (iso) => (iso ? formatDate(iso, { day: "numeric", month: "short" }) : "no date");
   const customerCard = (
         <Card id="customer-card" className="relative z-20" style={{ overflow: "visible" }}>
@@ -664,12 +665,12 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
         quote={<>
           {customerCard}
           {itemsCard}
-          <FoldRow id="details" title="Details" value={`${title ? `${title} · ` : ""}Valid to ${formatShortDate(endDate)} · ${currency}`} open={folds.details} onToggle={(v) => setFold("details", v)}>{detailsBody}</FoldRow>
+          <FoldRow id="details" title="Details" value={`${title ? `${title} · ` : ""}${quote ? "Valid to" : "Due"} ${formatShortDate(endDate)} · ${currency}`} open={folds.details} onToggle={(v) => setFold("details", v)}>{detailsBody}</FoldRow>
           {deliveryCard}
           <FoldRow id="notes" title="Notes & terms" value={notes || terms ? [notes && "Note", terms && "Terms"].filter(Boolean).join(" and ") + " added" : "None yet"} open={folds.notes} onToggle={(v) => setFold("notes", v)}>{notesBody}</FoldRow>
           {approvalNote}
         </>}
-        footer={footerBar} />
+        footer={footerBar} label={quote ? "Quote" : "Invoice"} />
     );
   }
 

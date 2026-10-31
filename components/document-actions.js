@@ -114,7 +114,7 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
   if (live && link && primary.length) tools.unshift({ key: "share", label: "Share…", icon: Share2, onClick: () => (send ? openSheet("link", "share") : share()) });
   if (live && link) tools.push({ key: "copy", label: "Copy customer link", icon: Copy, onClick: () => copy() });
   // rarely changed once it's sent, so it lives here (drafts keep the button by the preview)
-  if (live && canEditLayout) tools.push({ key: "template", label: "Template & paper…", icon: LayoutTemplate, onClick: () => { setMore(false); docAction("template"); } });
+  if (live && canEditLayout) tools.push({ key: "template", label: "Templates & paper…", icon: LayoutTemplate, onClick: () => { setMore(false); docAction("template"); } });
 
   async function copy() {
     setMore(false);

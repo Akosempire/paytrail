@@ -68,10 +68,10 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
         <p className="mr-auto text-[13px] text-ink-3">
           <span className="font-medium text-ink-2">{TEMPLATES[model.template].name}</span> · {PAPERS[model.paper].label}
         </p>
-        {/* drafts keep the button here; once sent it's in ⋯ ("Template & paper…"), so only Close shows */}
-        {canEdit && doc.status !== "void" && (!issued || open) && (
+        {/* always in view, sent or not (also in ⋯ as "Templates & paper…") */}
+        {canEdit && doc.status !== "void" && (
           <Button size="sm" variant={open ? "soft" : "secondary"} icon={open ? X : LayoutTemplate} onClick={() => setOpen(!open)} aria-expanded={open}>
-            {open ? "Close" : "Template"}
+            {open ? "Close" : "Templates"}
           </Button>
         )}
       </div>
