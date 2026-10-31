@@ -16,6 +16,7 @@ const ACTIONS = {
   "document.sent": "sent it to the customer",
   "document.voided": "voided it",
   "document.viewed": "opened the link",
+  "document.reminder_sent": "sent a payment reminder",
   "file.added": "attached a file",
   "file.removed": "removed a file",
   "file.shared": "shared a file with the customer",

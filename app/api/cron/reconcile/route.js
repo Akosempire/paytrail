@@ -5,6 +5,7 @@ import { sendClaimDigests } from "@/lib/claims-digest";
 import { runChecks } from "@/lib/monitor";
 import { sendVatReminders } from "@/lib/vat-returns";
 import { pushPendingStock } from "@/lib/pos";
+import { runReminders } from "@/lib/reminders";
 
 // Vercel Cron calls this daily (see vercel.json); pages also re-check in the
 // background when businesses or customers open them. On Vercel Pro you can
@@ -20,7 +21,9 @@ export async function GET(request) {
   const stock = await pushPendingStock({ limit: 50 });
   const purged = await purgeDueBusinesses();
   const digests = await sendClaimDigests().catch((e) => ({ error: String(e?.message || e) }));
+  // invoice reminders to customers (Settings → Reminders)
+  const invoiceReminders = await runReminders();
   const vatReminders = await sendVatReminders().catch((e) => ({ error: String(e?.message || e) }));
   const health = await runChecks().then((h) => h.results.map((r) => `${r.key}:${r.status}`), (e) => ({ error: String(e?.message || e) }));
-  return Response.json({ checked: results.length, results, stock, purged, digests, vatReminders, health });
+  return Response.json({ checked: results.length, results, stock, purged, digests, invoiceReminders, vatReminders, health });
 }
