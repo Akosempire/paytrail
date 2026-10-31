@@ -24,7 +24,7 @@ const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label
 // pos: { store } when the business is connected to TrackOja POS (products can be added from it)
 // recentIds / owes / suggestions: recent customers, what each still owes, items used before (optional; offline mode has none)
 // guest: "Try it" on the website (no account): new customer only, kept on this device, Send asks them to sign up
-export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false, userId = "" }) {
+export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false, userId = "", lead = null }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -328,9 +328,10 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const sendLabel = missing ? missing.label : guest ? `Send ${quote ? "quote" : "invoice"}` : needsApproval ? "Submit for approval" : `Save & send ${quote ? "quote" : "invoice"}`;
 
   // ---- the pieces, laid out below as the classic editor (invoices) or the
-  // three-column builder (components/quote-studio.js) for quotes and invoices;
-  // the guest page on the website (/try) keeps the simpler two-column layout
-  const studio = !guest;
+  // three-column builder (components/quote-studio.js) for quotes and invoices,
+  // and for the guest page on the website (/try), which has no costs column
+  // and puts its "Your business" card (lead) at the top of the middle column
+  const studio = true;
   const formatShortDate = (iso) => (iso ? formatDate(iso, { day: "numeric", month: "short" }) : "no date");
   const customerCard = (
         <Card id="customer-card" className="relative z-20" style={{ overflow: "visible" }}>
@@ -659,10 +660,11 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
 
   if (studio) {
     return (
-      <QuoteStudio userId={userId} view={view} setView={setView} costsVisible={costsVisible} profit={profit} pct={pct} revenue={revenue} money={money}
+      <QuoteStudio userId={userId || (guest ? "guest" : "")} view={view} setView={setView} costsVisible={costsVisible} profit={profit} pct={pct} revenue={revenue} money={money}
         previewModel={previewModel} onPreviewClick={onPreviewClick} folds={folds} setFold={setFold}
         costs={<>{costsHead}{costsSummary}{costsList}{costsAdd}{costsHelper}</>}
         quote={<>
+          {lead}
           {customerCard}
           {itemsCard}
           <FoldRow id="details" title="Details" value={`${title ? `${title} · ` : ""}${quote ? "Valid to" : "Due"} ${formatShortDate(endDate)} · ${currency}`} open={folds.details} onToggle={(v) => setFold("details", v)}>{detailsBody}</FoldRow>

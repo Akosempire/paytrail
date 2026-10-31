@@ -44,24 +44,27 @@ export function TryInvoice() {
     return { id: "try" };
   };
 
+  // first in the invoice column of the builder
+  const businessCard = (
+    <Card>
+      <CardHeader title="Your business" icon={Building2} description="Shown at the top of the invoice." />
+      <div className="grid items-start gap-4 p-5 sm:grid-cols-2">
+        <Field label="Business name" htmlFor="try-name"><Input id="try-name" value={biz.name} onChange={set("name")} autoComplete="organization" placeholder="Tolu Adeyemi Designs" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
+        <Field label="Phone / WhatsApp" htmlFor="try-phone" optional><Input id="try-phone" type="tel" inputMode="tel" value={biz.phone} onChange={set("phone")} autoComplete="tel" placeholder="+234 801 234 5678" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
+        <Field label="Email" htmlFor="try-email" optional><Input id="try-email" type="email" inputMode="email" autoCapitalize="none" value={biz.email} onChange={set("email")} autoComplete="email" placeholder="hello@yourbusiness.com" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
+        <Field label="Currency" htmlFor="try-currency"><Select id="try-currency" value={biz.currency} onChange={set("currency")}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
+        <Field label="Address" htmlFor="try-address" optional className="sm:col-span-2"><Input id="try-address" value={biz.address} onChange={set("address")} autoComplete="street-address" placeholder="12 Admiralty Way, Lekki Phase 1" /></Field>
+      </div>
+    </Card>
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader eyebrow="No account needed" title="Make your first invoice"
         description="Fill it in and watch it take shape. It stays in this browser until you create a free account to send it, and nothing needs retyping." />
 
-      <Card>
-        <CardHeader title="Your business" icon={Building2} description="Shown at the top of the invoice." />
-        <div className="grid items-start gap-4 p-5 sm:grid-cols-2 lg:grid-cols-4">
-          <Field label="Business name" htmlFor="try-name"><Input id="try-name" value={biz.name} onChange={set("name")} autoComplete="organization" placeholder="Tolu Adeyemi Designs" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
-          <Field label="Phone / WhatsApp" htmlFor="try-phone" optional><Input id="try-phone" type="tel" inputMode="tel" value={biz.phone} onChange={set("phone")} autoComplete="tel" placeholder="+234 801 234 5678" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
-          <Field label="Email" htmlFor="try-email" optional><Input id="try-email" type="email" inputMode="email" autoCapitalize="none" value={biz.email} onChange={set("email")} autoComplete="email" placeholder="hello@yourbusiness.com" className="h-12 text-[16px] sm:h-10 sm:text-sm" /></Field>
-          <Field label="Currency" htmlFor="try-currency"><Select id="try-currency" value={biz.currency} onChange={set("currency")}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
-          <Field label="Address" htmlFor="try-address" optional className="sm:col-span-2 lg:col-span-4"><Input id="try-address" value={biz.address} onChange={set("address")} autoComplete="street-address" placeholder="12 Admiralty Way, Lekki Phase 1" /></Field>
-        </div>
-      </Card>
-
       {ready && (
-        <DocumentEditor guest kind="invoice" doc={null} customers={[]} presets={[]} business={business}
+        <DocumentEditor guest lead={businessCard} kind="invoice" doc={null} customers={[]} presets={[]} business={business}
           perms={{ canViewCosts: false, isJunior: false }} emailReady={false}
           onSave={onSave} onSaved={() => setGate(true)} />
       )}

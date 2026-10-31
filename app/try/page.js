@@ -29,7 +29,7 @@ export default async function Page() {
               </>}
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[1200px] px-4 pt-6 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-[1760px] px-4 pt-6 sm:px-6 lg:px-8">
         <TryInvoice />
       </main>
     </div>
