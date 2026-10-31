@@ -47,3 +47,24 @@ test("helpers", () => {
   assert.deepEqual(rowActions(inv({ status: "viewed" })), ["remind", "record"]);
   assert.deepEqual(rowActions(inv({ status: "paid" })), ["receipt"]);
 });
+
+test("invoices list helpers", async () => {
+  const { compactMoney, defaultInvoiceTab, sortForTab, invoicesCsv } = await import("../lib/collect-core.js");
+  assert.equal(compactMoney(930000000, "NGN"), "₦9.3M");
+  assert.equal(compactMoney(45000000, "NGN"), "₦450K");
+  assert.equal(compactMoney(80000, "NGN"), "₦800");
+  assert.equal(compactMoney(0, "NGN"), "₦0");
+  assert.equal(compactMoney(125000, "USD"), "$1.3K");
+  assert.equal(defaultInvoiceTab("", 2), "open");
+  assert.equal(defaultInvoiceTab("", 0), "all");
+  assert.equal(defaultInvoiceTab("paid", 2), "paid");
+  const rows = [inv({ number: "A", created_at: "2026-10-01", paid_at: "2026-10-05" }), inv({ number: "B", created_at: "2026-10-09", paid_at: "2026-10-02", due_date: "2026-10-20" })];
+  assert.deepEqual(sortForTab(rows, "open", T).map((d) => d.number), ["B", "A"]);
+  assert.deepEqual(sortForTab(rows, "drafts", T).map((d) => d.number), ["B", "A"]);
+  assert.deepEqual(sortForTab(rows, "paid", T).map((d) => d.number), ["A", "B"]);
+  const csv = invoicesCsv([inv({ title: 'Logo, "big"', customer_company: "=SUM(A1)", amount_paid_minor: 40000 })]);
+  assert.match(csv, /^Number,Customer,/);
+  assert.match(csv, /"Logo, ""big"""/);
+  assert.match(csv, /"'=SUM\(A1\)"/);
+  assert.match(csv, /,1000\.00,400\.00,600\.00\r\n$/);
+});
