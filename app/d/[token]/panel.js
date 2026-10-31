@@ -1,21 +1,20 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsUp, Copy, Check, Send, Clock, AlertCircle, Paperclip } from "lucide-react";
+import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsUp, Copy, Check, Send, Clock, AlertCircle, Paperclip, Download } from "lucide-react";
 import { respondToQuote, payDocument, claimPayment, acceptAndPay } from "./actions";
 import { useToast } from "@/components/ui-client";
 
 const NAMES = { stripe: "Stripe", paystack: "Paystack", bachs: "Bachs", flutterwave: "Flutterwave" };
 
 // Light-only by design: this page is the business's branded document, not Usetally's app.
-export function CustomerPanel({ token, doc, amount, paid, expired, providers, hasBank, bank, brandName, invoiceNumber, balance = 0, currency, claim, proofUpload }) {
+export function CustomerPanel({ token, doc, amount, paid, expired, providers, hasBank, bank, brandName, invoiceNumber, balance = 0, currency, claim, proofUpload, paidOn, receiptHref }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [mode, setMode] = useState(null); // "accept" | "decline"
   const [name, setName] = useState(doc.customer_name || "");
   const [reason, setReason] = useState("");
   const toast = useToast();
-  const [copied, setCopied] = useState(false);
   const quote = doc.kind === "quote";
   const awaitingReply = quote && ["sent", "viewed"].includes(doc.status) && !expired;
   const payable = !paid && !["void", "declined"].includes(doc.status) && (!quote || doc.status === "accepted");
@@ -56,7 +55,10 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
       <div className="px-5 pt-5 pb-4">
         <p className="text-[11px] font-semibold tracking-[0.08em] text-[#98a2b3]">{paid ? "PAID" : quote && doc.status !== "accepted" ? "QUOTATION TOTAL" : "AMOUNT DUE"}</p>
         <p className="mt-1 text-[28px] leading-9 font-bold tracking-[-0.02em] tabular">{amount}</p>
-        {paid && <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-[#067647]"><CheckCircle2 className="size-4" />Paid in full. Thank you!</p>}
+        {paid && <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-[#067647]"><CheckCircle2 className="size-4" />{paidOn ? `Paid on ${paidOn}. Thank you.` : "Paid in full. Thank you."}</p>}
+        {paid && receiptHref && (
+          <a href={receiptHref} className={`${btn} mt-4 bg-white text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]`}><Download className="size-4" />Download receipt</a>
+        )}
         {quote && doc.status === "accepted" && !paid && <p className="mt-2 flex items-center gap-1.5 text-sm text-[#067647]"><CheckCircle2 className="size-4" />Accepted by {doc.accepted_name}{invoiceNumber ? ` · Invoice ${invoiceNumber}` : ""}</p>}
         {doc.status === "declined" && <p className="mt-2 text-sm text-[#b42318]">You declined this quote. Contact {brandName} if you've changed your mind.</p>}
         {expired && quote && doc.status !== "accepted" && <p className="mt-2 text-sm text-[#b54708]">This quote has expired. Ask {brandName} for an updated one.</p>}
@@ -107,19 +109,40 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
           {hasBank && (
             <div className="mt-2 rounded-lg bg-[#f8f9fb] p-3.5 text-sm">
               <p className="flex items-center gap-1.5 text-[13px] font-medium text-[#475467]"><Landmark className="size-4" />Or pay by bank transfer</p>
-              <p className="mt-2 font-medium">{bank.name}</p>
-              <div className="flex items-center justify-between gap-2">
-                <p className="font-mono text-base font-semibold tracking-wide">{bank.number}</p>
-                <button type="button" onClick={async () => { try { await navigator.clipboard.writeText(bank.number); toast.success("Account number copied"); } catch { toast.error("Couldn't copy. Select the number and copy it yourself."); } setCopied(true); setTimeout(() => setCopied(false), 1500); }}
-                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-[#475467] ring-1 ring-[#d0d5dd]">{copied ? <Check className="size-3" /> : <Copy className="size-3" />}{copied ? "Copied" : "Copy"}</button>
-              </div>
-              <p className="text-[#475467]">{bank.account}</p>
-              <p className="mt-1.5 text-xs text-[#98a2b3]">Put <strong className="font-semibold text-[#475467]">{bank.reference}</strong> in your transfer note so {brandName} can find it.</p>
+              <dl className="mt-1 divide-y divide-[#eaecf0]">
+                {bank.name && <CopyRow label="Bank" value={bank.name} />}
+                <CopyRow label="Account number" value={bank.number} mono strong />
+                <CopyRow label="Account name" value={bank.account} />
+                <CopyRow label="Reference" value={bank.reference} mono />
+              </dl>
+              <p className="mt-1.5 text-xs text-[#98a2b3]">Put the reference in your transfer note so {brandName} can find it.</p>
             </div>
           )}
           {hasBank && <TransferClaim token={token} amountLabel={amount} brandName={brandName} balance={balance} currency={currency} claim={claim} proofUpload={proofUpload} defaultName={doc.customer_name} />}
         </div>
       )}
+    </div>
+  );
+}
+
+// one bank detail with its own copy button
+function CopyRow({ label, value, mono, strong }) {
+  const toast = useToast();
+  const [copied, setCopied] = useState(false);
+  async function copy() {
+    try { await navigator.clipboard.writeText(String(value)); setCopied(true); setTimeout(() => setCopied(false), 1500); }
+    catch { toast.error(`Couldn't copy. Select the ${label.toLowerCase()} and copy it yourself.`); }
+  }
+  return (
+    <div className="flex items-center justify-between gap-3 py-2">
+      <div className="min-w-0">
+        <dt className="text-xs text-[#667085]">{label}</dt>
+        <dd className={`break-words ${mono ? "font-mono tracking-wide" : ""} ${strong ? "text-base font-semibold" : "font-medium"}`}>{value}</dd>
+      </div>
+      <button type="button" onClick={copy} aria-label={`Copy ${label.toLowerCase()}`}
+        className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center gap-1 rounded-md px-2.5 text-xs font-medium text-[#475467] ring-1 ring-[#d0d5dd] hover:bg-white sm:min-h-8">
+        {copied ? <Check className="size-3.5" /> : <Copy className="size-3.5" />}<span aria-live="polite">{copied ? "Copied" : "Copy"}</span>
+      </button>
     </div>
   );
 }
