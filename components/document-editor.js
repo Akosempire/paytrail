@@ -6,7 +6,7 @@ import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Alert, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
 import { Switch, useToast } from "@/components/ui-client";
-import { computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
+import { CURRENCIES, computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
 import { COST_CATEGORIES, formatDate } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
 import { PasteList } from "@/components/paste-list";
@@ -29,7 +29,10 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const toast = useToast();
   const [pending, start] = useTransition();
   const quote = kind === "quote";
-  const currency = doc?.currency || business.currency;
+  // each document can be in its own currency (the business default comes first);
+  // the guest builder (/try) follows the "Your business" card instead
+  const [pickedCurrency, setPickedCurrency] = useState(doc?.currency || business.currency);
+  const currency = guest ? business.currency : pickedCurrency;
   const money = (v) => formatMoney(v, currency);
 
   const [customerMode, setCustomerMode] = useState(guest ? "new" : "existing"); // existing = search/pick; new = typing a new customer in
@@ -140,6 +143,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       prices_include_vat: inclusive,
       email_customer: emailCustomer,
     };
+    if (!guest) input.currency = currency;
     input.delivery = deliveryOn ? { address: delivery.address, postcode: delivery.postcode, contact: delivery.contact } : { address: "", postcode: "", contact: "" };
     if (customerMode === "existing") input.customer_id = customerId;
     else input.customer = customer;
@@ -167,7 +171,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   // anything that can't reach the server is kept here too until it can.
   const snapKey = guest ? `usetally:try:builder:${kind}` : `usetally:builder:${kind}:${doc?.id || "new"}`;
   const serverAutosave = Boolean(doc?.id && !onSave && (doc.status || "draft") === "draft");
-  const snapshot = JSON.stringify({ customerMode, customerId, customer, delivery, deliveryOn, title, issueDate, endDate, items, inclusive, costs, discount, taxRate, taxLabel, tax2Rate, tax2Label, notes, terms });
+  const snapshot = JSON.stringify({ customerMode, customerId, customer, delivery, deliveryOn, currency: pickedCurrency, title, issueDate, endDate, items, inclusive, costs, discount, taxRate, taxLabel, tax2Rate, tax2Label, notes, terms });
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | local | offline | unsaved
   const [retry, setRetry] = useState(0);
   const firstSnap = useRef(snapshot);
@@ -189,7 +193,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     if (!worth || saved.snap === firstSnap.current) return;
     setCustomerMode(d.customerMode); setCustomerId(d.customerId || ""); setCustomer(d.customer); setDelivery(d.delivery); setDeliveryOn(d.deliveryOn);
     setTitle(d.title); setIssueDate(d.issueDate); setEndDate(d.endDate); setItems(d.items?.length ? d.items : [blankItem()]); setInclusive(d.inclusive); setCosts(d.costs || []);
-    setDiscount(d.discount); setDiscountOn(Boolean(d.discount)); setTaxRate(d.taxRate); setTaxLabel(d.taxLabel); setTax2Rate(d.tax2Rate); setTax2Label(d.tax2Label); setNotes(d.notes); setTerms(d.terms);
+    setDiscount(d.discount); setDiscountOn(Boolean(d.discount)); setTaxRate(d.taxRate); setTaxLabel(d.taxLabel); setTax2Rate(d.tax2Rate); setTax2Label(d.tax2Label); setNotes(d.notes); setTerms(d.terms); if (CURRENCIES.includes(d.currency)) setPickedCurrency(d.currency);
     toast.info(`We kept your unsaved ${quote ? "quotation" : "invoice"} on this device.`, { action: { label: "Discard it", onClick: () => { clearLocal(); window.location.reload(); } } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapKey]);
@@ -393,7 +397,13 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
             <Field label="Title" htmlFor="title" optional className="sm:col-span-3"><Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={quote ? "Website redesign for Obi Foods" : "Monthly retainer — October"} /></Field>
             <Field label="Issue date" htmlFor="issue"><Input id="issue" type="date" value={issueDate} onChange={(e) => { const v = e.target.value; if (!v) return; setEndDate((d) => addDaysIso(v, daysBetween(issueDate, d))); setIssueDate(v); }} className="h-11 sm:h-10" /></Field>
             <Field label={quote ? "Valid until" : "Due date"} htmlFor="end"><Input id="end" type="date" value={endDate} onChange={(e) => e.target.value && setEndDate(e.target.value)} className="h-11 sm:h-10" /></Field>
-            <Field label="Currency" hint={guest ? "Set it under Your business." : "Change the default in Settings."}><Input value={currency} disabled /></Field>
+            {guest
+              ? <Field label="Currency" hint="Set it under Your business."><Input value={currency} disabled /></Field>
+              : <Field label="Currency" htmlFor="doc-currency" hint={currency === business.currency ? "Your default. Pick another for this one only." : `This ${quote ? "quote" : "invoice"} only. Your default stays ${business.currency}.`}>
+                  <Select id="doc-currency" value={currency} onChange={(e) => setPickedCurrency(e.target.value)} className="h-11 sm:h-10">
+                    {[business.currency, ...CURRENCIES.filter((c) => c !== business.currency)].map((c) => <option key={c} value={c}>{c}</option>)}
+                  </Select>
+                </Field>}
             <div className="flex flex-col gap-2 sm:col-span-3">
               <p className="text-sm font-medium text-ink" aria-live="polite">{dueSentence(endDate, today, { quote, issueIso: issueDate })}</p>
               <div className="flex flex-wrap gap-1.5" role="group" aria-label={quote ? "Valid for" : "Payment terms"}>

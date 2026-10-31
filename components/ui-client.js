@@ -242,8 +242,8 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      {/* phones: across the top; larger screens: top-right corner. Newest first. */}
-      <div className="pointer-events-none fixed inset-x-0 top-[max(12px,env(safe-area-inset-top))] z-[60] flex flex-col-reverse items-center gap-2 px-3 sm:top-5 sm:right-5 sm:left-auto sm:w-[400px] sm:items-end sm:px-0">
+      {/* top centre on every screen, where the eye already is (not a corner it can miss). Newest first. */}
+      <div className="pointer-events-none fixed inset-x-0 top-[max(12px,env(safe-area-inset-top))] z-[60] flex flex-col-reverse items-center gap-2 px-3 sm:top-5">
         {toasts.map((t) => {
           const it = t.intent === "loading" ? LOADING : INTENTS[t.intent];
           return (

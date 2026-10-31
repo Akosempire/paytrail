@@ -7,7 +7,7 @@ import { cleanPayload, getDocument } from "@/lib/documents";
 import { can } from "@/lib/permissions";
 import { emailConfigured, sendEmail } from "@/lib/email";
 import { documentEmail, receiptEmail } from "@/lib/emails";
-import { formatMoney, toMinor } from "@/lib/money";
+import { CURRENCIES, formatMoney, toMinor } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { logoUrl, absoluteLogoUrl, siteUrl } from "@/lib/site";
 import { emailDocument, sendDocumentInternal } from "@/lib/document-send";
@@ -42,6 +42,14 @@ export async function saveDocument(docId, input, intent = "draft") {
   }
   const { data: id, error } = await ctx.supabase.rpc("save_document", { target: ctx.business.id, doc_id: docId || null, payload });
   if (error) return { error: friendlyError(error) };
+  // a currency other than the business default, picked in the builder
+  if (CURRENCIES.includes(input.currency)) {
+    const { error: e } = await ctx.supabase.rpc("set_document_currency", { doc_id: id, cur: input.currency });
+    if (e) {
+      refresh(id);
+      return { id, error: /set_document_currency|schema cache|does not exist/i.test(e.message || "") ? "Saved in your default currency. Picking another currency needs a quick database update: run RUN_NEW_2026-11-01e.sql in Supabase." : friendlyError(e) };
+    }
+  }
   if (intent === "submit") {
     const { error: e } = await ctx.supabase.rpc("submit_document", { doc_id: id });
     if (e) return { error: friendlyError(e), id };
