@@ -39,6 +39,7 @@ await as(pt, "authenticated", ptOwner, "select public.pos_create_link_code($1, $
 const tkOwner = (await tk.query("insert into auth.users(email) values ($1) returning id", [`e2e-${Date.now()}@t.test`])).rows[0].id;
 const store = (await as(tk, "authenticated", tkOwner, "select public.create_onboarding_business('E2E Shop', 'Ikeja branch', 'general_retail') j")).rows[0].j.store_id;
 await tk.query("update public.organizations set billing_status='active' where id=(select org_id from public.stores where id=$1)", [store]);
+await tk.query("update public.store_settings set require_open_till = false where store_id = $1", [store]); // new stores require an open till; this check rings sales directly
 const key = "utpos_" + randomBytes(20).toString("hex");
 const conn = (await as(pt, "service_role", "", "select public.pos_link($1,$2,'enc','hint',$3,'Ikeja branch','https://x.supabase.co/functions/v1') j", [sha(code), sha(key), store])).rows[0].j.connection_id;
 await tk.query("select public.usetally_save_link($1, $2, 'E2E Shop Ltd', 'NGN', $3, 'enc', 'hint', null)", [store, biz, sha(key)]);
