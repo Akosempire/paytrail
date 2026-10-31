@@ -192,9 +192,11 @@
   .pt-print-chrome { display: none !important; }
   .pt-print-root { padding: 0 !important; background: #fff !important; }
   .pt-print-root .pt-doc { box-shadow: none !important; }
-  .pt-print-root .pt-sheet .pt-page { padding: 0; }
+  .pt-print-root .pt-sheet .pt-page:not(.pt-sh-page) { padding: 0; }
   .pt-print-root .pt-sheet.pt-screen { min-height: 0; }
-  .pt-print-root .pt-sheet { width: auto; }
+  .pt-print-root .pt-sheet:not(.pt-t-notebook):not(.pt-t-casefile) { width: auto; }
+  /* Notebook and Case file print edge to edge; a one-page document keeps its footer at the foot */
+  .pt-print-root .pt-sheet.pt-screen.pt-t-notebook, .pt-print-root .pt-sheet.pt-screen.pt-t-casefile { min-height: calc(var(--pt-h) - 1mm); }
 }
 
 /* ==========================================================================

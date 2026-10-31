@@ -11,6 +11,7 @@ import { PAPERS } from "@/lib/doc-templates";
 export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint }) {
   const ref = useRef(null);
   const [pageCss, setPageCss] = useState("");
+  const [fit, setFit] = useState(1); // < 1: shrunk a little so it prints on one page
   const spec = PAPERS[model.paper];
 
   useEffect(() => {
@@ -24,16 +25,19 @@ export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint
         const mm = Math.ceil(px * 25.4 / 96) + 2;
         setPageCss(`@page { size: ${spec.w}mm ${mm}mm; margin: 0; }`);
       } else {
-        setPageCss(`@page { size: ${spec.w}mm ${spec.h}mm; margin: ${spec.margin}mm; }`);
+        // Notebook and Case file print edge to edge (paper colour, band); they keep their own margins
+        const edge = Boolean(model.sheet);
+        setPageCss(`@page { size: ${spec.w}mm ${spec.h}mm; margin: ${edge ? 0 : spec.margin}mm; }`);
+        setFit(fitZoom(ref.current.querySelector(".pt-doc"), spec, edge));
       }
       if (autoPrint) setTimeout(() => window.print(), 250);
     })();
     return () => { cancelled = true; };
-  }, [model.paper, spec, autoPrint]);
+  }, [model.paper, model.sheet, spec, autoPrint]);
 
   return (
     <div className="pt-print-root min-h-dvh bg-[#e9e9e6] px-3 py-6 print:p-0">
-      <style>{`${pageCss} @media print { html, body { background: #fff !important; } }`}</style>
+      <style>{`${pageCss} @media print { html, body { background: #fff !important; }${fit < 1 ? ` .pt-print-root .pt-doc { zoom: ${fit}; }` : ""} }`}</style>
       <div className="pt-print-chrome mx-auto mb-5 flex max-w-3xl flex-wrap items-center gap-2 text-[13px]">
         {backHref && <Link href={backHref} className="inline-flex h-9 items-center gap-1.5 rounded-md px-2.5 font-medium text-[#344054] hover:bg-white/70"><ArrowLeft className="size-4" />Back</Link>}
         <label className="ml-auto flex items-center gap-2 text-[#475467]">Paper
@@ -51,4 +55,21 @@ export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint
       </div>
     </div>
   );
+}
+
+// How much to shrink a document that only just spills onto a second page
+// (same steps as the PDF, lib/pdf.js FIT_ZOOMS). 1 = fits already, or too long
+// to shrink without making the text hard to read: it prints on more pages.
+export function fitZoom(el, spec, edge) {
+  if (!el) return 1;
+  const keep = el.style.minHeight;
+  el.style.minHeight = "0";
+  const px = el.getBoundingClientRect().height;
+  el.style.minHeight = keep;
+  const mmH = (px * 25.4) / 96;
+  // without edge-to-edge printing the margins come from the page, not the document, and don't shrink
+  const need = edge ? mmH : mmH - 2 * spec.margin, room = edge ? spec.h : spec.h - 2 * spec.margin;
+  if (need <= room - 1) return 1;
+  const z = Math.floor(((room - 1) / need) * 100) / 100;
+  return z >= 0.82 ? z : 1;
 }

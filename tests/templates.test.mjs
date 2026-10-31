@@ -96,3 +96,15 @@ test("sheet templates: stamp, due sentence and pay details follow the document",
   assert.match(quote.sheet.due, /valid until/);
   assert.equal(buildModel({ doc: { ...base, template: "signature", status: "sent" }, items: [], business }).sheet, null);
 });
+
+test("a document that only just spills over is shrunk onto one page; long ones keep extra pages", async () => {
+  const many = (n) => Array.from({ length: n }, (_, i) => ({ description: `Item ${i + 1}`, details: "Detail line", quantity: 1, unit_price_minor: 1000000 }));
+  const d = (n) => doc({ template: "signature", paper: "a4", subtotal_minor: n * 1000000, total_minor: n * 1000000, notes: "Thanks.", terms: "50% upfront." });
+  const pagesOf = async (n, opts) => (await PDFDocument.load(await renderPdf(buildModel({ doc: d(n), items: many(n), business }), opts))).getPageCount();
+  // find the first length that spills onto a second page without fitting
+  let n = 4;
+  while ((await pagesOf(n, { fit: false })) === 1) n++;
+  assert.equal(await pagesOf(n, { fit: false }), 2);
+  assert.equal(await pagesOf(n), 1);
+  assert.ok((await pagesOf(40)) >= 2);
+});
