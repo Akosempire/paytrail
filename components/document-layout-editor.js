@@ -10,6 +10,7 @@ import { PAPERS, TEMPLATES, resolveLayout } from "@/lib/doc-templates";
 import { saveDocumentLayout } from "@/app/app/documents/actions";
 import { DocView } from "@/components/doc-view";
 import { IMAGE_EVENT, exportDocImage } from "@/components/doc-image";
+import { DOC_ACTION } from "@/components/doc-side";
 
 // The document as the customer will see it, with print/PDF and an optional
 // layout panel. Financial values come from the saved document only.
@@ -44,18 +45,31 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
     return () => window.removeEventListener(IMAGE_EVENT, go);
   }, [imaging, doc.number, toast]);
 
+  // "Template & paper…" in the top bar's ⋯ menu
+  const top = useRef(null);
+  useEffect(() => {
+    const on = (e) => {
+      if (e.detail !== "template" || !canEdit) return;
+      setOpen(true);
+      setTimeout(() => top.current?.scrollIntoView({ block: "start", behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" }), 0);
+    };
+    window.addEventListener(DOC_ACTION, on);
+    return () => window.removeEventListener(DOC_ACTION, on);
+  }, [canEdit]);
+
   const save = () => start(async () => {
     const r = await saveDocumentLayout(doc.id, value, { asDefault });
     if (r?.error) toast(r.error, "error"); else { toast(r.message); setOpen(false); }
   });
 
   return (
-    <div className="flex flex-col gap-3">
+    <div ref={top} className="flex scroll-mt-20 flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <p className="mr-auto text-[13px] text-ink-3">
           <span className="font-medium text-ink-2">{TEMPLATES[model.template].name}</span> · {PAPERS[model.paper].label}
         </p>
-        {canEdit && doc.status !== "void" && (
+        {/* drafts keep the button here; once sent it's in ⋯ ("Template & paper…"), so only Close shows */}
+        {canEdit && doc.status !== "void" && (!issued || open) && (
           <Button size="sm" variant={open ? "soft" : "secondary"} icon={open ? X : LayoutTemplate} onClick={() => setOpen(!open)} aria-expanded={open}>
             {open ? "Close" : "Template"}
           </Button>

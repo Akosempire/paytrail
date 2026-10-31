@@ -47,3 +47,15 @@ test("helpers", () => {
   assert.deepEqual(rowActions(inv({ status: "viewed" })), ["remind", "record"]);
   assert.deepEqual(rowActions(inv({ status: "paid" })), ["receipt"]);
 });
+
+test("views and the send checklist", async () => {
+  const { viewStats, viewText, sendChecklist } = await import("../lib/collect-core.js");
+  const s = viewStats([{ action: "document.viewed", created_at: "2026-10-29T10:00:00Z" }, { action: "document.sent", created_at: "2026-10-28T10:00:00Z" }, { action: "document.viewed", created_at: "2026-10-30T09:00:00Z" }]);
+  assert.deepEqual(s, { count: 2, last: "2026-10-30T09:00:00Z" });
+  assert.equal(viewText(s, T), "Opened 2× · last yesterday");
+  assert.equal(viewText({ count: 0, last: null }, T), "Not opened yet");
+  assert.equal(viewText(viewStats([], "2026-10-31T08:00:00Z"), T), "Opened today");
+  const c = sendChecklist(inv({ status: "draft", customer_email: null, customer_phone: null }), [{ description: "Logo" }], {});
+  assert.deepEqual(c.filter((x) => !x.ok).map((x) => x.key), ["reach", "pay"]);
+  assert.equal(sendChecklist(inv({ kind: "quote" }), [], {}).length, 3);
+});

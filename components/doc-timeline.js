@@ -65,11 +65,16 @@ export function timelineText(a, { money, quote } = {}) {
   }
 }
 
-export function DocTimeline({ activity, doc, money }) {
-  const quote = doc.kind === "quote";
-  // "Paid" closes the story when it happened
+// from/to show part of the story (the invoice page shows the latest two, then "See all")
+export function timelineItems(activity, doc) {
   const items = [...activity];
   if (doc.status === "paid" && doc.paid_at) items.unshift({ id: "paid", action: "document.paid", created_at: doc.paid_at, actor_label: "", detail: {} });
+  return items;
+}
+export function DocTimeline({ activity, doc, money, from = 0, to }) {
+  const quote = doc.kind === "quote";
+  // "Paid" closes the story when it happened
+  const items = timelineItems(activity, doc).slice(from, to);
   if (!items.length) return <p className="px-5 py-4 text-[13px] text-ink-3">Nothing yet.</p>;
   return (
     <ol className="relative px-5 py-4" aria-label="Activity">

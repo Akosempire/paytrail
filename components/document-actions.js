@@ -1,19 +1,23 @@
 "use client";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X, BellRing, Repeat, ImageDown } from "lucide-react";
+import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X, BellRing, Repeat, ImageDown, Eye, Receipt, LayoutTemplate } from "lucide-react";
 import { requestDocImage } from "@/components/doc-image";
+import { DOC_ACTION, docAction } from "@/components/doc-side";
+import { whatsappUrl } from "@/lib/send-core";
 import { Button, buttonClass, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { formatMoney, minorToInput, toMinor } from "@/lib/money";
-import { convertToInvoice, deleteDraft, duplicateDocument, returnToDraft, sendDocument, submitForApproval, voidDocument } from "@/app/app/documents/actions";
+import { convertToInvoice, deleteDraft, duplicateDocument, emailReceipt, returnToDraft, sendDocument, submitForApproval, voidDocument } from "@/app/app/documents/actions";
 import { recordPaymentNotify, shareDocument } from "@/app/app/documents/send-actions";
 import { SendSheet } from "@/components/send-sheet";
 import { celebrateOnce } from "@/components/paid-celebration";
 
 // send: the send sheet's data (business, saved message, schedules); without it
 // the old one-click send is used
-export function DocumentActions({ doc, perms, emailReady, balance, link, printHref, pdfHref, send, autoOpen }) {
+// receipt: the latest receipt { id, number, access_token } (for "Send receipt" when paid)
+// canEditLayout: offers "Template & paper…" in ⋯ once it's sent
+export function DocumentActions({ doc, perms, emailReady, balance, link, printHref, pdfHref, send, autoOpen, receipt = null, canEditLayout = false }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -38,10 +42,31 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
   }
   const spin = (key, Icon) => (busy === key && pending ? Loader2 : Icon);
 
+  // Remind: the send sheet in reminder mode, on email when there is one, else WhatsApp
+  const remind = () => openSheet(doc.customer_email ? "email" : "whatsapp", "reminder");
+  function sendReceipt() {
+    if (!receipt) return;
+    if (doc.customer_email && emailReady) return run("receipt", () => emailReceipt(receipt.id));
+    const url = `${window.location.origin}/r/${receipt.access_token}`;
+    window.open(whatsappUrl(doc.customer_phone || "", `Hello ${String(doc.customer_name || "").split(/\s+/)[0] || "there"}, thank you for your payment. Here is your receipt ${receipt.number}: ${url}`), "_blank", "noopener");
+  }
+  // other parts of the page (the Balance due card, the overdue banner) ask for these
+  useEffect(() => {
+    const on = (e) => {
+      if (e.detail === "payment" && perms.canRecord) setModal("payment");
+      else if (e.detail === "remind" && send && perms.canSendDoc) remind();
+    };
+    window.addEventListener(DOC_ACTION, on);
+    return () => window.removeEventListener(DOC_ACTION, on);
+  });
+
   const primary = [];
   const secondary = [];
+  const tools = [];
   if (doc.status === "draft") {
     primary.push(<Button key="edit" href={`/app/documents/${doc.id}/edit`} icon={Pencil}>Edit</Button>);
+    primary.push(<Button key="preview" href={printHref} target="_blank" rel="noopener" icon={Eye} className="max-sm:hidden">Preview as customer</Button>);
+    tools.unshift({ key: "preview", label: "Preview as customer", icon: Eye, href: printHref, blank: true });
     if (perms.canSend || !perms.needsApproval) primary.push(send
       ? <Button key="send" variant="primary" icon={Send} onClick={() => openSheet("email")}>Send {quote ? "quote" : "invoice"}</Button>
       : <Button key="send" variant="primary" icon={spin("send", Send)} onClick={() => run("send", () => sendDocument(doc.id, { email: emailReady }))}>{emailReady && doc.customer_email ? "Send to customer" : "Mark as sent"}</Button>);
@@ -58,22 +83,38 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
     }
   }
   if (!draft && doc.status !== "void") {
-    if (!quote && perms.canRecord && ["sent", "viewed", "partially_paid"].includes(doc.status)) primary.push(<Button key="pay" variant="primary" icon={Wallet} onClick={() => setModal("payment")}>Record payment</Button>);
-    if (quote && perms.canConvert && !doc.converted_invoice_id && ["sent", "viewed", "accepted"].includes(doc.status)) primary.push(<Button key="convert" variant={doc.status === "accepted" ? "primary" : "secondary"} icon={spin("convert", FileOutput)} onClick={() => run("convert", () => convertToInvoice(doc.id))}>Convert to invoice</Button>);
+    // the top bar follows the status: what gets you paid next comes first
+    //   sent, not opened → Remind · Record payment     viewed → Record payment · Remind
+    //   overdue → Remind · Record payment              part paid → Record payment · Remind for balance
+    //   paid → Send receipt · Duplicate
     const unpaid = !quote && ["sent", "viewed", "partially_paid"].includes(doc.status);
-    if (send && unpaid && perms.canSendDoc && send.overdue) primary.unshift(<Button key="remind" icon={BellRing} onClick={() => openSheet("email", "reminder")}>Send reminder</Button>);
-    else if (send && unpaid && perms.canSendDoc) secondary.push({ key: "remind", label: "Send reminder", icon: BellRing, onClick: () => openSheet("email", "reminder") });
+    const canRemind = Boolean(send) && unpaid && perms.canSendDoc;
+    const canPay = unpaid && perms.canRecord;
+    const remindFirst = (send?.overdue || doc.status === "sent") && canRemind;
+    const remindBtn = (variant) => <Button key="remind" variant={variant} icon={BellRing} onClick={remind}>{doc.status === "partially_paid" ? "Remind for balance" : "Remind"}</Button>;
+    const payBtn = (variant) => <Button key="pay" variant={variant} icon={Wallet} onClick={() => setModal("payment")}>Record payment</Button>;
+    if (remindFirst) { if (canPay) primary.push(payBtn("secondary")); primary.push(remindBtn("primary")); }
+    else { if (canRemind) primary.push(remindBtn("secondary")); if (canPay) primary.push(payBtn("primary")); }
+    if (doc.status === "paid" && !quote) {
+      primary.push(<Button key="dup" icon={spin("dup", Copy)} onClick={() => run("dup", () => duplicateDocument(doc.id))}>Duplicate</Button>);
+      if (receipt) primary.push(<Button key="receipt" variant="primary" icon={spin("receipt", Receipt)} onClick={sendReceipt}>Send receipt</Button>);
+    }
+    if (quote && perms.canConvert && !doc.converted_invoice_id && ["sent", "viewed", "accepted"].includes(doc.status)) primary.push(<Button key="convert" variant={doc.status === "accepted" ? "primary" : "secondary"} icon={spin("convert", FileOutput)} onClick={() => run("convert", () => convertToInvoice(doc.id))}>Convert to invoice</Button>);
     if (send && doc.status !== "paid" && perms.canSendDoc) secondary.push({ key: "resend", label: "Email again", icon: Mail, onClick: () => openSheet("email", "share") });
     if (send && !quote && send.canRepeat) secondary.push({ key: "repeat", label: doc.recur_interval ? `Repeats ${doc.recur_interval}` : "Make recurring", icon: Repeat, onClick: () => openSheet("email", "share") });
     if (perms.canVoid && Number(doc.amount_paid_minor) === 0 && !["paid", "accepted"].includes(doc.status)) secondary.push({ key: "void", label: "Void", icon: Ban, danger: true, onClick: () => setModal("void") });
   }
   const live = !draft && doc.status !== "void";
-  if (live && link) primary.push(<Button key="share" variant={primary.length ? "secondary" : "primary"} icon={Share2} onClick={() => (send ? openSheet("link", "share") : share())}>Share</Button>);
-  const tools = [
+  // the customer link has its own bar under the header, so Share only leads when nothing else does
+  if (live && link && !primary.length) primary.push(<Button key="share" variant="primary" icon={Share2} onClick={() => (send ? openSheet("link", "share") : share())}>Share</Button>);
+  tools.push(
     { key: "print", label: "Print", icon: Printer, href: printHref },
     { key: "open", label: "Open PDF in a new tab", icon: ExternalLink, href: `/app/documents/${doc.id}/pdf`, blank: true },
-  ];
+  );
+  if (live && link && primary.length) tools.unshift({ key: "share", label: "Share…", icon: Share2, onClick: () => (send ? openSheet("link", "share") : share()) });
   if (live && link) tools.push({ key: "copy", label: "Copy customer link", icon: Copy, onClick: () => copy() });
+  // rarely changed once it's sent, so it lives here (drafts keep the button by the preview)
+  if (live && canEditLayout) tools.push({ key: "template", label: "Template & paper…", icon: LayoutTemplate, onClick: () => { setMore(false); docAction("template"); } });
 
   async function copy() {
     setMore(false);
@@ -85,7 +126,7 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
     copy();
   }
 
-  secondary.push({ key: "dup", label: `Duplicate as ${quote ? "quote" : "invoice"}`, icon: Copy, onClick: () => run("dup", () => duplicateDocument(doc.id)) });
+  if (!(doc.status === "paid" && !quote)) secondary.push({ key: "dup", label: `Duplicate as ${quote ? "quote" : "invoice"}`, icon: Copy, onClick: () => run("dup", () => duplicateDocument(doc.id)) });
   if (quote) secondary.push({ key: "dupi", label: "Copy into a new invoice", icon: Copy, onClick: () => run("dupi", () => duplicateDocument(doc.id, "invoice")) });
 
   const Item = ({ s: it }) => {
