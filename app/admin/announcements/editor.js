@@ -26,7 +26,7 @@ export function AnnouncementEditor({ initial, ownerCount }) {
         <div className="grid gap-5 p-5 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
             <Field label="Title" htmlFor="an-title"><Input id="an-title" value={f.title} onChange={set("title")} /></Field>
-            <Field label="Message" htmlFor="an-body" hint="Blank lines start new paragraphs. Keep it short: the banner shows the first paragraph."><Textarea id="an-body" rows={9} value={f.body} onChange={set("body")} /></Field>
+            <Field label="Message" htmlFor="an-body" hint="Blank lines start new paragraphs. The dashboard shows the title; the full message goes in the email."><Textarea id="an-body" rows={9} value={f.body} onChange={set("body")} /></Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Button link" htmlFor="an-href" optional hint="A Usetally page like /app/settings/ai, or https://…"><Input id="an-href" value={f.link_href} onChange={set("link_href")} /></Field>
               <Field label="Button label" htmlFor="an-label" optional><Input id="an-label" value={f.link_label} onChange={set("link_label")} /></Field>
