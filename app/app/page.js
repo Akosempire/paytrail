@@ -10,6 +10,7 @@ import { activityText } from "@/components/doc-bits";
 import { CollectQueue } from "@/components/collect-queue";
 import { MoneyStory, MiniTiles } from "@/components/dashboard/money-story";
 import { TodoMenu } from "@/components/dashboard/todo-menu";
+import { QuickActions } from "@/components/dashboard/quick-actions";
 import { monthName, nextAction } from "@/lib/dashboard-core";
 import { OPEN_INVOICE } from "@/lib/collect-core";
 import { GiftCelebration } from "@/components/gift-celebration";
@@ -135,6 +136,8 @@ export default async function Dashboard({ searchParams }) {
         </div>
         <TodoMenu items={todo} />
       </div>
+
+      <QuickActions canCreate={can(member, "documents.create")} canRecord={perms.canRecord} hasUnpaid={(unpaid?.length || 0) > 0} />
 
       {gift && <GiftCelebration gift={gift} />}
       {trial && <TrialNudge businessId={business.id} nudge={trial.nudge} stats={trial.stats} offer={trial.offer} freeLimit={trial.freeLimit} />}
