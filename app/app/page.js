@@ -1,14 +1,16 @@
 import { ShowToast } from "@/components/show-toast";
 import Link from "next/link";
-import { AlertCircle, ArrowRight, Banknote, Check, CircleDashed, FileClock, FileText, PiggyBank, Wallet } from "lucide-react";
+import { AlertCircle, ArrowRight, Check, CircleDashed } from "lucide-react";
 import { requireBusiness } from "@/lib/context";
 import { can } from "@/lib/permissions";
 import { formatMoney } from "@/lib/money";
 import { formatDate, timeAgo } from "@/lib/format";
-import { Button, Callout, Card, CardHeader, ListRow, PageHeader, SectionHeader, StatCard, cx } from "@/components/ui";
-import { StatusBadge, activityText } from "@/components/doc-bits";
+import { Button, Callout, Card, CardHeader, SectionHeader, cx } from "@/components/ui";
+import { activityText } from "@/components/doc-bits";
 import { CollectQueue } from "@/components/collect-queue";
-import { SetupStrip } from "@/components/setup-strip";
+import { MoneyStory, MiniTiles } from "@/components/dashboard/money-story";
+import { TodoMenu } from "@/components/dashboard/todo-menu";
+import { monthName, nextAction } from "@/lib/dashboard-core";
 import { OPEN_INVOICE } from "@/lib/collect-core";
 import { GiftCelebration } from "@/components/gift-celebration";
 import { TrialNudge } from "@/components/trial-nudge";
@@ -113,19 +115,29 @@ export default async function Dashboard({ searchParams }) {
     { done: (teamCount || 0) > 1, label: "Invite your finance team", href: "/app/settings/team", show: business.kind === "company" && can(member, "settings.team") },
   ].filter((c) => c.show);
   const remaining = checklist.filter((c) => !c.done).length;
-  const maxBar = Math.max(1, ...(sum.monthly || []).map((m) => m.collected_minor));
+  const perms = { canSend: can(member, "documents.send"), canRecord: can(member, "payments.record"), canConvert: can(member, "documents.convert"), canApprove: can(member, "documents.approve") };
+  const next = nextAction({ claims: claims || [], unpaid: unpaid || [], accepted: accepted || [], approvals: approvals || [], today, perms });
+  // everything else that needs a hand, in one list (To do)
+  const todo = [
+    ...(!String(business.country || "").trim() && can(member, "settings.business") ? [{ id: "country", tone: "warn", label: "Choose your country", detail: "It decides your tax features and what shows on your invoices.", href: "/app/settings" }] : []),
+    ...(claims || []).map((c) => ({ id: `claim-${c.id}`, tone: "brand", label: `Confirm ${c.payer_name || "a customer"}'s ${formatMoney(c.amount_minor, c.currency)} transfer`, detail: `For ${c.documents?.number || "an invoice"}. Check your bank first.`, href: `/app/documents/${c.document_id}` })),
+    ...(accepted || []).map((d) => ({ id: `acc-${d.id}`, tone: "brand", label: `Turn ${d.number} into an invoice`, detail: `${d.customer_name} accepted ${formatMoney(d.total_minor, d.currency)}.`, href: `/app/documents/${d.id}` })),
+    ...(approvals || []).map((d) => ({ id: `appr-${d.id}`, tone: "neutral", label: `${d.number} is waiting for approval`, detail: `${d.customer_name} · ${formatMoney(d.total_minor, d.currency)}`, href: `/app/documents/${d.id}` })),
+    ...(invoiceCount > 0 ? checklist.filter((c) => !c.done).map((c) => ({ id: `setup-${c.href}`, tone: "neutral", label: c.label, href: c.href })) : []),
+  ];
 
   return (
     <div className="flex flex-col gap-8">
-      <PageHeader title={`${greeting()}${firstName ? `, ${firstName}` : ""}`} description={`Here's how ${business.name} is doing.`} />
+      <div className="flex items-start justify-between gap-3 sm:items-end">
+        <div className="min-w-0">
+          <h1 className="text-title-1 text-ink">{greeting()}{firstName ? `, ${firstName}` : ""}</h1>
+          <p className="mt-1 text-sm text-ink-2">Here's how {business.name} is doing.</p>
+        </div>
+        <TodoMenu items={todo} />
+      </div>
 
       {gift && <GiftCelebration gift={gift} />}
       {trial && <TrialNudge businessId={business.id} nudge={trial.nudge} stats={trial.stats} offer={trial.offer} freeLimit={trial.freeLimit} />}
-      {!String(business.country || "").trim() && can(member, "settings.business") && (
-        <Callout tone="warn" icon={AlertCircle} title="Choose your country" action={<Button href="/app/settings" size="sm" variant="primary">Set country</Button>}>
-          It decides your tax features and what shows on your invoices.
-        </Callout>
-      )}
       {sp.welcome && <ShowToast title="You're all set up" message="Create your first quote. Add your hidden costs to see your profit before you send it." clear={["welcome"]} duration={7000} />}
       {ctx.allowance?.reason === "deletion_pending" && <Callout tone="danger" icon={AlertCircle} title={`${business.name} will be permanently deleted on ${formatDate(ctx.allowance.deletes_at)}`}
         action={member.role === "owner" && <Button href="/app/settings/privacy" size="sm" variant="primary">Keep my business</Button>}>
@@ -135,13 +147,6 @@ export default async function Dashboard({ searchParams }) {
         action={can(member, "settings.billing") && <Button href="/app/settings/billing" size="sm" variant="primary">Choose a plan</Button>}>
         You can still create drafts and record payments. {can(member, "settings.billing") ? "Choose a plan to keep sending quotes and invoices. Your drafts, customers and records are all kept." : "Ask the account owner to choose a plan."}
       </Callout>}
-
-      {claims?.length > 0 && (
-        <Callout tone="info" icon={Banknote} title={claims.length === 1 ? `${claims[0].payer_name || "A customer"} says they've paid ${formatMoney(claims[0].amount_minor, claims[0].currency)}` : `${claims.length} bank transfers to confirm`}
-          action={<Button href={`/app/documents/${claims[0].document_id}`} size="sm" variant="primary">Check and confirm</Button>}>
-          {claims.length === 1 ? `For ${claims[0].documents?.number || "an invoice"}. Check your bank account, then confirm it to send their receipt.` : claims.map((c) => `${c.documents?.number}: ${formatMoney(c.amount_minor, c.currency)}`).join(" · ")}
-        </Callout>
-      )}
 
       {remaining > 0 && !invoiceCount && (
         <Card data-tour="setup">
@@ -159,63 +164,18 @@ export default async function Dashboard({ searchParams }) {
         </Card>
       )}
 
-      <div className="grid grid-cols-2 gap-3 sm:gap-4 xl:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
-        <a href="#collect" aria-label={`Owed to you: ${money(sum.outstanding_minor)}. Go to Collect`}
-          className="group col-span-2 rounded-xl focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)] xl:col-span-1">
-          <StatCard icon={Banknote} tone="warn" label="Owed to you"
-            className="h-full transition-shadow group-hover:shadow-[var(--shadow-pop)] group-hover:ring-line-strong [&>div>span:first-child]:text-[30px] sm:[&>div>span:first-child]:text-[34px]"
-            value={money(sum.outstanding_minor)}
-            hint={<span className="inline-flex flex-wrap items-center gap-x-2">{sum.overdue_count ? <span className="text-danger-ink">{sum.overdue_count} overdue · {money(sum.overdue_minor)}</span> : "Nothing overdue"}{(unpaid?.length || 0) > 0 && <span className="inline-flex items-center gap-1 font-medium text-brand-ink">Collect<ArrowRight className="size-3.5" /></span>}</span>} />
-        </a>
-        <StatCard icon={Wallet} tone="success" className="max-sm:p-3.5 max-sm:[&>span:first-child]:hidden max-sm:[&>div]:mt-0 max-sm:[&>div>span:first-child]:text-[18px] max-sm:[&>div>span:first-child]:leading-7" label="Collected this month" value={money(sum.collected_month_minor)} trend={trend != null ? { value: `${Math.abs(trend)}%`, direction: trend >= 0 ? "up" : "down" } : undefined} hint={`${money(sum.collected_last_month_minor)} last month`} />
-        <StatCard icon={FileText} tone="brand" className="max-sm:p-3.5 max-sm:[&>span:first-child]:hidden max-sm:[&>div]:mt-0 max-sm:[&>div>span:first-child]:text-[18px] max-sm:[&>div>span:first-child]:leading-7" label="Open quotes" value={money(sum.open_quotes_minor)} hint={`${sum.open_quotes_count || 0} waiting for a reply`} />
-        {showCosts
-          ? <StatCard icon={PiggyBank} tone="violet" className="col-span-2 xl:col-span-1 max-sm:p-3.5 max-sm:[&>span:first-child]:hidden max-sm:[&>div]:mt-0 max-sm:[&>div>span:first-child]:text-[18px] max-sm:[&>div>span:first-child]:leading-7" label="Profit on paid invoices" value={profit == null ? "—" : money(profit)} hint={`This month, after ${money(sum.paid_month_costs_minor || 0)} costs`} />
-          : <StatCard icon={FileClock} tone="violet" className="col-span-2 xl:col-span-1 max-sm:p-3.5 max-sm:[&>span:first-child]:hidden max-sm:[&>div]:mt-0 max-sm:[&>div>span:first-child]:text-[18px] max-sm:[&>div>span:first-child]:leading-7" label="Awaiting approval" value={sum.awaiting_approval || 0} hint="Drafts sent for sign-off" />}
+      <div className="flex flex-col gap-3 sm:gap-4">
+        <MoneyStory month={monthName()} currency={business.currency} collected={sum.collected_month_minor} lastMonth={sum.collected_last_month_minor} trend={trend}
+          outstanding={sum.outstanding_minor} overdue={sum.overdue_minor} overdueCount={sum.overdue_count} next={next} businessName={business.name} perms={perms} />
+        <MiniTiles currency={business.currency} openQuotes={sum.open_quotes_minor} openQuotesCount={sum.open_quotes_count} profit={profit} costs={sum.paid_month_costs_minor}
+          showCosts={showCosts} awaiting={sum.awaiting_approval} monthly={sum.monthly || []} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <div className="flex min-w-0 flex-col gap-6">
           <CollectQueue docs={unpaid || []} businessName={business.name} currency={business.currency} today={today}
-            perms={{ canSend: can(member, "documents.send"), canRecord: can(member, "payments.record") }} />
+            perms={perms} />
 
-          {(approvals?.length || 0) + (accepted?.length || 0) > 0 && (
-            <section className="flex flex-col gap-3">
-              <SectionHeader title="Also waiting on you" count={(approvals?.length || 0) + (accepted?.length || 0)} />
-              <Card>
-                <ul className="divide-y divide-line">
-                  {(accepted || []).map((d) => (
-                    <li key={d.id}><ListRow href={`/app/documents/${d.id}`} title={`${d.number} · ${d.customer_name}`} subtitle="Quote accepted. Turn it into an invoice."
-                      trailing={<><span className="text-sm font-semibold tabular">{formatMoney(d.total_minor, d.currency)}</span><StatusBadge doc={d} size="sm" /></>} /></li>
-                  ))}
-                  {(approvals || []).map((d) => (
-                    <li key={d.id}><ListRow href={`/app/documents/${d.id}`} title={`${d.number} · ${d.customer_name}`} subtitle="Waiting for approval"
-                      trailing={<><span className="text-sm font-semibold tabular">{formatMoney(d.total_minor, d.currency)}</span><StatusBadge doc={d} size="sm" /></>} /></li>
-                  ))}
-                </ul>
-              </Card>
-            </section>
-          )}
-
-          <Card>
-            <CardHeader title="Collected" description="Payments received, last 6 months" />
-            <div className="flex items-end gap-3 px-5 pt-5 pb-4">
-              {(sum.monthly || []).map((m, i, arr) => (
-                <div key={m.month} className="flex flex-1 flex-col items-center gap-2">
-                  <span className="h-4 text-[11px] text-ink-3 tabular">{m.collected_minor ? compact(m.collected_minor, business.currency) : ""}</span>
-                  <div className="flex h-32 w-full items-end justify-center">
-                    <div className={cx("w-full max-w-12 rounded-t-md", i === arr.length - 1 ? "bg-brand" : "bg-brand/25")} style={{ height: `${Math.max(3, (m.collected_minor / maxBar) * 100)}%` }} title={money(m.collected_minor)} />
-                  </div>
-                  <span className="text-xs text-ink-3">{m.month}</span>
-                </div>
-              ))}
-            </div>
-          </Card>
-
-          {remaining > 0 && invoiceCount > 0 && (
-            <SetupStrip userId={ctx.user.id} done={checklist.length - remaining} total={checklist.length}
-              items={checklist.filter((c) => !c.done).map(({ label, href }) => ({ label, href }))} />
-          )}
         </div>
 
         <section className="flex flex-col gap-3">
@@ -257,10 +217,3 @@ function greeting() {
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 
-function compact(minor, currency) {
-  const v = minor / 100;
-  const sym = formatMoney(0, currency).replace(/[\d.,\s]/g, "");
-  if (v >= 1e6) return `${sym}${(v / 1e6).toFixed(1).replace(/\.0$/, "")}m`;
-  if (v >= 1e3) return `${sym}${Math.round(v / 1e3)}k`;
-  return `${sym}${Math.round(v)}`;
-}
