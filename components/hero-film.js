@@ -10,6 +10,10 @@ import { useEffect, useRef, useState } from "react";
 // - Reduced motion, Save-Data or blocked autoplay: the final frame is shown
 //   and no video is downloaded.
 // - The film plays once, muted, and rests on its final frame.
+// - Loading speed (LCP): the poster is the page's main content and paints at
+//   once. The video sits 1px inside it, so the browser never counts the film's
+//   first frame as a larger, later "main content" (it used to, by a rounding
+//   171 pixels, which made LCP wait for the whole video to download).
 
 const V = "2";
 const DESKTOP = "(min-width: 1024px)";
@@ -40,13 +44,14 @@ function useMedia(query) {
 }
 
 function Poster({ theme, frame }) {
-  // <picture> downloads only the framing that fits; lazy + display:none keeps
-  // the other theme's poster from loading at all
+  // <picture> downloads only the framing that fits. Both themes' posters load
+  // at once (about 18KB each): the visible one is the page's main content, and
+  // a lazy one made phones in dark mode wait for it.
   return (
     <picture className={theme === "light" ? "dark:hidden" : "hidden dark:block"}>
       <source media={DESKTOP} srcSet={`/hero/desktop-${theme}-${frame}.webp?v=${V}`} />
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={`/hero/mobile-${theme}-${frame}.webp?v=${V}`} alt="" decoding="async" loading={theme === "light" ? "eager" : "lazy"}
+      <img src={`/hero/mobile-${theme}-${frame}.webp?v=${V}`} alt="" loading="eager" fetchPriority="high"
         className="absolute inset-0 size-full object-cover" />
     </picture>
   );
@@ -82,7 +87,7 @@ export function HeroFilm({ className = "" }) {
       {known && !still && (
         <video ref={video} key={`${layout}-${theme}`} muted playsInline preload="auto" disablePictureInPicture disableRemotePlayback
           onPlaying={() => setReady(true)} onEnded={() => setEnded(true)} onError={() => setFailed(true)}
-          className={`absolute inset-0 size-full object-cover transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}>
+          className={`absolute inset-px size-[calc(100%-2px)] object-cover transition-opacity duration-500 ${ready ? "opacity-100" : "opacity-0"}`}>
           <source src={`/hero/${layout}-${theme}.webm?v=${V}`} type='video/webm; codecs="vp9"' />
           <source src={`/hero/${layout}-${theme}.mp4?v=${V}`} type="video/mp4" />
         </video>

@@ -1,5 +1,6 @@
 "use server";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { PUBLIC_PLANS_TAG } from "@/lib/public-plans";
 import { requirePlatformAdmin } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { decryptSecret, encryptSecret, hint } from "@/lib/crypto";
@@ -34,6 +35,7 @@ export async function savePlan(id, form) {
   const { error } = id ? await ctx.supabase.from("plans").update(row).eq("id", id) : await ctx.supabase.from("plans").insert(row);
   if (error) return { error: error.message };
   revalidatePath("/admin/plans");
+  updateTag(PUBLIC_PLANS_TAG); // the landing page shows the change straight away
   return { message: id ? "Plan updated. Existing subscribers keep their current period." : "Plan created." };
 }
 
@@ -49,6 +51,7 @@ export async function saveTrial(form) {
   const { error } = await ctx.supabase.from("platform_settings").update(row).eq("id", true);
   if (error) return { error: error.message };
   revalidatePath("/admin", "layout");
+  updateTag(PUBLIC_PLANS_TAG);
   return { message: "Trial settings saved. They apply to new sign-ups and current trials." };
 }
 
