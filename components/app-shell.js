@@ -401,10 +401,11 @@ function TrialMeter({ allowance, canBilling, status }) {
   let text;
   if (trial && allowance.mode === "documents") text = `${Math.max(limit - used, 0)} of ${limit} free documents left`;
   else if (trial && allowance.mode === "days") text = allowance.ends_at ? `Trial ends ${new Date(allowance.ends_at).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}` : "Trial";
+  else if (free && limit == null) text = "Unlimited documents";
   else if (free) text = `${used} of ${limit} free documents this month`;
   else if (limit != null) text = `${used} of ${limit} documents this month`;
   else text = "Subscription needed";
-  const pct = limit ? Math.min(100, (used / limit) * 100) : allowance.allowed ? 30 : 100;
+  const pct = limit ? Math.min(100, (used / limit) * 100) : allowance.allowed ? (free ? 0 : 30) : 100;
   return (
     <div className="mx-3 mb-3 rounded-xl bg-tray p-3.5">
       <div className="flex items-center gap-2 text-[13px] font-medium text-ink"><Sparkles className="size-4 text-brand" />{trial ? "Free trial" : free ? "Free plan" : "Your plan"}</div>

@@ -74,7 +74,7 @@ export function TrialNudge({ businessId, nudge, stats, offer, freeLimit }) {
             </ul>
           </div>
         )}
-        {freeLimit != null && <p className="mt-3 text-[12.5px] text-ink-3">If you don't choose a plan, you move to Free: {freeLimit} documents a month.</p>}
+        {freeLimit != null && <p className="mt-3 text-[12.5px] text-ink-3">If you don't choose a plan, you move to Free: {freeLimit === "unlimited" ? "unlimited documents" : `${freeLimit} documents a month`}.</p>}
 
         <Link href={sale ? "/app/settings/billing?interval=year" : "/app/settings/billing"} onClick={close}
           className="mt-5 flex h-12 items-center justify-center rounded-xl bg-brand text-[15px] font-semibold text-white hover:opacity-95">{sale ? `Get ${offer.discount}% off` : "Keep Usetally"}</Link>

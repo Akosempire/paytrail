@@ -92,7 +92,7 @@ export default async function Dashboard({ searchParams }) {
           if (paid) offer = show(paid);
         }
         const free = (plans || []).find((p) => p.active && p.price_minor === 0);
-        trial = { nudge, offer, freeLimit: free?.document_limit ?? null,
+        trial = { nudge, offer, freeLimit: free ? (free.document_limit ?? "unlimited") : null,
           stats: { sent: docCount || 0, collected: collected > 0 ? money(collected) : null, customers: customers || 0 } };
       }
     } catch { /* never block the dashboard */ }

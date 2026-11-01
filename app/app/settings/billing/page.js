@@ -46,7 +46,7 @@ export default async function Billing({ searchParams }) {
     if (left > 0) offers.push({ ...p, left });
   }
   let status;
-  if (onFree) status = `Free plan · ${a.used} of ${a.limit} documents sent this month${a.ended === "trial_used" ? " · your trial has ended" : a.ended ? " · your paid plan has ended" : ""}`;
+  if (onFree) status = `Free plan · ${a.limit == null ? "unlimited documents" : `${a.used} of ${a.limit} documents sent this month`}${a.ended === "trial_used" ? " · your trial has ended" : a.ended ? " · your paid plan has ended" : ""}`;
   else if (b.subscription_status === "trialing") status = settings.trial_mode === "documents" ? `Free trial: ${Math.max(0, (a.limit ?? 0) - (a.used ?? 0))} of ${a.limit ?? 0} free documents left` : settings.trial_mode === "days" ? `Free trial until ${formatDate(b.trial_ends_at)}` : "No free trial";
   else if (active) status = `${b.plans?.name || "Plan"}${b.current_period_end ? ` · paid until ${formatDate(b.current_period_end)}` : ""}${a.limit != null ? ` · ${a.used} of ${a.limit} documents used this month` : ""}`;
   else status = b.subscription_status === "suspended" ? "Suspended. Contact Usetally support." : "Your subscription has ended";
