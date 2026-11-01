@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
   Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart, Package, BellRing,
-  PanelLeftOpen, PanelLeftClose, Bot,
+  PanelLeftOpen, PanelLeftClose, Bot, Settings, ChevronDown,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -34,9 +34,9 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts,
     { title: "Money", items: [
       { href: "/app/payments", label: "Payments & receipts", icon: Wallet },
       canTax && { href: "/app/tax", label: "Tax", icon: Landmark },
-      canCosts && { href: "/app/settings/costs", label: "Cost presets", icon: Tags },
     ].filter(Boolean) },
-    { title: "Settings", items: [
+    // folds into one row on computers (opens by itself on a settings page)
+    { title: "Settings", fold: true, items: [
       canSettings && { href: "/app/settings", label: "Business & branding", icon: Building2, exact: true },
       canSettings && { href: "/app/settings/documents", label: "Documents & printing", icon: Printer },
       canSettings && { href: "/app/settings/reminders", label: "Emails & reminders", icon: BellRing },
@@ -45,9 +45,10 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts,
       { href: "/app/settings/ai", label: "AI & MCP", icon: Bot },
       kind === "company" && { href: "/app/settings/team", label: canTeam ? "Team & roles" : "Team", icon: UsersRound },
       canBilling && { href: "/app/settings/billing", label: "Plan & billing", icon: CreditCard },
+      canCosts && { href: "/app/settings/costs", label: "Cost presets", icon: Tags },
       { href: "/app/settings/privacy", label: "Privacy & data", icon: ShieldCheck },
     ].filter(Boolean) },
-    { title: "Help", items: [{ href: "/app/feedback", label: "Ideas & help", icon: MessageSquareHeart, badge: feedbackUnread }] },
+    { items: [{ href: "/app/feedback", label: "Ideas & help", icon: MessageSquareHeart, badge: feedbackUnread }] },
   ].filter((g) => g.items.length);
 }
 
@@ -93,6 +94,16 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
     return () => window.removeEventListener("keydown", onKey);
   }, [router]);
   const nav = navFor({ kind: business.kind, ...perms });
+  // Settings folded into one row; open on a settings page, else as last left
+  const onSettings = pathname.startsWith("/app/settings");
+  const [settingsPref, setSettingsPref] = useState(false);
+  useEffect(() => { try { setSettingsPref(localStorage.getItem("pt-nav-settings") === "open"); } catch { /* private mode */ } }, []);
+  const settingsOpen = onSettings || settingsPref;
+  const toggleSettings = () => {
+    const next = !settingsOpen;
+    setSettingsPref(next);
+    try { localStorage.setItem("pt-nav-settings", next ? "open" : "closed"); } catch { /* private mode */ }
+  };
   const here = goingTo || pathname;
   // screens with their own save bar at the bottom (editor, business settings) don't show the tabs
   const tabs = !/\/(new|edit)$/.test(pathname) && pathname !== "/app/settings" && pathname !== "/app/quotes";
@@ -135,9 +146,15 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
 
       <nav className="flex-1 overflow-y-auto px-2.5 pb-4 scroll-thin" aria-label="Main">
         {nav.map((group, i) => (
-          <div key={i} className="mt-4 first:mt-1">
-            {group.title && <p className="px-3 pb-1.5 text-overline text-ink-3">{group.title}</p>}
-            <ul className="space-y-0.5">
+          <div key={i} className={cx("first:mt-1", group.fold ? "mt-3" : group.title ? "mt-4" : "mt-1")}>
+            {group.fold ? (
+              <button type="button" onClick={toggleSettings} aria-expanded={settingsOpen}
+                className={cx("flex h-10 w-full items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium transition-colors duration-75 hover:bg-hover hover:text-ink", onSettings && !settingsOpen ? "text-brand-ink" : "text-ink-2")}>
+                <Settings className={cx("size-[18px]", onSettings ? "text-brand" : "text-ink-3")} />{group.title}
+                <ChevronDown className={cx("ml-auto size-4 text-ink-3 transition-transform", settingsOpen && "rotate-180")} />
+              </button>
+            ) : group.title && <p className="px-3 pb-1.5 text-overline text-ink-3">{group.title}</p>}
+            {(!group.fold || settingsOpen) && <ul className={cx("space-y-0.5", group.fold && "mt-0.5 ml-[19px] border-l border-line pl-2 [&_a]:h-9")}>
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const on = active(item);
@@ -147,15 +164,15 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
                       onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { setGoingTo(item.href); setOpen(false); } }}
                       className={cx("relative flex h-10 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-sm font-medium transition-colors duration-75",
                         on ? "bg-brand-soft text-brand-ink ring-1 ring-inset ring-brand-line/60" : "text-ink-2 hover:bg-hover hover:text-ink")}>
-                      <Icon className={cx("size-[18px]", on ? "text-brand" : "text-ink-3")} />
-                      {item.label}
+                      {!group.fold && <Icon className={cx("size-[18px] shrink-0", on ? "text-brand" : "text-ink-3")} />}
+                      <span className="truncate">{item.label}</span>
                       {item.badge > 0 && <span className="ml-auto inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-semibold text-white" aria-label={`${item.badge} new`}>{item.badge}</span>}
                       <PendingDot />
                     </Link>
                   </li>
                 );
               })}
-            </ul>
+            </ul>}
           </div>
         ))}
         {isPlatformAdmin && (
