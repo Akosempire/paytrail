@@ -5,7 +5,9 @@ import { requirePermission } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
-import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
+import { Badge, Callout, Card, CardHeader, EmptyState, PageHeader } from "@/components/ui";
+import { looksNigerian } from "@/lib/subscription-recovery-core";
+import { visitorCountry } from "@/lib/geo";
 import { PlanButton } from "./plan-button";
 import { hasYearly, monthlyEquivalent, plansFor, subscriptionCurrencyFor } from "@/lib/plans";
 import { cx } from "@/components/ui";
@@ -53,8 +55,16 @@ export default async function Billing({ searchParams }) {
     ? (await service.from("payment_attempts").select("id, amount_minor, currency").eq("business_id", b.id).eq("purpose", "subscription").eq("status", "succeeded")
         .gt("completed_at", new Date(Date.now() - 2 * 3600_000).toISOString()).order("completed_at", { ascending: false }).limit(1)).data?.[0]
     : null;
+  // a Nigerian business about to be charged in dollars (country missing or wrong):
+  // most Nigerian cards can't pay in dollars, so say so before they try
+  const nairaHint = planCurrency === "USD" && (looksNigerian(b) || (await visitorCountry().catch(() => null)) === "NG");
   return (
     <div className="flex flex-col gap-6">
+      {nairaHint && (
+        <Callout tone="info" title="Paying from Nigeria?">
+          Prices here are in dollars because your business country isn't set to Nigeria. Set it in <Link href="/app/settings" className="font-semibold underline">Business &amp; branding</Link> and you'll see naira prices, which most Nigerian cards can pay.
+        </Callout>
+      )}
       <PageHeader title="Plan & billing" description="Your Usetally subscription. This is separate from the payments your customers make to you." />
       {paid && <MetaEvent name="Purchase" eventId={`purchase-${paid.id}`} value={Number(paid.amount_minor) / 100} currency={paid.currency} />}
       {payment === "succeeded" && <ShowToast title="Payment received" message="Your plan is active. Thank you!" clear={["payment"]} />}
