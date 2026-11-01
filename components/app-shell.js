@@ -66,7 +66,16 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
     window.addEventListener(BUILDER_EVENT, on);
     return () => window.removeEventListener(BUILDER_EVENT, on);
   }, []);
-  const compact = builder && !wide;
+  // the side menu can shrink to icons on any page (remembered on this device);
+  // in the builder it shrinks by itself unless opened by hand
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => { try { setCollapsed(localStorage.getItem("pt-sidebar") === "icons"); } catch { /* private mode */ } }, []);
+  const setMenu = (icons) => {
+    setCollapsed(icons);
+    if (!icons) setWide(true); else setWide(false);
+    try { localStorage.setItem("pt-sidebar", icons ? "icons" : "full"); } catch { /* private mode */ }
+  };
+  const compact = collapsed || (builder && !wide);
   // keyboard: N = new invoice, / = search on this page (not while typing)
   const router = useRouter();
   useEffect(() => {
@@ -124,7 +133,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
         )}
       </div>
 
-      <nav className="flex-1 overflow-y-auto px-3 pb-4 scroll-thin" aria-label="Main">
+      <nav className="flex-1 overflow-y-auto px-2.5 pb-4 scroll-thin" aria-label="Main">
         {nav.map((group, i) => (
           <div key={i} className="mt-4 first:mt-1">
             {group.title && <p className="px-3 pb-1.5 text-overline text-ink-3">{group.title}</p>}
@@ -136,7 +145,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
                   <li key={item.href}>
                     <Link href={item.href} aria-current={on ? "page" : undefined} data-tour={`nav:${item.href}`}
                       onClick={(e) => { if (!e.metaKey && !e.ctrlKey && !e.shiftKey && e.button === 0) { setGoingTo(item.href); setOpen(false); } }}
-                      className={cx("relative flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium transition-colors duration-75",
+                      className={cx("relative flex h-10 items-center gap-2.5 whitespace-nowrap rounded-lg px-2.5 text-sm font-medium transition-colors duration-75",
                         on ? "bg-brand-soft text-brand-ink ring-1 ring-inset ring-brand-line/60" : "text-ink-2 hover:bg-hover hover:text-ink")}>
                       <Icon className={cx("size-[18px]", on ? "text-brand" : "text-ink-3")} />
                       {item.label}
@@ -201,7 +210,7 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           );
         })}
       </nav>
-      <button type="button" onClick={() => setWide(true)} aria-label="Show the full menu" title="Show the full menu"
+      <button type="button" onClick={() => setMenu(false)} aria-label="Show the full menu" title="Show the full menu"
         className="inline-flex size-10 items-center justify-center rounded-lg text-ink-3 hover:bg-hover hover:text-ink"><PanelLeftOpen className="size-[18px]" /></button>
     </div>
   );
@@ -289,15 +298,11 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
   );
 
   return (
-    <div className="min-h-dvh bg-canvas" style={{ "--sidebar-w": compact ? "72px" : "264px" }}>
+    <div className="min-h-dvh bg-canvas" style={{ "--sidebar-w": compact ? "72px" : "240px" }}>
       <InstallPrompt />
       <Tour userId={tour?.userId} done={tour?.done} />
-      <aside className={cx("fixed inset-y-0 left-0 z-30 hidden border-r border-line bg-surface lg:block", compact ? "w-[72px]" : "w-[264px]")}>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-[var(--sidebar-w)] border-r border-line bg-surface transition-[width] duration-150 lg:block">
         {compact ? rail : sidebar}
-        {builder && wide && (
-          <button type="button" onClick={() => setWide(false)} aria-label="Shrink the menu to icons" title="Shrink the menu to icons"
-            className="absolute top-4 -right-4 inline-flex size-8 items-center justify-center rounded-full bg-surface text-ink-3 shadow-[var(--shadow-xs)] ring-1 ring-line hover:text-ink"><PanelLeftClose className="size-4" /></button>
-        )}
       </aside>
       {create && (
         <div className="fixed inset-0 z-40 lg:hidden">
@@ -318,12 +323,16 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           </div>
         </div>
       )}
-      <div className={compact ? "lg:pl-[72px]" : "lg:pl-[264px]"}>
+      <div className="transition-[padding] duration-150 lg:pl-[var(--sidebar-w)]">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 border-b border-line bg-canvas/85 px-4 backdrop-blur sm:px-6 lg:px-8">
           {/* paying businesses see their own brand; trial and Free see Usetally's */}
           <Link href="/app" className="flex min-w-0 items-center gap-2.5 lg:hidden" aria-label={business.paying ? business.name : "Usetally home"}>
             {business.paying ? <><Avatar name={business.name} src={logo} color={logo ? null : business.brand_color} /><span className="truncate text-[15px] font-semibold text-ink">{business.name}</span></> : <Logo withWord className="size-8" />}
           </Link>
+          <button type="button" onClick={() => setMenu(!compact)} aria-label={compact ? "Show the full menu" : "Shrink the menu to icons"} title={compact ? "Show the full menu" : "Shrink the menu to icons"}
+            className="-ml-2 inline-flex size-9 items-center justify-center rounded-lg text-ink-3 hover:bg-hover hover:text-ink max-lg:hidden">
+            {compact ? <PanelLeftOpen className="size-[18px]" /> : <PanelLeftClose className="size-[18px]" />}
+          </button>
           <div className="flex-1" />
           <ThemeToggle className="max-lg:hidden" />
           {/* quick create lives on Home only: every list page has its own button */}

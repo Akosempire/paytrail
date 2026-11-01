@@ -643,7 +643,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
         )
   );
   const footerBar = (
-      <div className={cx("fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur", !guest && "lg:left-[var(--sidebar-w,264px)]")}>
+      <div className={cx("fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur", !guest && "lg:left-[var(--sidebar-w,240px)]")}>
         {/* phones: total on top, two equal buttons, clear of the home bar; problems show as toasts */}
         <div className={cx("mx-auto flex flex-wrap items-center gap-2.5 px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] sm:gap-3 sm:px-6 sm:pb-3 lg:px-8", studio ? "max-w-[1760px]" : "max-w-[1200px]")}>
           <div className="w-full min-w-0 sm:w-auto sm:flex-1">

@@ -131,7 +131,7 @@ export function BusinessForm({ business: b, logo: initialLogo, signature: signat
         <p className="mb-2.5 text-[13px] font-medium text-ink-2">Preview</p>
         <DocumentPreview name={b.name} color={color} logo={logo} currency={b.currency} footer={footer} />
       </aside>
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur lg:left-[264px]">
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface/95 backdrop-blur lg:left-[var(--sidebar-w,240px)]">
         <div className="mx-auto flex max-w-[1200px] justify-end px-4 py-3 sm:px-6 lg:px-8"><SubmitButton icon={Save} pendingText="Saving…">Save changes</SubmitButton></div>
       </div>
     </form>
