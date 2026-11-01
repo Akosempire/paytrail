@@ -36,7 +36,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
       <div className="absolute inset-0 animate-fade-in bg-[#101828]/45 backdrop-blur-[2px]" onClick={onClose} />
       <div ref={ref} role="dialog" aria-modal="true" aria-label={typeof title === "string" ? title : undefined}
-        className={cx("relative flex max-h-[92vh] w-full animate-rise flex-col overflow-hidden rounded-t-2xl bg-surface shadow-[var(--shadow-dialog)] ring-1 ring-line sm:rounded-2xl", widths[size])}>
+        className={cx("relative flex max-h-[92vh] w-full animate-rise flex-col overflow-hidden rounded-t-2xl bg-surface text-left text-sm font-normal tracking-normal normal-case text-ink shadow-[var(--shadow-dialog)] ring-1 ring-line sm:rounded-2xl", widths[size])}>
         <div className="flex items-start justify-between gap-4 border-b border-line px-5 py-4">
           <div className="min-w-0">
             <h2 className="text-title-2 text-ink">{title}</h2>
