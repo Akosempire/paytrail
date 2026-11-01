@@ -11,6 +11,7 @@ import { MoneyStory, MiniTiles } from "@/components/dashboard/money-story";
 import { TodoMenu } from "@/components/dashboard/todo-menu";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { DraftsList } from "@/components/dashboard/drafts";
+import { AnnouncementBanner } from "@/components/dashboard/announcement";
 import { groupActivity, monthName, nextAction } from "@/lib/dashboard-core";
 import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { OPEN_INVOICE } from "@/lib/collect-core";
@@ -109,6 +110,8 @@ export default async function Dashboard({ searchParams }) {
   const [{ count: quoteDrafts }, { count: invoiceDrafts }] = draftTotal ? await Promise.all(["quote", "invoice"].map((k) =>
     supabase.from("documents").select("id", { count: "exact", head: true }).eq("business_id", business.id).eq("status", "draft").eq("kind", k))) : [{ count: 0 }, { count: 0 }];
   const aiDrafts = (drafts || []).filter((d) => d.created_via);
+  // news from the Usetally team (Admin → Announcements); quiet if that SQL hasn't run
+  const { data: news } = await supabase.from("announcements").select("id, title, body, link_href, link_label").eq("active", true).order("published_at", { ascending: false }).limit(1);
   // bank transfers customers say they've sent, waiting for someone to check
   const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
     .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
@@ -147,6 +150,8 @@ export default async function Dashboard({ searchParams }) {
         </div>
         <TodoMenu items={todo} />
       </div>
+
+      {news?.[0] && <AnnouncementBanner a={news[0]} />}
 
       <QuickActions canCreate={can(member, "documents.create")} canRecord={perms.canRecord} hasUnpaid={(unpaid?.length || 0) > 0} />
 
