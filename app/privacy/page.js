@@ -34,6 +34,7 @@ export default async function Privacy() {
           "Basic technical data such as IP address and browser type, used for security, preventing abuse and fixing problems.",
           "How you use the app: which screens you use and for how long (counted only while you're active). We don't record what you type or what's on the screen.",
           "Messages you send us from Ideas & help, with your name, email and the screen you sent it from.",
+          "AI assistants you connect: which app, which business, its access level and when it was last used (see section 5).",
         ]} />
       </Section>
 
@@ -59,14 +60,34 @@ export default async function Privacy() {
         ]} />
       </Section>
 
-      <Section title="5. International transfers">
+      <Section title="5. Apps and AI assistants you connect">
+        <p>
+          You can connect AI assistants such as ChatGPT, Claude or Grok to a business in Settings → AI &amp; MCP. You sign in to Usetally,
+          choose the business, and choose View only or Full access. A connected assistant can see, and with Full access create and change,
+          what your team role allows: business details, quotes, invoices, receipts, payments, products and prices, and your customers' names,
+          emails, phone numbers and addresses. Hidden costs are included only if your role can see them.
+        </p>
+        <p>
+          Information you ask an assistant to fetch is sent to that assistant's provider (for example OpenAI, Anthropic or xAI), which handles it
+          under its own terms and privacy policy. You choose to connect these services, so they are not Usetally's sub-processors. Only connect
+          them if you have the right to share your customers' details with them.
+        </p>
+        <p>
+          We keep a record of each connection: which app, which business, who connected it, its access level and when it was last used.
+          Sign-in tokens are stored only in a form that can't be turned back into the token, and access tokens expire after one hour. You can
+          disconnect at any time, which ends access straight away. Documents an assistant created stay in your account, marked with the
+          assistant's name.
+        </p>
+      </Section>
+
+      <Section title="6. International transfers">
         <p>
           Some of our providers store or process data outside Nigeria (for example in the EU or the US). When that happens we rely on
           safeguards permitted by the Nigeria Data Protection Act, such as contractual protections and providers with recognised security standards.
         </p>
       </Section>
 
-      <Section title="6. How long we keep it">
+      <Section title="7. How long we keep it">
         <p>
           We keep your account and business records while your account is open, so your documents and receipts remain available. When an
           owner deletes a business, it and everything in it (customers, documents, payments, receipts, logo) is permanently deleted 30 days
@@ -75,7 +96,7 @@ export default async function Privacy() {
         </p>
       </Section>
 
-      <Section title="7. How we protect it">
+      <Section title="8. How we protect it">
         <List items={[
           "Each business's data is separated at the database level, so one business can't read another's records.",
           "Hidden cost lines are only visible to team members allowed to see them.",
@@ -84,7 +105,7 @@ export default async function Privacy() {
         ]} />
       </Section>
 
-      <Section title="8. Your rights">
+      <Section title="9. Your rights">
         <p>
           You can ask to access, correct, delete or receive a copy of your personal data, object to or restrict how we use it, and withdraw
           consent where we rely on it. Most of this you can do yourself: edit your details in the app, and in <strong className="text-ink">Settings → Privacy &amp; data</strong> download
@@ -94,7 +115,7 @@ export default async function Privacy() {
         </p>
       </Section>
 
-      <Section title="9. Cookies">
+      <Section title="10. Cookies">
         <p>
           Usetally uses essential cookies to keep you signed in and secure. Your light or dark display choice is saved in your browser.
           {metaPixel
@@ -103,15 +124,15 @@ export default async function Privacy() {
         </p>
       </Section>
 
-      <Section title="10. Children">
+      <Section title="11. Children">
         <p>Usetally is for businesses and isn't meant for anyone under 18.</p>
       </Section>
 
-      <Section title="11. Changes">
+      <Section title="12. Changes">
         <p>We may update this policy. If a change is significant, we'll tell you by email or in the app.</p>
       </Section>
 
-      <Section title="12. Contact">
+      <Section title="13. Contact">
         <p>Privacy questions or requests: <span className="font-medium text-ink select-all">{email}</span>.</p>
       </Section>
     </LegalLayout>

@@ -39,7 +39,7 @@ export default async function Terms() {
 
       <Section title="3. Free trial, plans and payment">
         <List items={[
-          "New businesses get a free trial (currently 14 days). After it ends, or if a paid plan runs out, you move to the Free plan, which allows a small number of sent quotations and invoices each month and adds “Powered by Usetally” to documents (as it does during the trial). Your existing records stay available.",
+          "New businesses get a free trial, as described when you sign up. After it ends, or if a paid plan runs out, you move to the Free plan, whose current limits are shown on our pricing page, and which adds “Powered by Usetally” to documents (as it does during the trial). Your existing records stay available.",
           "Paid plans are billed monthly or yearly in advance, at the price shown when you pay. Plans do not renew automatically: you renew from Plan & billing before your period ends.",
           "Each plan has limits, such as documents per month and team members. If you reach a limit, you can upgrade or wait for the next month.",
           "We may change public prices. Changes apply from your next renewal, and we'll show the new price before you pay. Founding-customer prices stay as agreed.",
@@ -56,7 +56,17 @@ export default async function Terms() {
         ]} />
       </Section>
 
-      <Section title="5. Things you must not do">
+      <Section title="5. Connected apps and AI assistants">
+        <p>
+          You can connect AI assistants such as ChatGPT, Claude or Grok to your business. Anything a connected assistant does through your
+          connection counts as done by you and follows your team role's permissions. AI assistants can make mistakes: check quotes and
+          invoices before they're sent, and you remain responsible for their content. Assistants are provided by third parties under their
+          own terms, and Usetally isn't responsible for their availability or what they produce. You can disconnect them at any time in
+          Settings → AI &amp; MCP.
+        </p>
+      </Section>
+
+      <Section title="6. Things you must not do">
         <List items={[
           "Use Usetally for fraud, money laundering, scams, illegal goods or services, or anything your payment provider forbids.",
           "Send misleading or fake invoices, or invoices in someone else's name without their permission.",
@@ -65,7 +75,7 @@ export default async function Terms() {
         ]} />
       </Section>
 
-      <Section title="6. Your data">
+      <Section title="7. Your data">
         <p>
           The business information, customers, documents and costs you put into Usetally belong to you. You give us permission to store and
           process them only to run Usetally for you, as described in our <Link href="/privacy" className="font-medium text-brand-ink underline underline-offset-2">Privacy Policy</Link> and our <Link href="/dpa" className="font-medium text-brand-ink underline underline-offset-2">Data Processing Agreement</Link>, which is part of these terms. You can download all of it at any time.
@@ -73,14 +83,14 @@ export default async function Terms() {
         </p>
       </Section>
 
-      <Section title="7. Availability and changes">
+      <Section title="8. Availability and changes">
         <p>
           We work to keep Usetally available and secure, but we can't promise it will always be uninterrupted or error-free. We may improve,
           change or remove features. If we make a change that significantly reduces what you've paid for, we'll tell you in advance.
         </p>
       </Section>
 
-      <Section title="8. Suspension and closing your account">
+      <Section title="9. Suspension and closing your account">
         <p>
           We may suspend or close an account that breaks these terms, puts others at risk, or is required to be suspended by law or a payment
           provider. Where reasonable, we'll tell you first and give you a chance to fix the problem. You can stop using Usetally at any time. The owner can
@@ -88,7 +98,7 @@ export default async function Terms() {
         </p>
       </Section>
 
-      <Section title="9. Liability">
+      <Section title="10. Liability">
         <p>
           Usetally is provided "as is". To the extent the law allows, we aren't liable for indirect or consequential losses, lost profits, or
           losses caused by payment providers, your customers or events outside our reasonable control. Our total liability to you for any
@@ -97,18 +107,18 @@ export default async function Terms() {
         </p>
       </Section>
 
-      <Section title="10. Governing law">
+      <Section title="11. Governing law">
         <p>
           These terms are governed by the laws of {law || `the country where ${company} is registered`}. Disputes will be handled by{" "}
           {courts || "the courts of that country"}, unless the law where you live gives you the right to bring a claim there.
         </p>
       </Section>
 
-      <Section title="11. Changes to these terms">
+      <Section title="12. Changes to these terms">
         <p>We may update these terms. If a change is significant, we'll tell you by email or in the app before it takes effect.</p>
       </Section>
 
-      <Section title="12. Contact">
+      <Section title="13. Contact">
         <p>Questions about these terms: <span className="font-medium text-ink select-all">{email}</span>.</p>
       </Section>
     </LegalLayout>
