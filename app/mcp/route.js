@@ -35,7 +35,7 @@ async function handle(request) {
     { name: "usetally", title: "Usetally", version: "1.0.0", websiteUrl: aiSite(), icons: [{ src: `${aiSite()}/icons/icon-512.png`, mimeType: "image/png", sizes: ["512x512"] }] },
     { instructions: `${INSTRUCTIONS}\nConnected business: ${who.business.name} (usual currency ${who.business.currency}).` },
   );
-  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope: who.connection.scope, site: aiSite() });
+  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope: who.connection.scope, site: aiSite(), appName: who.connection.app_name || "AI assistant" });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);
   try {

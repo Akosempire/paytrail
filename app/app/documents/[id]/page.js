@@ -1,7 +1,7 @@
 import { ShowToast } from "@/components/show-toast";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, EyeOff, Printer, Receipt, Wallet, History, ArrowRight, ShieldCheck, Clock, CalendarClock, Repeat, ListChecks, CheckCircle2, Circle, ChevronDown } from "lucide-react";
+import { ArrowLeft, EyeOff, Printer, Receipt, Wallet, History, ArrowRight, ShieldCheck, Clock, CalendarClock, Repeat, ListChecks, CheckCircle2, Circle, ChevronDown, Sparkles } from "lucide-react";
 import { after } from "next/server";
 import { requireBusiness } from "@/lib/context";
 import { getDocument } from "@/lib/documents";
@@ -136,6 +136,11 @@ export default async function DocumentPage({ params, searchParams }) {
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-title-1 text-ink">{doc.number}</h1>
             <StatusBadge doc={doc} />
+            {doc.created_via && (
+              <span className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-medium text-violet-ink ring-1 ring-violet/30" title="Created through an AI assistant connected in Settings → AI & MCP">
+                <Sparkles className="size-3.5" />Made by {doc.created_via}
+              </span>
+            )}
           </div>
           <p className="mt-1 text-sm text-ink-2">{doc.title || (quote ? "Quotation" : "Invoice")} · {doc.customer_name}{doc.customer_company ? `, ${doc.customer_company}` : ""}</p>
         </div>

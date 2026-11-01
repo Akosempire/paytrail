@@ -36,7 +36,7 @@ async function mcpFor(accessToken) {
   const who = await authenticate(service, `Bearer ${accessToken}`);
   assert.ok(who.connection, `authenticated (${who.error})`);
   const server = new McpServer({ name: "usetally", version: "1.0.0" });
-  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope: who.connection.scope, site: SITE });
+  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope: who.connection.scope, site: SITE, appName: "ChatGPT" });
   const [a, b] = InMemoryTransport.createLinkedPair();
   await server.connect(a);
   const c = new Client({ name: "test", version: "1" });
@@ -106,6 +106,8 @@ test("full access: create, edit, send, get paid, quote to invoice, void", async 
   const number = inv.data.number;
   const row = await one("select created_by, due_date::text, terms from public.documents where number=$1 and business_id=$2", [number, biz]);
   assert.equal(row.created_by, owner); assert.equal(row.terms, "Pay within 7 days");
+  // the dashboard shows it as made by ChatGPT
+  assert.equal((await one("select created_via from public.documents where number=$1 and business_id=$2", [number, biz])).created_via, "ChatGPT");
 
   const edited = await call("update_draft", { document: number.toLowerCase(), notes: "Thanks for the work!", discount: 20000 });
   assert.ok(!edited.isError, edited.text);

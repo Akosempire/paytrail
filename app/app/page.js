@@ -11,6 +11,7 @@ import { CollectQueue } from "@/components/collect-queue";
 import { MoneyStory, MiniTiles } from "@/components/dashboard/money-story";
 import { TodoMenu } from "@/components/dashboard/todo-menu";
 import { QuickActions } from "@/components/dashboard/quick-actions";
+import { DraftsList } from "@/components/dashboard/drafts";
 import { monthName, nextAction } from "@/lib/dashboard-core";
 import { OPEN_INVOICE } from "@/lib/collect-core";
 import { GiftCelebration } from "@/components/gift-celebration";
@@ -100,6 +101,14 @@ export default async function Dashboard({ searchParams }) {
       }
     } catch { /* never block the dashboard */ }
   }
+  // drafts not sent yet (and which AI assistant made each, once that SQL has run)
+  const draftCols = "id, kind, number, customer_name, status, total_minor, currency, updated_at";
+  const draftQuery = (cols) => supabase.from("documents").select(cols, { count: "exact" }).eq("business_id", business.id).eq("status", "draft").order("updated_at", { ascending: false }).limit(6);
+  let { data: drafts, count: draftTotal, error: draftErr } = await draftQuery(`${draftCols}, created_via`);
+  if (draftErr) ({ data: drafts, count: draftTotal } = await draftQuery(draftCols));
+  const [{ count: quoteDrafts }, { count: invoiceDrafts }] = draftTotal ? await Promise.all(["quote", "invoice"].map((k) =>
+    supabase.from("documents").select("id", { count: "exact", head: true }).eq("business_id", business.id).eq("status", "draft").eq("kind", k))) : [{ count: 0 }, { count: 0 }];
+  const aiDrafts = (drafts || []).filter((d) => d.created_via);
   // bank transfers customers say they've sent, waiting for someone to check
   const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
     .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
@@ -123,6 +132,7 @@ export default async function Dashboard({ searchParams }) {
     ...(!String(business.country || "").trim() && can(member, "settings.business") ? [{ id: "country", tone: "warn", label: "Choose your country", detail: "It decides your tax features and what shows on your invoices.", href: "/app/settings" }] : []),
     ...(claims || []).map((c) => ({ id: `claim-${c.id}`, tone: "brand", label: `Confirm ${c.payer_name || "a customer"}'s ${formatMoney(c.amount_minor, c.currency)} transfer`, detail: `For ${c.documents?.number || "an invoice"}. Check your bank first.`, href: `/app/documents/${c.document_id}` })),
     ...(accepted || []).map((d) => ({ id: `acc-${d.id}`, tone: "brand", label: `Turn ${d.number} into an invoice`, detail: `${d.customer_name} accepted ${formatMoney(d.total_minor, d.currency)}.`, href: `/app/documents/${d.id}` })),
+    ...(aiDrafts.length ? [{ id: "ai-drafts", tone: "brand", label: `Review ${aiDrafts.length === 1 ? `the draft ${aiDrafts[0].created_via} made` : `${aiDrafts.length} drafts made by AI`}`, detail: aiDrafts.length === 1 ? `${aiDrafts[0].number} for ${aiDrafts[0].customer_name || "a customer"}. Check it, then send it.` : aiDrafts.map((d) => d.number).join(", "), href: aiDrafts.length === 1 ? `/app/documents/${aiDrafts[0].id}` : "#drafts-title" }] : []),
     ...(approvals || []).map((d) => ({ id: `appr-${d.id}`, tone: "neutral", label: `${d.number} is waiting for approval`, detail: `${d.customer_name} · ${formatMoney(d.total_minor, d.currency)}`, href: `/app/documents/${d.id}` })),
     ...(invoiceCount > 0 ? checklist.filter((c) => !c.done).map((c) => ({ id: `setup-${c.href}`, tone: "neutral", label: c.label, href: c.href })) : []),
   ];
@@ -178,6 +188,7 @@ export default async function Dashboard({ searchParams }) {
         <div className="flex min-w-0 flex-col gap-6">
           <CollectQueue docs={unpaid || []} businessName={business.name} currency={business.currency} today={today}
             perms={perms} />
+          <DraftsList drafts={drafts || []} total={draftTotal || 0} counts={{ quote: quoteDrafts || 0, invoice: invoiceDrafts || 0 }} />
 
         </div>
 
