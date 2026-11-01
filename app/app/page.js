@@ -4,15 +4,15 @@ import { AlertCircle, ArrowRight, Check, CircleDashed } from "lucide-react";
 import { requireBusiness } from "@/lib/context";
 import { can } from "@/lib/permissions";
 import { formatMoney } from "@/lib/money";
-import { formatDate, timeAgo } from "@/lib/format";
-import { Button, Callout, Card, CardHeader, SectionHeader, cx } from "@/components/ui";
-import { activityText } from "@/components/doc-bits";
+import { formatDate } from "@/lib/format";
+import { Button, Callout, Card, CardHeader, cx } from "@/components/ui";
 import { CollectQueue } from "@/components/collect-queue";
 import { MoneyStory, MiniTiles } from "@/components/dashboard/money-story";
 import { TodoMenu } from "@/components/dashboard/todo-menu";
 import { QuickActions } from "@/components/dashboard/quick-actions";
 import { DraftsList } from "@/components/dashboard/drafts";
-import { monthName, nextAction } from "@/lib/dashboard-core";
+import { groupActivity, monthName, nextAction } from "@/lib/dashboard-core";
+import { ActivityFeed } from "@/components/dashboard/activity-feed";
 import { OPEN_INVOICE } from "@/lib/collect-core";
 import { GiftCelebration } from "@/components/gift-celebration";
 import { TrialNudge } from "@/components/trial-nudge";
@@ -38,7 +38,7 @@ export default async function Dashboard({ searchParams }) {
     supabase.from("documents").select("id, kind, number, customer_name, status, total_minor, amount_paid_minor, currency")
       .eq("business_id", business.id).eq("status", "pending_approval").order("updated_at", { ascending: false }).limit(8),
     supabase.from("documents").select("id, kind, number, customer_name, status, total_minor, currency, accepted_at").eq("business_id", business.id).eq("kind", "quote").eq("status", "accepted").is("converted_invoice_id", null).limit(5),
-    supabase.from("activity").select("id, action, actor_label, created_at, detail, document_id, documents(number)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(8),
+    supabase.from("activity").select("id, action, actor_label, created_at, detail, document_id, documents(number, kind)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(40),
     supabase.from("payment_connections").select("provider, payment_confirmed_at, webhook_confirmed_at").eq("business_id", business.id),
     supabase.from("documents").select("id", { count: "exact", head: true }).eq("business_id", business.id).not("sent_at", "is", null),
     supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("business_id", business.id),
@@ -113,7 +113,8 @@ export default async function Dashboard({ searchParams }) {
   const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
     .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
   const sum = s || {};
-  const trend = sum.collected_last_month_minor > 0 ? Math.round(((sum.collected_month_minor - sum.collected_last_month_minor) / sum.collected_last_month_minor) * 100) : null;
+  // no "down 100%" on the first days of a month with nothing in yet
+  const trend = sum.collected_last_month_minor > 0 && sum.collected_month_minor > 0 ? Math.round(((sum.collected_month_minor - sum.collected_last_month_minor) / sum.collected_last_month_minor) * 100) : null;
   const profit = sum.paid_month_costs_minor == null ? null : sum.paid_month_revenue_minor - sum.paid_month_costs_minor;
   const paymentsReady = (connections || []).some((c) => c.payment_confirmed_at && c.webhook_confirmed_at);
   const firstName = (member.full_name || "").split(" ")[0];
@@ -184,43 +185,15 @@ export default async function Dashboard({ searchParams }) {
           showCosts={showCosts} awaiting={sum.awaiting_approval} monthly={sum.monthly || []} />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className={cx("grid gap-6", ((unpaid?.length || 0) > 0 || (drafts?.length || 0) > 0) ? "lg:grid-cols-[minmax(0,1fr)_360px]" : "lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]")}>
         <div className="flex min-w-0 flex-col gap-6">
-          <CollectQueue docs={unpaid || []} businessName={business.name} currency={business.currency} today={today}
-            perms={perms} />
+          {(unpaid?.length || 0) > 0 && <CollectQueue docs={unpaid || []} businessName={business.name} currency={business.currency} today={today}
+            perms={perms} />}
           <DraftsList drafts={drafts || []} total={draftTotal || 0} counts={{ quote: quoteDrafts || 0, invoice: invoiceDrafts || 0 }} />
 
         </div>
 
-        <section className="flex flex-col gap-3">
-          <SectionHeader title="Recent activity" />
-          <Card>
-            {activity?.length ? (
-              <ol className="space-y-1.5 px-5 py-3">
-                {activity.map((a) => {
-                  const body = (
-                    <>
-                      <span className="mt-1.5 size-2 shrink-0 rounded-full bg-brand/60" />
-                      <span className="min-w-0">
-                        <span className="text-ink"><strong className="font-medium">{a.actor_label || "Customer"}</strong> {activityText(a)}</span>
-                        {a.documents?.number && <span className="ml-1 font-mono text-xs text-brand-ink group-hover:underline">{a.documents.number}</span>}
-                        <span className="block text-xs text-ink-3">{timeAgo(a.created_at)}</span>
-                      </span>
-                    </>
-                  );
-                  return (
-                    <li key={a.id}>
-                      {a.document_id
-                        ? <Link href={`/app/documents/${a.document_id}`} className="group -mx-2 flex gap-3 rounded-lg px-2 py-1.5 text-[13px] hover:bg-hover focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]">{body}</Link>
-                        : <div className="flex gap-3 px-0 py-1.5 text-[13px]">{body}</div>}
-                    </li>
-                  );
-                })}
-              </ol>
-            ) : <p className="px-5 py-6 text-[13px] text-ink-3">Activity shows up here as your team works.</p>}
-            <Link href="/app/payments" className="flex items-center justify-between border-t border-line px-5 py-3 text-[13px] font-medium text-brand-ink hover:bg-subtle">All payments & receipts<ArrowRight className="size-4" /></Link>
-          </Card>
-        </section>
+        <ActivityFeed items={groupActivity(activity || [])} />
       </div>
     </div>
   );

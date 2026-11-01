@@ -28,3 +28,18 @@ test("do this next: money to confirm, then overdue, then accepted quotes, approv
   assert.equal(nudge.kind, "remind"); assert.match(nudge.detail, /due in 2 days/);
   assert.equal(nextAction({ today }).title, "You're all caught up");
 });
+
+test("activity: back-to-back events on one document become one line; filters by kind", async () => {
+  const { groupActivity, joinVerbs } = await import("../lib/dashboard-core.js");
+  const rows = [
+    { id: "3", action: "document.sent", actor_label: "Ibrahim", document_id: "q2", documents: { number: "QT-0002", kind: "quote" } },
+    { id: "2", action: "document.created", actor_label: "Ibrahim", document_id: "q2", documents: { number: "QT-0002", kind: "quote" } },
+    { id: "1", action: "payment.recorded", actor_label: "Funmi", document_id: "i1", documents: { number: "INV-1", kind: "invoice" } },
+    { id: "0", action: "subscription.extended", actor_label: "Usetally", document_id: null },
+  ];
+  const g = groupActivity(rows);
+  assert.equal(g.length, 3);
+  assert.equal(joinVerbs(g[0].verbs), "created and sent");
+  assert.deepEqual(g.map((x) => x.kind), ["quotes", "payments", "other"]);
+  assert.equal(g[2].verbs, null);
+});
