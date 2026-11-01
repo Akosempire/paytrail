@@ -77,7 +77,8 @@ export default async function DocumentPage({ params, searchParams }) {
   const whatsapp = `https://wa.me/${(doc.customer_phone || "").replace(/[^\d]/g, "")}?text=${encodeURIComponent(`Hello ${doc.customer_name.split(" ")[0] || ""}, here is ${quote ? "our quotation" : "your invoice"} ${doc.number} from ${ctx.business.name} for ${money(quote ? doc.total_minor : balance)}: ${link}`)}`;
   const lastReturn = activity.find((a) => a.action === "document.returned");
   const payLink = await payLinkFor(ctx.supabase, doc, full.connections);
-  const canEditLayout = draft || can(ctx.member, "documents.send");
+  // templates are chosen while a document is made; a paid or cancelled one keeps its look
+  const canEditLayout = !["paid", "void"].includes(doc.status) && (draft || can(ctx.member, "documents.send"));
   const files = await filesFor(ctx, doc.id);
   // customers who said "I've sent it" (empty until the payment claims SQL is run)
   const { data: claimRows } = await ctx.supabase.from("payment_claims").select("id, amount_minor, payer_name, paid_on, note, file_id, created_at")

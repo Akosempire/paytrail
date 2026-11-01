@@ -33,7 +33,7 @@ export function FoldRow({ id, title, value, open, onToggle, children }) {
 }
 
 // label: "Quote" or "Invoice" (the middle column and its phone tab); both builders use this layout
-export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue, money, previewModel, onPreviewClick, view, setView, costs, quote, footer, label = "Quote" }) {
+export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue, money, previewModel, onPreviewClick, view, setView, costs, quote, footer, label = "Quote", templates = null }) {
   const area = useRef(null);
   const [areaW, setAreaW] = useState(0);
   const [lg, setLg] = useState(false);
@@ -168,7 +168,7 @@ export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue
 
         {/* 3 · preview */}
         <section aria-label="Preview" className={cx("min-w-0 lg:sticky lg:top-24 lg:shrink-0", !lg && view !== "preview" && "hidden")} style={lg ? { width: pw } : undefined}>
-          <ZoomPreview model={previewModel} onPreviewClick={onPreviewClick} onFull={() => setFull(true)} lg={lg} />
+          <ZoomPreview model={previewModel} onPreviewClick={onPreviewClick} onFull={() => setFull(true)} lg={lg} templates={templates} />
         </section>
       </div>
 
@@ -179,7 +179,7 @@ export function QuoteStudio({ userId, costsVisible, profit, pct: margin, revenue
 }
 
 // the live quotation, scaled to its column; Ctrl/⌘ + scroll zooms
-function ZoomPreview({ model, onPreviewClick, onFull, lg }) {
+function ZoomPreview({ model, onPreviewClick, onFull, lg, templates }) {
   const box = useRef(null), inner = useRef(null);
   const [zoom, setZoom] = useState(null); // null = fit width
   const [fit, setFit] = useState(1);
@@ -213,7 +213,9 @@ function ZoomPreview({ model, onPreviewClick, onFull, lg }) {
   return (
     <Card className="flex flex-col lg:max-h-[calc(100dvh-8rem)]">
       <div className="flex items-center gap-1 border-b border-line px-3 py-2">
-        <p className="mr-auto text-[13px] font-semibold text-ink">Preview</p>
+        <p className="text-[13px] font-semibold text-ink">Preview</p>
+        {/* templates: chosen while the document is being made (DocumentEditor) */}
+        <div className="mr-auto">{templates}</div>
         <button type="button" onClick={() => setZoom(null)} aria-pressed={zoom == null} className={cx(tool, zoom == null ? "bg-brand-soft text-brand-ink" : "text-ink-2 hover:bg-hover")}>Fit width</button>
         <button type="button" onClick={() => setZoom(1)} aria-pressed={zoom === 1} className={cx(tool, zoom === 1 ? "bg-brand-soft text-brand-ink" : "text-ink-2 hover:bg-hover")}>100%</button>
         {zoom != null && zoom !== 1 && <span className="px-1 text-[12px] text-ink-3 tabular">{Math.round(zoom * 100)}%</span>}

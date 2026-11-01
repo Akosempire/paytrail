@@ -7,6 +7,7 @@ import { can } from "@/lib/permissions";
 import { emailConfigured } from "@/lib/email";
 import { Callout, PageHeader } from "@/components/ui";
 import { DocumentEditor } from "@/components/document-editor";
+import { readyTemplates } from "@/lib/templates-ready";
 import { DraftStrip, QuoteSwitcher } from "@/components/quote-switcher";
 
 // shared by "new quote", "new invoice" and "edit draft"
@@ -106,6 +107,7 @@ export async function EditorPage({ kind, id, customerId }) {
         recentIds={recentIds}
         owes={owes}
         suggestions={suggestions}
+        extraTemplates={await readyTemplates(ctx.supabase)}
         userId={ctx.user.id}
       />
     </div>

@@ -1,11 +1,14 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, ClipboardPaste, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine, Check, CloudOff, CircleAlert } from "lucide-react";
+import { Boxes, ClipboardPaste, LayoutTemplate, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine, Check, CloudOff, CircleAlert } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
-import { Switch, useToast } from "@/components/ui-client";
+import { Modal, Switch, useToast } from "@/components/ui-client";
+import { LayoutPanel } from "@/components/layout-panel";
+import { DocPreview as TemplatePreview } from "@/components/doc-preview";
+import { TEMPLATES, defaultLayout, resolveLayout } from "@/lib/doc-templates";
 import { CURRENCIES, computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
 import { COST_CATEGORIES, formatDate } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
@@ -24,7 +27,7 @@ const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label
 // pos: { store } when the business is connected to TrackOja POS (products can be added from it)
 // recentIds / owes / suggestions: recent customers, what each still owes, items used before (optional; offline mode has none)
 // guest: "Try it" on the website (no account): new customer only, kept on this device, Send asks them to sign up
-export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false, userId = "", lead = null }) {
+export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false, userId = "", lead = null, extraTemplates = false }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -33,6 +36,21 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   // the guest builder (/try) follows the "Your business" card instead
   const [pickedCurrency, setPickedCurrency] = useState(doc?.currency || business.currency);
   const currency = guest ? business.currency : pickedCurrency;
+  // the template and paper, picked while the document is made (Templates in the preview);
+  // a new document starts on the business's default for its kind
+  const [look, setLook] = useState(() => {
+    const base = doc?.template ? { template: doc.template, paper: doc.paper, layout: doc.layout || {} } : defaultLayout(business, kind);
+    const r = resolveLayout({ kind, ...base }, business);
+    return { template: r.template, paper: r.paper, layout: base.layout || {}, payment_instructions: doc?.payment_instructions || "" };
+  });
+  const [lookTouched, setLookTouched] = useState(false);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
+  // the window opens at the top (the templates), not at the first text box further down
+  useEffect(() => {
+    if (!templatesOpen) return;
+    const t = setTimeout(() => { const box = document.querySelector('[role="dialog"] .overflow-y-auto'); if (box) box.scrollTop = 0; document.querySelector('[role="dialog"] [aria-pressed="true"]')?.focus({ preventScroll: true }); }, 30);
+    return () => clearTimeout(t);
+  }, [templatesOpen]);
   const money = (v) => formatMoney(v, currency);
 
   const [customerMode, setCustomerMode] = useState(guest ? "new" : "existing"); // existing = search/pick; new = typing a new customer in
@@ -92,6 +110,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     delivery_address: deliveryOn ? delivery.address : "", delivery_postcode: deliveryOn ? delivery.postcode : "", delivery_contact: deliveryOn ? delivery.contact : "",
     subtotal_minor: totals.subtotal, discount_minor: totals.discount, tax_rate: Number(taxRate) || 0, tax_label: taxLabel, tax2_rate: tax2On ? Number(tax2Rate) || 0 : 0, tax2_label: tax2On ? tax2Label : "", tax2_minor: totals.tax2, tax_minor: totals.tax, total_minor: totals.total, prices_include_vat: inclusive,
     amount_paid_minor: doc?.amount_paid_minor || 0, notes, terms, snapshot: null,
+    template: look.template, paper: look.paper, layout: look.layout, payment_instructions: look.payment_instructions,
   };
   const draftItems = items.filter((i) => i.description.trim()).map((i) => ({ description: i.description, details: i.details, quantity: qtyValue(i.quantity), unit_price_minor: toMinor(i.price) || 0, vat_category: i.vat }));
   const deferred = useDeferredValue(JSON.stringify([draftDoc, draftItems]));
@@ -144,6 +163,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       email_customer: emailCustomer,
     };
     if (!guest) input.currency = currency;
+    if (!guest && lookTouched) input.look = look;
     input.delivery = deliveryOn ? { address: delivery.address, postcode: delivery.postcode, contact: delivery.contact } : { address: "", postcode: "", contact: "" };
     if (customerMode === "existing") input.customer_id = customerId;
     else input.customer = customer;
@@ -171,7 +191,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   // anything that can't reach the server is kept here too until it can.
   const snapKey = guest ? `usetally:try:builder:${kind}` : `usetally:builder:${kind}:${doc?.id || "new"}`;
   const serverAutosave = Boolean(doc?.id && !onSave && (doc.status || "draft") === "draft");
-  const snapshot = JSON.stringify({ customerMode, customerId, customer, delivery, deliveryOn, currency: pickedCurrency, title, issueDate, endDate, items, inclusive, costs, discount, taxRate, taxLabel, tax2Rate, tax2Label, notes, terms });
+  const snapshot = JSON.stringify({ customerMode, customerId, customer, delivery, deliveryOn, currency: pickedCurrency, look: lookTouched ? look : null, title, issueDate, endDate, items, inclusive, costs, discount, taxRate, taxLabel, tax2Rate, tax2Label, notes, terms });
   const [saveState, setSaveState] = useState("idle"); // idle | saving | saved | local | offline | unsaved
   const [retry, setRetry] = useState(0);
   const firstSnap = useRef(snapshot);
@@ -193,7 +213,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     if (!worth || saved.snap === firstSnap.current) return;
     setCustomerMode(d.customerMode); setCustomerId(d.customerId || ""); setCustomer(d.customer); setDelivery(d.delivery); setDeliveryOn(d.deliveryOn);
     setTitle(d.title); setIssueDate(d.issueDate); setEndDate(d.endDate); setItems(d.items?.length ? d.items : [blankItem()]); setInclusive(d.inclusive); setCosts(d.costs || []);
-    setDiscount(d.discount); setDiscountOn(Boolean(d.discount)); setTaxRate(d.taxRate); setTaxLabel(d.taxLabel); setTax2Rate(d.tax2Rate); setTax2Label(d.tax2Label); setNotes(d.notes); setTerms(d.terms); if (CURRENCIES.includes(d.currency)) setPickedCurrency(d.currency);
+    setDiscount(d.discount); setDiscountOn(Boolean(d.discount)); setTaxRate(d.taxRate); setTaxLabel(d.taxLabel); setTax2Rate(d.tax2Rate); setTax2Label(d.tax2Label); setNotes(d.notes); setTerms(d.terms); if (CURRENCIES.includes(d.currency)) setPickedCurrency(d.currency); if (d.look?.template) { setLook(d.look); setLookTouched(true); }
     toast.info(`We kept your unsaved ${quote ? "quotation" : "invoice"} on this device.`, { action: { label: "Discard it", onClick: () => { clearLocal(); window.location.reload(); } } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapKey]);
@@ -650,6 +670,24 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       </div>
   );
 
+  // Templates: pick how this document looks while making it; the preview follows
+  const templatesButton = !guest && (
+    <button type="button" onClick={() => setTemplatesOpen(true)} title="Choose the template and paper for this document"
+      className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-md px-2.5 text-[12.5px] font-medium text-ink-2 ring-1 ring-inset ring-line hover:bg-hover hover:text-ink focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]">
+      <LayoutTemplate className="size-3.5" aria-hidden="true" />Templates<span className="text-ink-3">· {TEMPLATES[look.template]?.name}</span>
+    </button>
+  );
+  const templatesModal = !guest && (
+    <Modal open={templatesOpen} onClose={() => setTemplatesOpen(false)} size="lg" title="Templates"
+      description={`How this ${quote ? "quotation" : "invoice"} looks. It's saved with it and used for the PDF, the print and the email.`}
+      footer={<Button variant="primary" onClick={() => setTemplatesOpen(false)}>Done</Button>}>
+      <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_260px]">
+        <LayoutPanel kind={kind} value={look} onChange={(v) => { setLook(v); setLookTouched(true); }} brandColor={business.brand_color} extraTemplates={extraTemplates} idPrefix="bt" />
+        <div className="hidden rounded-xl bg-tray p-2 md:block md:self-start md:sticky md:top-0"><TemplatePreview model={previewModel} label="Template preview" /></div>
+      </div>
+    </Modal>
+  );
+
   if (studio) {
     return (
       <QuoteStudio userId={userId || (guest ? "guest" : "")} view={view} setView={setView} costsVisible={costsVisible} profit={profit} pct={pct} revenue={revenue} money={money}
@@ -664,7 +702,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
           <FoldRow id="notes" title="Notes & terms" value={notes || terms ? [notes && "Note", terms && "Terms"].filter(Boolean).join(" and ") + " added" : "None yet"} open={folds.notes} onToggle={(v) => setFold("notes", v)}>{notesBody}</FoldRow>
           {approvalNote}
         </>}
-        footer={footerBar} label={quote ? "Quote" : "Invoice"} />
+        footer={<>{footerBar}{templatesModal}</>} label={quote ? "Quote" : "Invoice"} templates={templatesButton} />
     );
   }
 
@@ -683,7 +721,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       {view === "preview" && (
         <div className="flex min-w-0 flex-col gap-2 lg:hidden">
           <div className="rounded-2xl bg-tray p-2 [&_.pt-parties]:cursor-pointer [&_.pt-items]:cursor-pointer [&_.pt-lines]:cursor-pointer [&_.pt-totals]:cursor-pointer [&_.pt-blocks]:cursor-pointer [&_.pt-meta]:cursor-pointer" onClickCapture={onPreviewClick}><DocPreview model={previewModel} label="Live preview" /></div>
-          <p className="text-center text-[12px] text-ink-3">Tap any part to edit it. Template and paper size can be changed after saving.</p>
+          <p className="text-center text-[12px] text-ink-3">Tap any part to edit it.</p>
         </div>
       )}
       <div className={cx("flex min-w-0 flex-col gap-6", view === "preview" && "max-lg:hidden")}>

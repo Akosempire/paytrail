@@ -51,6 +51,11 @@ export async function saveDocument(docId, input, intent = "draft") {
       return { id, error: /set_document_currency|schema cache|does not exist/i.test(e.message || "") ? "Saved in your default currency. Picking another currency needs a quick database update: run RUN_NEW_2026-11-01e.sql in Supabase." : friendlyError(e) };
     }
   }
+  // the template and paper picked in the builder (Templates), applied before it's sent
+  if (input.look?.template) {
+    const r = await applyLayout(ctx, id, input.look);
+    if (r.error) { refresh(id); return { id, error: `Saved, but not in that template: ${r.error}` }; }
+  }
   if (intent === "submit") {
     const { error: e } = await ctx.supabase.rpc("submit_document", { doc_id: id });
     if (e) return { error: friendlyError(e), id };
@@ -175,13 +180,14 @@ export async function emailReceipt(receiptId) {
 
 // template, paper, visible sections and payment instructions for one document;
 // optionally also saved as the business default for that document type
-export async function saveDocumentLayout(id, input, { asDefault = false } = {}) {
-  const ctx = await requireBusiness();
-  const { fits, cleanLayout } = await import("@/lib/doc-templates");
+// Templates are chosen while a quote or invoice is being made (the builder) or
+// before it's paid; a paid or cancelled document keeps the look it was paid in.
+async function applyLayout(ctx, id, input) {
+  const { fits, cleanLayout, TEMPLATES } = await import("@/lib/doc-templates");
   const { data: doc } = await ctx.supabase.from("documents").select("id, kind, status").eq("id", id).eq("business_id", ctx.business.id).maybeSingle();
   if (!doc) return { error: "Document not found." };
+  if (["paid", "void"].includes(doc.status)) return { error: doc.status === "paid" ? "This invoice is paid, so its template can't change." : "This document is cancelled, so its template can't change." };
   if (!fits(doc.kind, input.template, input.paper)) return { error: "That template isn't available for this paper size." };
-  const { TEMPLATES } = await import("@/lib/doc-templates");
   const { readyTemplates, SQL_FOR } = await import("@/lib/templates-ready");
   const update = TEMPLATES[input.template]?.needsUpdate;
   if (update && !(await readyTemplates(ctx.supabase)).includes(input.template)) return { error: `This template needs a quick database update first. Run ${SQL_FOR[update]} in Supabase, then try again.` };
@@ -190,6 +196,14 @@ export async function saveDocumentLayout(id, input, { asDefault = false } = {}) 
     doc_id: id, tpl: input.template, paper_size: input.paper, new_layout: layout, instructions: String(input.payment_instructions || "").slice(0, 2000),
   });
   if (error) return { error: friendlyError(error) };
+  return { doc, layout };
+}
+
+export async function saveDocumentLayout(id, input, { asDefault = false } = {}) {
+  const ctx = await requireBusiness();
+  const r = await applyLayout(ctx, id, input);
+  if (r.error) return { error: r.error };
+  const { doc, layout } = r;
   if (asDefault) {
     if (!can(ctx.member, "settings.business")) return { error: "Saved for this document. Only owners and managers can change the defaults." };
     const prefs = { ...(ctx.business.document_prefs || {}), [doc.kind]: { template: input.template, paper: input.paper, layout } };
