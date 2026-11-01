@@ -1,7 +1,7 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, ClipboardPaste, LayoutTemplate, Truck, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, Users, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine, Check, CloudOff, CircleAlert } from "lucide-react";
+import { Boxes, ClipboardPaste, LayoutTemplate, EyeOff, Plus, X, Trash2, Send, Save, UserPlus, ChevronDown, Loader2, ShieldCheck, Eye, PencilLine, Check, CloudOff, CircleAlert } from "lucide-react";
 import { DocPreview } from "@/components/doc-preview";
 import { buildModel } from "@/lib/doc-model";
 import { Button, Card, CardHeader, Field, Input, Select, Textarea, cx } from "@/components/ui";
@@ -119,6 +119,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   function setItem(key, patch) { setItems((list) => list.map((i) => (i.key === key ? { ...i, ...patch } : i))); }
   // a list pasted from WhatsApp etc.: replaces empty rows, adds after the rest
   const [paste, setPaste] = useState(null); // null = closed, else the starting text
+  const [detailsOpen, setDetailsOpen] = useState(() => new Set()); // items whose "Details" box was opened
   // "Paste a WhatsApp order" from the ➕ opens straight into the list reader
   useEffect(() => { if (!doc?.id && new URLSearchParams(window.location.search).get("paste") === "1") setPaste(""); }, [doc?.id]);
   function addPasted(parsed) {
@@ -355,13 +356,13 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const formatShortDate = (iso) => (iso ? formatDate(iso, { day: "numeric", month: "short" }) : "no date");
   const customerCard = (
         <Card id="customer-card" className="relative z-20" style={{ overflow: "visible" }}>
-          <CardHeader title="Customer" icon={Users} actions={customerMode === "new" && customers.length > 0 && (
+          <CardHeader title="Customer" className="border-b-0 pb-0" actions={customerMode === "new" && customers.length > 0 && (
             <button type="button" onClick={() => { setCustomerMode("existing"); setTimeout(() => focusField("customer-search"), 0); }} className="inline-flex min-h-9 items-center text-[13px] font-medium text-brand-ink hover:underline">Choose an existing customer</button>
           )} />
-          <div className="p-5">
+          <div className="px-5 pt-3 pb-5">
             {customerMode === "existing" ? (
               <div className="flex flex-col gap-2">
-                <label htmlFor="customer-search" className={cx("text-[13px] font-medium text-ink-2", customerId && "sr-only")}>Who is this for?</label>
+                <label htmlFor="customer-search" className="sr-only">Who is this for?</label>
                 <CustomerPicker customers={customers} recentIds={recentIds} owes={owes} value={customerId} money={money}
                   onChange={setCustomerId} invalid={flag("customer-search")} describedBy={flag("customer-search") ? "customer-missing" : undefined}
                   onAddNew={(name) => { setCustomer((c) => ({ ...c, name })); setCustomerMode("new"); setTimeout(() => focusField("ce"), 0); }} />
@@ -398,11 +399,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   );
   const deliveryCard = (
         <Card>
-          <div className="flex items-center justify-between gap-3 px-5 py-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-subtle text-ink-2 ring-1 ring-line"><Truck className="size-4" /></span>
-              <div className="min-w-0"><p className="text-[15px] font-semibold text-ink">Delivery</p><p className="text-[13px] text-ink-3">{deliveryOn ? "Shown on the document for the dispatch rider." : "Add a delivery address with a checked postcode."}</p></div>
-            </div>
+          <div className="flex min-h-14 items-center justify-between gap-3 px-5 py-3">
+            <div className="min-w-0"><p className="text-[15px] font-semibold text-ink">Delivery</p>{deliveryOn && <p className="text-[13px] text-ink-3">Shown on the document for the dispatch rider.</p>}</div>
             <Switch checked={deliveryOn} onChange={setDeliveryOn} label={<span className="sr-only">Add delivery address</span>} />
           </div>
           {deliveryOn && (
@@ -439,8 +437,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   );
   const itemsCard = (
         <Card className="@container">
-          <CardHeader title="Items" description="What your customer sees and pays for." />
-          <div className="hidden grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] gap-3 border-b border-line bg-subtle px-5 py-2 text-[12px] font-medium text-ink-3 @2xl:grid">
+          <CardHeader title="Items" className="border-b-0 pb-1" />
+          <div className="hidden grid-cols-[minmax(0,1fr)_80px_140px_120px_36px] gap-3 border-b border-line px-5 py-2 text-[12px] font-medium text-ink-3 @2xl:grid">
             <span>Description</span><span className="text-right">Qty</span><span className="text-right">Unit price</span><span className="text-right">Amount</span><span />
           </div>
           <ul className="divide-y divide-line">
@@ -455,14 +453,19 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
                         <Boxes className="size-3.5" />TrackOja product
                       </span>
                     )}
-                    <Textarea aria-label={`Item ${idx + 1} details`} rows={1} value={item.details} onChange={(e) => setItem(item.key, { details: e.target.value })} placeholder="Details (optional)" className="min-h-9 text-[13px]" />
-                    <label className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ink-3">
+                    {(item.details || detailsOpen.has(item.key))
+                      ? <Textarea id={`item-${idx}-details`} aria-label={`Item ${idx + 1} details`} rows={1} value={item.details} onChange={(e) => setItem(item.key, { details: e.target.value })} placeholder="Details shown under the item" className="min-h-9 text-[13px]" />
+                      : null}
+                    {(!(item.details || detailsOpen.has(item.key)) || taxOn) && <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                    {!(item.details || detailsOpen.has(item.key)) && <button type="button" onClick={() => { setDetailsOpen((o) => new Set(o).add(item.key)); setTimeout(() => focusField(`item-${idx}-details`), 0); }} className="min-h-7 text-[12.5px] font-medium text-ink-3 hover:text-brand-ink">+ Details</button>}
+                    {taxOn && <label className="inline-flex items-center gap-1.5 self-start text-[12.5px] text-ink-3">
                       {taxLabel || "VAT"}
                       <select aria-label={`Item ${idx + 1} ${taxLabel || "VAT"}`} value={item.vat} onChange={(e) => setItem(item.key, { vat: e.target.value })}
                         className={`h-7 rounded-md bg-surface px-1.5 text-[12.5px] ring-1 ring-line-strong ${item.vat === "standard" ? "text-ink-2" : "font-medium text-brand-ink"}`}>
                         <option value="standard">Standard ({(Number(taxRate) || 0) + (tax2On ? Number(tax2Rate) || 0 : 0)}%)</option><option value="zero">Zero-rated (0%)</option><option value="exempt">Exempt</option>
                       </select>
-                    </label>
+                    </label>}
+                    </div>}
                   </div>
                   <div className="grid grid-cols-[80px_1fr] gap-2.5 @2xl:contents">
                     <div className="relative">
@@ -695,11 +698,14 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
         costs={<>{costsHead}{costsSummary}{costsList}{costsAdd}{costsHelper}</>}
         quote={<>
           {lead}
-          {customerCard}
-          {itemsCard}
-          <FoldRow id="details" title="Details" value={`${title ? `${title} · ` : ""}${quote ? "Valid to" : "Due"} ${formatShortDate(endDate)} · ${currency}`} open={folds.details} onToggle={(v) => setFold("details", v)}>{detailsBody}</FoldRow>
-          {deliveryCard}
-          <FoldRow id="notes" title="Notes & terms" value={notes || terms ? [notes && "Note", terms && "Terms"].filter(Boolean).join(" and ") + " added" : "None yet"} open={folds.notes} onToggle={(v) => setFold("notes", v)}>{notesBody}</FoldRow>
+          {/* one sheet: the sections share a surface, split by hairlines */}
+          <div className="flex flex-col divide-y divide-line rounded-xl bg-surface shadow-[var(--shadow-card)] ring-1 ring-line [&>*]:rounded-none [&>*]:shadow-none [&>*]:ring-0 [&>*:first-child]:rounded-t-xl [&>*:last-child]:rounded-b-xl">
+            {customerCard}
+            {itemsCard}
+            <FoldRow id="details" title="Details" value={`${title ? `${title} · ` : ""}${quote ? "Valid to" : "Due"} ${formatShortDate(endDate)} · ${currency}`} open={folds.details} onToggle={(v) => setFold("details", v)}>{detailsBody}</FoldRow>
+            {deliveryCard}
+            <FoldRow id="notes" title="Notes & terms" value={notes || terms ? [notes && "Note", terms && "Terms"].filter(Boolean).join(" and ") + " added" : "None yet"} open={folds.notes} onToggle={(v) => setFold("notes", v)}>{notesBody}</FoldRow>
+          </div>
           {approvalNote}
         </>}
         footer={<>{footerBar}{templatesModal}</>} label={quote ? "Quote" : "Invoice"} templates={templatesButton} />
