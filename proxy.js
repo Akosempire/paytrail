@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseUrl } from "./lib/supabase/url";
 import { createServerClient } from "@supabase/ssr";
 
-const PROTECTED = ["/app", "/admin", "/onboarding", "/print", "/connect"];
+const PROTECTED = ["/app", "/admin", "/onboarding", "/print", "/connect", "/oauth/authorize"];
 
 // keeps the Supabase session fresh and sends signed-out visitors to the login page
 export async function proxy(request) {
@@ -39,5 +39,5 @@ export async function proxy(request) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/webhooks|.*\\.(?:png|jpg|svg|webp|ico)$).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|api/webhooks|mcp|oauth/token|oauth/register|oauth/revoke|\\.well-known|.*\\.(?:png|jpg|svg|webp|ico)$).*)"],
 };

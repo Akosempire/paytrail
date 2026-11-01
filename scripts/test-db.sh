@@ -7,4 +7,4 @@ DB=${PT_DB:-pt_test}
 psql -q -d postgres -c "drop database if exists $DB with (force)" -c "create database $DB"
 psql -q -X -v ON_ERROR_STOP=1 -d $DB -f supabase/tests/00_supabase_shim.sql
 for f in supabase/migrations/*.sql; do psql -q -X -v ON_ERROR_STOP=1 -d $DB -f "$f"; done
-PGDATABASE=$DB node --test supabase/tests/*.test.mjs
+PGDATABASE=$DB node --import ./tests/register.mjs --test supabase/tests/*.test.mjs

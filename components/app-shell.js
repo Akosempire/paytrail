@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
   Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart, Package, BellRing,
-  PanelLeftOpen, PanelLeftClose,
+  PanelLeftOpen, PanelLeftClose, Bot,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { Alert, Avatar, Button, Logo, cx } from "@/components/ui";
@@ -42,6 +42,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts,
       canSettings && { href: "/app/settings/reminders", label: "Emails & reminders", icon: BellRing },
       canPayments && { href: "/app/settings/payments", label: "Payment setup", icon: PlugZap },
       canPayments && { href: "/app/settings/pos", label: "TrackOja POS", icon: Store },
+      { href: "/app/settings/ai", label: "AI assistants", icon: Bot },
       kind === "company" && { href: "/app/settings/team", label: canTeam ? "Team & roles" : "Team", icon: UsersRound },
       canBilling && { href: "/app/settings/billing", label: "Plan & billing", icon: CreditCard },
       { href: "/app/settings/privacy", label: "Privacy & data", icon: ShieldCheck },
