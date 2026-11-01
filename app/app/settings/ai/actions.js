@@ -4,7 +4,7 @@ import { requireBusiness } from "@/lib/context";
 import { can } from "@/lib/permissions";
 import { createSupabaseService } from "@/lib/supabase/server";
 
-// Settings → AI assistants → Disconnect. The assistant's next request gets a
+// Settings → AI & MCP → Disconnect. The assistant's next request gets a
 // 401 and it stops working until someone connects it again. People disconnect
 // their own; owners and managers can disconnect anyone's in the business.
 export async function disconnectAssistant(id) {

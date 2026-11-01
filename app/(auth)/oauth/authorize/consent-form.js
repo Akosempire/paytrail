@@ -38,7 +38,7 @@ export function ConsentForm({ params, businesses, defaultBusiness, access, readO
             <span><span className="block text-sm font-medium text-ink">{a.label}</span><span className="block text-xs leading-relaxed text-ink-3">{a.summary}</span></span>
           </label>
         ))}
-        <p className="text-xs text-ink-3">It can only do what your team role allows, and it asks you before sending anything. Disconnect any time in Settings → AI assistants.</p>
+        <p className="text-xs text-ink-3">It can only do what your team role allows, and it asks you before sending anything. Disconnect any time in Settings → AI & MCP.</p>
       </fieldset>
       {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
       <div className="flex flex-col gap-2">

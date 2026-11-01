@@ -9,7 +9,7 @@ import { Badge, Card, CardHeader, Callout, PageHeader } from "@/components/ui";
 import { CopyButton } from "@/components/ui-client";
 import { DisconnectAssistant } from "./disconnect";
 
-export const metadata = { title: "AI assistants" };
+export const metadata = { title: "AI & MCP" };
 export const dynamic = "force-dynamic";
 
 // Connect ChatGPT, Claude or Grok to Usetally (over MCP), then make quotes and
@@ -63,11 +63,11 @@ export default async function Page() {
     : {};
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="AI assistants" description="Connect ChatGPT, Claude or Grok to make quotes and invoices, send them, record payments and check your numbers by chatting." />
+      <PageHeader title="AI & MCP" description="Connect ChatGPT, Claude or Grok to make quotes and invoices, send them, record payments and check your numbers by chatting." />
       {error && /ai_connections/.test(error.message || "") && <Callout tone="warn" title="Database update needed">Run RUN_NEW_2026-11-01g.sql in Supabase to connect AI assistants.</Callout>}
 
       <Card>
-        <CardHeader title="Your Usetally address for AI assistants" icon={Bot} description="Every assistant uses this one address. You sign in to Usetally to connect it; no keys to copy." />
+        <CardHeader title="Your Usetally MCP address" icon={Bot} description="Every assistant uses this one address. You sign in to Usetally to connect it; no keys to copy." />
         <div className="flex flex-col gap-3 px-5 pb-5 sm:flex-row sm:items-center">
           <code className="min-w-0 flex-1 truncate rounded-xl bg-tray px-3.5 py-2.5 font-mono text-[13px] text-ink ring-1 ring-line">{url}</code>
           <CopyButton value={url} label="Copy address" />
