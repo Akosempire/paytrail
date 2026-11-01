@@ -12,6 +12,9 @@ import { activityText } from "@/components/doc-bits";
 import { Avatar, Badge, Card, CardHeader, EmptyState, StatCard, StatGroup, buttonClass } from "@/components/ui";
 import { AccountButton } from "../account-button";
 import { FreeAccessButton } from "./controls";
+import { AdminMessage } from "@/components/admin-message";
+import { MESSAGE_TEMPLATES } from "@/lib/admin-messages-core";
+import { siteUrl } from "@/lib/site";
 
 export const metadata = { title: "Business" };
 
@@ -19,8 +22,9 @@ const TONE = { active: "success", trialing: "brand", past_due: "warn", canceled:
 
 // Everything about one business for the platform admin: plan and billing,
 // usage, team, details, payment setup, history, and actions.
-export default async function BusinessDetail({ params }) {
+export default async function BusinessDetail({ params, searchParams }) {
   const { id } = await params;
+  const sp = (await searchParams) || {};
   const ctx = await requirePlatformAdmin();
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const service = createSupabaseService();
@@ -40,6 +44,10 @@ export default async function BusinessDetail({ params }) {
     (async () => { try { return await service.from("vat_returns").select("period, status").eq("business_id", id).order("period", { ascending: false }).limit(6); } catch { return { data: null }; } })(),
   ]);
 
+  // their latest upgrade that wasn't paid (last 14 days), for the message box
+  const { data: unpaid } = await service.from("payment_attempts").select("amount_minor, currency, created_at, failure_reason, plans(name)")
+    .eq("business_id", id).eq("purpose", "subscription").eq("status", "failed").gt("created_at", new Date(Date.now() - 14 * 864e5).toISOString())
+    .order("created_at", { ascending: false }).limit(1).maybeSingle().then((r) => r, () => ({ data: null }));
   const sent = (docs || []).filter((d) => d.sent_at);
   const sentMonth = sent.filter((d) => d.sent_at >= monthStart).length;
   const count = (k) => sent.filter((d) => d.kind === k).length;
@@ -155,6 +163,10 @@ export default async function BusinessDetail({ params }) {
           </ul>
         ) : <EmptyState compact icon={History} title="No activity yet" description="They haven't done anything since signing up." />}
       </Card>
+
+      <AdminMessage businessId={b.id} ownerEmail={owner?.email || b.email || null}
+        initial={MESSAGE_TEMPLATES[sp.message] ? sp.message : unpaid && !isPaying(b) ? "upgrade_unpaid" : "check_in"}
+        vars={{ name: owner?.full_name || "", business: b.name, plan: unpaid?.plans?.name || "", amount: unpaid ? formatMoney(unpaid.amount_minor, unpaid.currency) : "", billingLink: `${siteUrl()}/app/settings/billing` }} />
 
       {owner?.email && <p className="text-[12.5px] text-ink-3"><Phone className="mr-1 inline size-3" />Owner: {owner.full_name || "—"} · {owner.email}{b.phone ? ` · ${b.phone}` : ""}</p>}
     </div>

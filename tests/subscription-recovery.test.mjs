@@ -62,15 +62,16 @@ test("only real, unfinished subscription checkouts get a follow-up", () => {
   assert.equal(shouldFollowUp({ attempt, business: { subscription_status: "active", plan_id: "p1" } }).why, "already_on_plan");
 });
 
-test("the email: what happened, nothing charged, a fresh link, and the naira tip when it applies", () => {
-  const e = upgradeRetryEmail({ name: "Hella Jenan", business: "Hellajenan Studio", plan: "Team", amount: "$37.50", link: "https://usetally.cc/app/settings/billing", nairaHint: true, settingsLink: "https://usetally.cc/app/settings" });
+test("the email: what happened, nothing charged, the likely problems and fixes, a fresh link", () => {
+  const e = upgradeRetryEmail({ name: "Hella Jenan", business: "Hellajenan Studio", plan: "Team", amount: "$37.50", link: "https://usetally.cc/app/settings/billing" });
   assert.equal(e.subject, "Your Usetally upgrade didn't go through");
   assert.match(e.html, /Hi Hella/);
   assert.match(e.html, /nothing was charged/);
   assert.match(e.html, /Try again/);
-  assert.match(e.html, /naira/);
+  assert.match(e.html, /one-time code \(OTP\)/);
+  assert.match(e.html, /online or international payments/);
   assert.match(e.html, /bank transfer/);
-  assert.doesNotMatch(upgradeRetryEmail({ name: "", business: "B", plan: "Team", amount: "$1", link: "x", nairaHint: false }).html, /naira/);
+  assert.doesNotMatch(e.html, /Nigeria/);
 });
 
 test("end to end: the owner gets the email and the team gets an alert", async () => {

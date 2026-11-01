@@ -61,8 +61,8 @@ export default async function Billing({ searchParams }) {
   return (
     <div className="flex flex-col gap-6">
       {nairaHint && (
-        <Callout tone="info" title="Paying from Nigeria?">
-          Prices here are in dollars because your business country isn't set to Nigeria. Set it in <Link href="/app/settings" className="font-semibold underline">Business &amp; branding</Link> and you'll see naira prices, which most Nigerian cards can pay.
+        <Callout tone="info" title="Prices here are in dollars">
+          Many local cards can't pay in dollars. If yours can't, set your business country in <Link href="/app/settings" className="font-semibold underline">Business &amp; branding</Link> to see prices in your own currency.
         </Callout>
       )}
       <PageHeader title="Plan & billing" description="Your Usetally subscription. This is separate from the payments your customers make to you." />
