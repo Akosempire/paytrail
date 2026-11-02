@@ -7,6 +7,7 @@ test("the ChatGPT draft is valid and points at AI & MCP", () => {
   assert.equal(v.ok, true);
   assert.equal(v.value.link_href, "/app/settings/ai");
   assert.match(v.value.body, /beta/);
+  assert.match(v.value.body, /^• /m);
 });
 
 test("announcements are checked", () => {
@@ -35,4 +36,10 @@ test("the email greets the owner and has the button", async () => {
   assert.match(e.html, /Hi Ada,/);
   assert.match(e.html, /Set it up/);
   assert.match(e.html, /New in Usetally/);
+  assert.match(e.html, /Make quotes and invoices/); // feature rows
+  assert.match(e.html, /Made by ChatGPT/); // the chat picture for AI news
+  assert.match(e.html, /https:\/\/usetally\.cc\/icons\/icon-192\.png/);
+  assert.match(e.text, /- Send and chase/);
+  const plain = announcementEmail({ title: "New tax report", body: "Your VAT report is ready.", link: "https://usetally.cc/app/tax", label: "Open" });
+  assert.doesNotMatch(plain.html, /Made by ChatGPT/);
 });

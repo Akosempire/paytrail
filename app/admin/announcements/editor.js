@@ -6,6 +6,7 @@ import { Badge, Button, Card, CardHeader, Field, Input, Textarea } from "@/compo
 import { Modal, useToast } from "@/components/ui-client";
 import { AnnouncementBanner } from "@/components/dashboard/announcement";
 import { emailOwners, saveAnnouncement, sendTest } from "./actions";
+import { DRAFT } from "@/lib/announcements-core";
 
 export function AnnouncementEditor({ initial, ownerCount }) {
   const toast = useToast();
@@ -25,8 +26,12 @@ export function AnnouncementEditor({ initial, ownerCount }) {
             {id && <Button size="sm" icon={Plus} onClick={() => { setId(null); setF({ title: "", body: "", link_href: "", link_label: "" }); }}>Start a new one</Button>}</>} />
         <div className="grid gap-5 p-5 lg:grid-cols-2">
           <div className="flex flex-col gap-4">
+            {!emailed && (f.title !== DRAFT.title || f.body !== DRAFT.body) && (
+              <button type="button" onClick={() => setF({ title: DRAFT.title, body: DRAFT.body, link_href: DRAFT.link_href, link_label: DRAFT.link_label })}
+                className="self-start text-[12.5px] font-medium text-brand-ink hover:underline">Use suggested text (ChatGPT launch)</button>
+            )}
             <Field label="Title" htmlFor="an-title"><Input id="an-title" value={f.title} onChange={set("title")} /></Field>
-            <Field label="Message" htmlFor="an-body" hint="Blank lines start new paragraphs. The dashboard shows the title; the full message goes in the email."><Textarea id="an-body" rows={9} value={f.body} onChange={set("body")} /></Field>
+            <Field label="Message" htmlFor="an-body" hint="Blank lines start new paragraphs. Lines starting with • become numbered points in the email (write “• Title: details”). The dashboard shows only the title."><Textarea id="an-body" rows={9} value={f.body} onChange={set("body")} /></Field>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label="Button link" htmlFor="an-href" optional hint="A Usetally page like /app/settings/ai, or https://…"><Input id="an-href" value={f.link_href} onChange={set("link_href")} /></Field>
               <Field label="Button label" htmlFor="an-label" optional><Input id="an-label" value={f.link_label} onChange={set("link_label")} /></Field>
