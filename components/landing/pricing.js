@@ -2,6 +2,7 @@ import Link from "next/link";
 import { formatMoney } from "@/lib/money";
 import { monthlyEquivalent } from "@/lib/plans";
 import { PrimaryCta, SecondaryCta } from "@/components/landing/cta";
+import { FEATURES, planFeatures } from "@/lib/entitlements";
 
 // Pricing as a row of receipts: torn bottom edge, dashed rules, line items
 // with dotted leaders, a barcode, and a "Most popular" stamp on the
@@ -46,7 +47,7 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
       <div className="text-center">
         <p className={kicker}>Pricing</p>
         <h2 id="pricing-title" className={`mt-4 ${h2}`}>Simple plans. Start free.</h2>
-        <p className="mt-4 text-[17px] text-hero-ink-2">{trialText} of everything, no card needed. Then stay on Free or pick a plan.</p>
+        <p className="mt-4 text-[17px] text-hero-ink-2">{trialText} of everything, no card needed. Then stay on Free, with unlimited quotes and invoices, or pick a plan.</p>
       </div>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         {currencies.length > 1 && <Segmented label="Currency" options={currencies.map((c) => [c === "NGN" ? "₦ Naira" : c === "USD" ? "$ Dollar" : c, link(c, interval), c === currency])} />}
@@ -83,6 +84,9 @@ export function Pricing({ plans, currency, currencies, interval, yearly, trialTe
                   <Line>{!p.allow_company ? "For freelancers" : p.seat_limit == null ? "Unlimited team members" : p.seat_limit === 1 ? "1 user" : `Up to ${p.seat_limit} team members`}</Line>
                   {(p.features || []).map((f) => <Line key={f}>{f}</Line>)}
                   <Line>Tax summary &amp; export</Line>
+                  {free
+                    ? <Line>Essential &amp; Signature templates</Line>
+                    : FEATURES.filter((f) => planFeatures(p).includes(f.key)).map((f) => <Line key={f.key}>{f.key === "premium_templates" ? "Every template" : f.label}</Line>)}
                 </ul>
 
                 <div className="mt-8">{featured ? <PrimaryCta href="/signup" block>Start free trial</PrimaryCta> : <SecondaryCta href="/signup" block>{free ? "Start free" : "Start free trial"}</SecondaryCta>}</div>

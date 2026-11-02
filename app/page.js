@@ -12,6 +12,8 @@ import { Platforms } from "@/components/landing/platforms";
 import { Pricing } from "@/components/landing/pricing";
 import { Team } from "@/components/landing/team";
 import { Tax } from "@/components/landing/tax";
+import { AiChat } from "@/components/landing/ai-chat";
+import { Autopilot } from "@/components/landing/autopilot";
 import { SiteFooter } from "@/components/landing/site-footer";
 import { LiveStats } from "@/components/landing/live-stats";
 import { supabaseConfigured } from "@/lib/supabase/server";
@@ -68,7 +70,7 @@ export default async function Home({ searchParams }) {
   const currency = subscriptionCurrency(country);
   const nigeria = currency === "NGN";
   const offer = offers.find((o) => o.currency === currency) || null;
-  const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "Free trial";
+  const trialText = trial?.trial_mode === "documents" ? `First ${trial.trial_documents} documents free` : trial?.trial_mode === "days" ? `${trial.trial_days}-day free trial` : "14-day free trial";
   const signedIn = Boolean(ctx.user);
   const jsonLd = structuredData(allPlans);
 
@@ -112,6 +114,12 @@ export default async function Home({ searchParams }) {
       {/* ------------------------------------------------ story */}
       <PainStory currency={currency} />
       <Chapters currency={currency} />
+
+      {/* ------------------------------------------------ get paid without chasing */}
+      <Autopilot wrap={WRAP} kicker={KICKER} h2={H2} />
+
+      {/* ------------------------------------------------ AI & MCP */}
+      <AiChat wrap={WRAP} kicker={KICKER} h2={H2} currency={currency} />
 
       {/* ------------------------------------------------ tax */}
       <Tax wrap={WRAP} kicker={KICKER} h2={H2} nigeria={nigeria} />
