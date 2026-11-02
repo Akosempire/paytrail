@@ -27,6 +27,9 @@ export async function GET(request) {
   const vatReminders = await sendVatReminders().catch((e) => ({ error: String(e?.message || e) }));
   // repeating invoices and queued emails the app didn't get to (lib/send-queue.js)
   const sending = await runSendJobs().catch((e) => ({ error: String(e?.message || e) }));
+  // a real query on Usetally's and TrackOja's databases, so free projects never pause
+  const { keepAlive } = await import("@/lib/keep-alive");
+  const awake = await keepAlive().catch((e) => ({ error: String(e?.message || e) }));
   const health = await runChecks().then((h) => h.results.map((r) => `${r.key}:${r.status}`), (e) => ({ error: String(e?.message || e) }));
-  return Response.json({ checked: results.length, results, stock, purged, digests, invoiceReminders, vatReminders, sending, health });
+  return Response.json({ checked: results.length, results, stock, purged, digests, invoiceReminders, vatReminders, sending, awake, health });
 }
