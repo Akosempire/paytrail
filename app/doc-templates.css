@@ -113,8 +113,7 @@
 .pt-t-signature .pt-items th { background: color-mix(in srgb, var(--pt-accent) 10%, #fff); color: color-mix(in srgb, var(--pt-accent) 80%, #000); }
 .pt-t-signature .pt-items th:first-child { border-radius: 1.4mm 0 0 1.4mm; }
 .pt-t-signature .pt-items th:last-child { border-radius: 0 1.4mm 1.4mm 0; }
-.pt-t-signature .pt-grand { padding: 2.6mm 3mm !important; background: color-mix(in srgb, var(--pt-accent) 10%, #fff); color: color-mix(in srgb, var(--pt-accent) 85%, #000); border-radius: 1.6mm; }
-.pt-t-signature .pt-grand dt { color: inherit !important; }
+.pt-t-signature .pt-grand { border-top: 0.35mm solid var(--pt-accent); }
 .pt-t-signature .pt-received { background: color-mix(in srgb, var(--pt-accent) 9%, #fff); border-radius: 2mm; }
 .pt-t-signature .pt-received-amount { color: color-mix(in srgb, var(--pt-accent) 85%, #000); }
 
