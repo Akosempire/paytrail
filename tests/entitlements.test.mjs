@@ -10,10 +10,10 @@ test("an empty plan setting means: paid plans get everything, Free gets nothing"
   assert.deepEqual(planFeatures({ price_minor: 500000, features_included: [] }), []);
 });
 
-test("Signature and the POS receipt stay free; every other template is premium", () => {
+test("Essential and Signature stay free; every other template is premium", () => {
   assert.equal(isPremiumTemplate("signature"), false);
-  assert.equal(isPremiumTemplate("pos"), false);
-  for (const id of Object.keys(TEMPLATES).filter((t) => !["signature", "pos"].includes(t))) assert.equal(isPremiumTemplate(id), true, id);
+  assert.equal(isPremiumTemplate("essential"), false);
+  for (const id of Object.keys(TEMPLATES).filter((t) => !["signature", "essential"].includes(t))) assert.equal(isPremiumTemplate(id), true, id);
   assert.equal(isPremiumTemplate(""), false);
 });
 
@@ -31,5 +31,5 @@ test("featuresOf: what the database says; before the SQL nothing is locked", asy
 test("upgrade messages read as one plain sentence", () => {
   assert.equal(upgradeMessage("auto_reminders"), "Automatic reminders are on paid plans. Upgrade in Settings → Plan & billing.");
   assert.equal(upgradeMessage("premium_templates"), "This template is on paid plans. Upgrade in Settings → Plan & billing.");
-  assert.match(upgradeMessage("ai_full"), /^Creating and sending from your AI assistant is on paid plans/);
+  assert.match(upgradeMessage("ai_full"), /^Connecting ChatGPT, Claude or Grok \(AI & MCP\) is on paid plans/);
 });

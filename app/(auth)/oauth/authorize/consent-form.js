@@ -16,8 +16,8 @@ export function ConsentForm({ params, businesses, defaultBusiness, access, readO
   const [state, action] = useActionState(async (_, form) => allowAccess(form), null);
   const [picked, setPicked] = useState(defaultBusiness);
   const business = businesses.find((b) => b.id === picked) || businesses[0];
-  // on the Free plan the app connects as view only
-  const viewOnly = readOnly || business.full === false;
+  // AI & MCP is on paid plans: a Free business can't be connected
+  const locked = business.full === false;
   return (
     <form action={action} className="flex flex-col gap-5">
       {Object.entries(params).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
@@ -37,20 +37,19 @@ export function ConsentForm({ params, businesses, defaultBusiness, access, readO
       )}
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-medium text-ink">What can {appName} do?</legend>
-        {Object.entries(access).filter(([k]) => !viewOnly || k === "read").map(([k, a]) => (
-          <label key={`${k}-${viewOnly}`} className={option}>
-            <input type="radio" name="access" value={k} defaultChecked={viewOnly ? k === "read" : k !== "read"} className="mt-0.5 accent-[var(--color-brand)]" />
+        {locked ? (
+          <UpgradeNote title="AI & MCP is on paid plans">{business.name} is on the Free plan. Upgrade to connect {appName} and create, send and check invoices by chatting, then connect again from {appName}.</UpgradeNote>
+        ) : Object.entries(access).filter(([k]) => !readOnly || k === "read").map(([k, a]) => (
+          <label key={k} className={option}>
+            <input type="radio" name="access" value={k} defaultChecked={readOnly ? k === "read" : k !== "read"} className="mt-0.5 accent-[var(--color-brand)]" />
             <span><span className="block text-sm font-medium text-ink">{a.label}</span><span className="block text-xs leading-relaxed text-ink-3">{a.summary}</span></span>
           </label>
         ))}
-        {!readOnly && business.full === false && (
-          <UpgradeNote compact title="Full access is on paid plans">{appName} can look up your quotes, invoices and customers on Free. Upgrade to create and send from {appName}.</UpgradeNote>
-        )}
-        <p className="text-xs text-ink-3">It can only do what your team role allows, and it asks you before sending anything. Disconnect any time in Settings → AI & MCP.</p>
+        {!locked && <p className="text-xs text-ink-3">It can only do what your team role allows, and it asks you before sending anything. Disconnect any time in Settings → AI & MCP.</p>}
       </fieldset>
       {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}
       <div className="flex flex-col gap-2">
-        <Allow />
+        {!locked && <Allow />}
         <button type="submit" formAction={denyAccess} formNoValidate className={cx("h-11 rounded-xl text-sm font-medium text-ink-2 hover:bg-tray")}>Cancel</button>
       </div>
     </form>

@@ -1,8 +1,8 @@
 -- Paid features: what each plan unlocks (Admin → Plans tick-boxes).
---   ai_full            AI & MCP full access (create, send, record payments). Free: view only.
+--   ai_full            AI & MCP (ChatGPT, Claude, Grok). Not on Free at all.
 --   auto_reminders     automatic invoice reminders (the manual Remind button stays free)
 --   scheduled_sending  scheduled sends and repeating invoices
---   premium_templates  every template (Free: Signature and the POS receipt)
+--   premium_templates  every template (Free: Essential and Signature, any colour)
 -- An empty value (null) means the default: paid plans get everything, the Free
 -- plan gets none of these. The trial always gets everything.
 

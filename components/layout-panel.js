@@ -123,15 +123,17 @@ export function LayoutPanel({ kind, value, onChange, brandColor, showInstruction
     ? [["Highlighter yellow", NOTEBOOK_YELLOW], ["Mint", "#9be3b8"], ["Pink", "#f7b2cf"], ["Sky", "#a9d4f5"]]
     : value.template === "casefile"
       ? [["Case-file green", CASEFILE_GREEN], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"], ["Brick", "#c2410c"]]
-      : [["Signature blue", SIGNATURE_BLUE], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"]]).filter(([, c]) => /^#[0-9a-f]{6}$/i.test(c || ""));
-  const currentAccent = value.layout?.accent || (["signature", "notebook", "casefile"].includes(value.template) ? accentFor(value.template, null, brandColor) : brandColor);
+      : value.template === "essential"
+        ? [["Black", "#111111"], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"], ["Signature blue", SIGNATURE_BLUE]]
+        : [["Signature blue", SIGNATURE_BLUE], ["Your brand colour", brandColor], ["Ink navy", "#1f2a44"]]).filter(([, c]) => /^#[0-9a-f]{6}$/i.test(c || ""));
+  const currentAccent = value.layout?.accent || (["signature", "notebook", "casefile", "essential"].includes(value.template) ? accentFor(value.template, null, brandColor) : brandColor);
 
   return (
     <div className="flex flex-col gap-5">
       <fieldset>
         <legend className="mb-2 text-[13px] font-medium text-ink">Template</legend>
         {lockedTemplates && nudge && (
-          <UpgradeNote compact className="mb-2" title={`${TEMPLATES[nudge]?.name || "This template"} is a premium template`}>Premium templates are on paid plans. Signature stays free, and documents you've already sent keep their look.</UpgradeNote>
+          <UpgradeNote compact className="mb-2" title={`${TEMPLATES[nudge]?.name || "This template"} is a premium template`}>Premium templates are on paid plans. Essential and Signature stay free in any colour, and documents you've already sent keep their look.</UpgradeNote>
         )}
         <div className="grid grid-cols-2 gap-2" role="radiogroup">
           {templatesFor(kind, { extra: extraTemplates === true ? true : [...(Array.isArray(extraTemplates) ? extraTemplates : []), value.template] }).map((t) => {

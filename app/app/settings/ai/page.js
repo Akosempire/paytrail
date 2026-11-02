@@ -67,7 +67,7 @@ export default async function Page() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="AI & MCP" description="Connect ChatGPT, Claude or Grok to make quotes and invoices, send them, record payments and check your numbers by chatting." />
-      {!full && <UpgradeNote title="View only on the Free plan">Your assistant can look up quotes, invoices, customers and totals. Upgrade to create, send and record payments by chatting. After upgrading, connect again and choose Full access.</UpgradeNote>}
+      {!full && <UpgradeNote title="AI & MCP is on paid plans">Upgrade to connect ChatGPT, Claude or Grok and make quotes and invoices, send them and check your numbers by chatting. Assistants you already connected start working again the moment you upgrade.</UpgradeNote>}
       {error && /ai_connections/.test(error.message || "") && <Callout tone="warn" title="Database update needed">Run RUN_NEW_2026-11-01g.sql in Supabase to connect AI assistants.</Callout>}
 
       <Card>
@@ -108,7 +108,7 @@ export default async function Page() {
               <li key={c.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">{c.app_name || "AI assistant"}
-                    <Badge tone={c.scope === "read" || !full ? "neutral" : "brand"}>{!full && c.scope !== "read" ? "View only (Free plan)" : ACCESS[c.scope]?.label || c.scope}</Badge></p>
+                    <Badge tone={c.scope === "read" || !full ? "neutral" : "brand"}>{!full ? "Paused (Free plan)" : ACCESS[c.scope]?.label || c.scope}</Badge></p>
                   <p className="text-xs text-ink-3">
                     {manager ? `${c.user_id === ctx.user.id ? "You" : people[c.user_id] || "A team member"} · ` : ""}{c.app_host ? `${c.app_host} · ` : ""}connected {formatDate(c.created_at)} · {c.last_used_at ? `last used ${timeAgo(c.last_used_at)}` : "not used yet"}
                   </p>

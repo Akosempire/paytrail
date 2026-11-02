@@ -34,7 +34,7 @@ export default async function Page({ searchParams }) {
 
   const app = appFor(req.redirect, client.name);
   const businesses = ctx.memberships.map((m) => ({ id: m.business_id, name: m.businesses?.name || "Your business", role: ROLES[m.role]?.label || m.role }));
-  // full access (creating and sending) is a paid feature; Free connects as view only
+  // AI & MCP is a paid feature: a Free business can't be connected
   const features = await Promise.all(businesses.map((b) => featuresOf(ctx.supabase, b.id)));
   businesses.forEach((b, i) => { b.full = hasFeature(features[i], "ai_full"); });
   if (!businesses.length) return (

@@ -26,21 +26,9 @@ function unauthorized(error) {
   });
 }
 
-async function handle(request) {
-  if (!supabaseConfigured()) return json({ error: "Usetally isn't set up on this server." }, 503);
-  const service = createSupabaseService();
-  const who = await authenticate(service, request.headers.get("authorization"));
-  if (!who.connection) return unauthorized(who.error);
+const UPGRADE = "Usetally's AI & MCP connection is on paid plans, and this business is on the Free plan. Nothing in the account can be read or changed from here until it upgrades: in Usetally, open Settings → Plan & billing. After upgrading, this connection works again straight away.";
 
-  // full access is a paid feature: on Free (or once a trial ends) the app can only look
-  const full = hasFeature(await featuresOf(service, who.business.id), "ai_full");
-  const scope = full ? who.connection.scope : "read";
-  const note = !full ? "\n- This business is on the Free plan, so only looking things up works here. To create or send, the person upgrades in Usetally (Settings → Plan & billing); share that with them if they ask." : "";
-  const server = new McpServer(
-    { name: "usetally", title: "Usetally", version: "1.0.0", websiteUrl: aiSite(), icons: [{ src: `${aiSite()}/icons/icon-512.png`, mimeType: "image/png", sizes: ["512x512"] }] },
-    { instructions: `${INSTRUCTIONS}${note}\nConnected business: ${who.business.name} (usual currency ${who.business.currency}).` },
-  );
-  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope, site: aiSite(), appName: who.connection.app_name || "AI assistant" });
+async function serve(server, request) {
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);
   try {
@@ -52,6 +40,39 @@ async function handle(request) {
     console.error("mcp.failed", { message: String(e?.message || e).slice(0, 200) });
     return json({ jsonrpc: "2.0", error: { code: -32603, message: "Usetally hit a problem. Try again." }, id: null }, 500);
   }
+}
+
+// the Free plan: one tool that explains, no access to the account
+function locked(request, who) {
+  const server = new McpServer(
+    { name: "usetally", title: "Usetally", version: "1.0.0", websiteUrl: aiSite() },
+    { instructions: `${UPGRADE} Tell the person this if they ask you to do anything in Usetally.` },
+  );
+  server.registerTool("usetally_plan_required", {
+    title: "Usetally: upgrade needed",
+    description: "Explains why Usetally can't be used from this chat yet (the business is on the Free plan). Call it whenever the person asks for anything in Usetally.",
+    inputSchema: {},
+    annotations: { readOnlyHint: true, openWorldHint: false },
+  }, async () => ({ content: [{ type: "text", text: `${UPGRADE} Business: ${who.business.name}. Plans: ${aiSite()}/app/settings/billing` }] }));
+  return serve(server, request);
+}
+
+async function handle(request) {
+  if (!supabaseConfigured()) return json({ error: "Usetally isn't set up on this server." }, 503);
+  const service = createSupabaseService();
+  const who = await authenticate(service, request.headers.get("authorization"));
+  if (!who.connection) return unauthorized(who.error);
+
+  // AI & MCP is a paid feature: on Free (or once a trial ends) nothing is shared,
+  // the app only gets one tool that says how to turn it back on
+  const paid = hasFeature(await featuresOf(service, who.business.id), "ai_full");
+  if (!paid) return locked(request, who);
+  const server = new McpServer(
+    { name: "usetally", title: "Usetally", version: "1.0.0", websiteUrl: aiSite(), icons: [{ src: `${aiSite()}/icons/icon-512.png`, mimeType: "image/png", sizes: ["512x512"] }] },
+    { instructions: `${INSTRUCTIONS}\nConnected business: ${who.business.name} (usual currency ${who.business.currency}).` },
+  );
+  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope: who.connection.scope, site: aiSite(), appName: who.connection.app_name || "AI assistant" });
+  return serve(server, request);
 }
 
 export const POST = handle;

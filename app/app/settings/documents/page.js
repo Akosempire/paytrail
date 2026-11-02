@@ -37,7 +37,7 @@ export default async function DocumentsSettings() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Documents & printing" description="Default template and paper size for each document type. You can still change them on any document. Quotes and invoices already sent keep the look they were sent with; receipts always use your latest settings and branding." />
-      {lockedTemplates && <UpgradeNote title="Premium templates are on paid plans">Signature and the POS receipt are free. Upgrade for Executive, Ledger, Bold, Notebook and the rest. Documents you've already sent keep their look.</UpgradeNote>}
+      {lockedTemplates && <UpgradeNote title="Premium templates are on paid plans">Essential and Signature are free, in any colour you like. Upgrade for Executive, Merchant, Notebook and the rest. Documents you've already sent keep their look.</UpgradeNote>}
       <DocumentDefaults business={ctx.business} samples={{ quote, invoice, receipt }} extraTemplates={extra} lockedTemplates={lockedTemplates} />
     </div>
   );
