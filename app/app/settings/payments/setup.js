@@ -6,6 +6,7 @@ import { Check, CircleDashed, ExternalLink, KeyRound, Loader2, PlugZap, RefreshC
 import { Badge, Button, Callout, Card, Field, Input, cx } from "@/components/ui";
 import { CopyButton, Modal, useToast } from "@/components/ui-client";
 import { disconnect, recheckConnection, runTestPayment, saveConnection, setEnabled } from "./actions";
+import { BACHS_SIGNUP_URL } from "@/lib/payments/referral";
 
 const GUIDES = {
   stripe: {
@@ -50,12 +51,13 @@ const GUIDES = {
     color: "#101828",
     blurb: "Card, bank transfer and more, with fast settlement.",
     site: "https://bachs.io",
+    signup: BACHS_SIGNUP_URL,
     keyLabel: "Secret key",
     keyPlaceholder: "sk_sandbox_… or sk_live_…",
     hookLabel: "Webhook signing secret",
     hookPlaceholder: "Paste the signing secret Bachs shows for your webhook",
     steps: [
-      { title: "Open your Bachs account", body: "Sign in at bachs.io, or create an account. You can test straight away. To take real money, finish your business verification in Bachs first." },
+      { title: "Open your Bachs account", body: "New to Bachs? Create your account with the button below. Already have one? Sign in. You can test straight away. To take real money, finish your business verification in Bachs first." },
       { title: "Copy your secret key", body: "In the Bachs dashboard, open the developer / API keys section and copy the secret key. Use the sandbox key (starts with sk_sandbox_) first. Keep it private." },
       { title: "Add your Usetally webhook", body: "In the webhooks section, add a new endpoint and paste the URL below. Choose the collection.succeeded, collection.failed and checkout.expired events. Bachs then shows a signing secret: copy it.", webhook: true },
       { title: "Paste both into Usetally", body: "Usetally checks the key with Bachs before saving, and stores it encrypted.", form: true },
@@ -199,7 +201,12 @@ function ProviderCard({ provider, guide, connection, webhook, testAmount, defaul
               <div className="min-w-0 flex-1 pt-0.5">
                 <p className="text-sm font-semibold text-ink">{s.title}</p>
                 <p className="mt-0.5 text-[13px] text-ink-2">{s.body}</p>
-                {i === 0 && <Button size="sm" variant="link" href={guide.site} iconRight={ExternalLink} className="mt-1.5">Open {guide.name}</Button>}
+                {i === 0 && (guide.signup
+                  ? <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <Button size="sm" variant="primary" href={guide.signup} iconRight={ExternalLink}>Create a {guide.name} account</Button>
+                      <Button size="sm" variant="link" href={guide.site} iconRight={ExternalLink}>I already have one</Button>
+                    </div>
+                  : <Button size="sm" variant="link" href={guide.site} iconRight={ExternalLink} className="mt-1.5">Open {guide.name}</Button>)}
                 {s.docs && <Button size="sm" variant="link" href={s.docs} iconRight={ExternalLink} className="mt-1.5">{s.docsLabel}</Button>}
                 {s.webhook && (
                   <div className="mt-3 flex flex-col gap-2">
