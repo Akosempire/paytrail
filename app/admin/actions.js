@@ -8,6 +8,7 @@ import { toMinor, CURRENCIES } from "@/lib/money";
 import { KEY_RULES, webhookSecretProblem } from "@/lib/payments/keys";
 import { requireStepUp } from "@/lib/step-up";
 import { notifyAdmins } from "@/lib/admin-alerts";
+import { ALL_FEATURES } from "@/lib/entitlements";
 
 export async function savePlan(id, form) {
   const ctx = await requirePlatformAdmin();
@@ -32,11 +33,19 @@ export async function savePlan(id, form) {
   if (row.tax_filing_fee_minor != null && !Number.isFinite(row.tax_filing_fee_minor)) return { error: "Check the “File & pay for me” price." };
   if (!row.name) return { error: "Give the plan a name." };
   if (!Number.isFinite(price)) return { error: "Check the price." };
-  const { error } = id ? await ctx.supabase.from("plans").update(row).eq("id", id) : await ctx.supabase.from("plans").insert(row);
+  row.features_included = (Array.isArray(form.features_included) ? form.features_included : []).filter((k) => ALL_FEATURES.includes(k));
+  let { error } = id ? await ctx.supabase.from("plans").update(row).eq("id", id) : await ctx.supabase.from("plans").insert(row);
+  let note = "";
+  if (error && /features_included/.test(error.message || "")) {
+    // before RUN_NEW_2026-11-02b.sql: save the rest, say what's missing
+    delete row.features_included;
+    ({ error } = id ? await ctx.supabase.from("plans").update(row).eq("id", id) : await ctx.supabase.from("plans").insert(row));
+    note = " Paid features weren't saved: run RUN_NEW_2026-11-02b.sql in Supabase first.";
+  }
   if (error) return { error: error.message };
   revalidatePath("/admin/plans");
   updateTag(PUBLIC_PLANS_TAG); // the landing page shows the change straight away
-  return { message: id ? "Plan updated. Existing subscribers keep their current period." : "Plan created." };
+  return { message: (id ? "Plan updated. Existing subscribers keep their current period." : "Plan created.") + note };
 }
 
 export async function saveTrial(form) {

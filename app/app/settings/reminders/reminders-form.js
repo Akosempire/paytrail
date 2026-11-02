@@ -6,6 +6,7 @@ import { Badge, Button, Card, CardHeader, Field, Input, Select, Textarea, cx } f
 import { Switch, useToast } from "@/components/ui-client";
 import { DEFAULT_INVOICE_EMAIL, fillTemplate, reminderWhen } from "@/lib/reminders-core";
 import { formatMoney } from "@/lib/money";
+import { UpgradeNote } from "@/components/upgrade-note";
 import { deleteReminderRule, saveInvoiceEmail, saveReminderRule, setRemindersEnabled, toggleReminderRule } from "./actions";
 
 const VARS = [["{client}", "Client's first name"], ["{amount}", "Amount due"], ["{due_date}", "Due date"], ["{number}", "Invoice number"], ["{link}", "Link to view and pay"]];
@@ -92,7 +93,7 @@ function RuleEditor({ rule, business, taken, onDone }) {
   );
 }
 
-export function RemindersSettings({ business, rules, sent30 }) {
+export function RemindersSettings({ business, rules, sent30, locked = false }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -118,11 +119,12 @@ export function RemindersSettings({ business, rules, sent30 }) {
       <Card>
         <CardHeader icon={BellRing} title="Automatic reminders"
           description={sent30 ? `${sent30} reminder${sent30 === 1 ? "" : "s"} sent in the last 30 days.` : "Emailed to your client about unpaid invoices. Only invoices with a client email get them, and each one is sent once."} />
-        <div className="border-t border-line px-5 py-4">
-          <Switch checked={on} label="Send payment reminders" description="Turn off to stop all reminders for every invoice."
+        <div className="flex flex-col gap-3 border-t border-line px-5 py-4">
+          {locked && <UpgradeNote compact title="Automatic reminders are on paid plans">{on ? "Paused on the Free plan. Your reminders are kept and start again when you upgrade." : "Set them up once and Usetally chases late invoices for you."} The Remind button on each invoice stays free.</UpgradeNote>}
+          <Switch checked={on && !locked} disabled={locked} label="Send payment reminders" description={locked ? "Available on paid plans." : "Turn off to stop all reminders for every invoice."}
             onChange={(v) => { setOn(v); run(() => setRemindersEnabled(v), () => setOn(!v)); }} />
         </div>
-        <ul className={cx("divide-y divide-line border-t border-line", !on && "opacity-60")}>
+        <ul className={cx("divide-y divide-line border-t border-line", (!on || locked) && "opacity-60")}>
           {rules.map((r) => (
             <li key={r.id}>
               <div className="flex items-center gap-3 px-5 py-3.5">

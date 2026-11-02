@@ -9,6 +9,7 @@ import { Modal, Switch, useToast } from "@/components/ui-client";
 import { LayoutPanel } from "@/components/layout-panel";
 import { DocPreview as TemplatePreview } from "@/components/doc-preview";
 import { TEMPLATES, defaultLayout, resolveLayout } from "@/lib/doc-templates";
+import { isPremiumTemplate } from "@/lib/entitlements";
 import { CURRENCIES, computeTotals, formatMoney, marginOf, minorToInput, toMinor } from "@/lib/money";
 import { COST_CATEGORIES, formatDate } from "@/lib/format";
 import { saveDocument } from "@/app/app/documents/actions";
@@ -27,7 +28,7 @@ const blankCost = (c = {}) => ({ key: Math.random().toString(36).slice(2), label
 // pos: { store } when the business is connected to TrackOja POS (products can be added from it)
 // recentIds / owes / suggestions: recent customers, what each still owes, items used before (optional; offline mode has none)
 // guest: "Try it" on the website (no account): new customer only, kept on this device, Send asks them to sign up
-export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false, userId = "", lead = null, extraTemplates = false }) {
+export function DocumentEditor({ kind, doc, items: initialItems, costs: initialCosts, customers, presets, business, perms, emailReady, onSave, onSaved, pos, recentIds = [], owes = {}, suggestions = [], guest = false, userId = "", lead = null, extraTemplates = false, lockedTemplates = false }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
@@ -39,7 +40,9 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   // the template and paper, picked while the document is made (Templates in the preview);
   // a new document starts on the business's default for its kind
   const [look, setLook] = useState(() => {
-    const base = doc?.template ? { template: doc.template, paper: doc.paper, layout: doc.layout || {} } : defaultLayout(business, kind);
+    let base = doc?.template ? { template: doc.template, paper: doc.paper, layout: doc.layout || {} } : defaultLayout(business, kind);
+    // on the Free plan a new document starts on Signature, even if a premium default is saved
+    if (lockedTemplates && !doc?.template && isPremiumTemplate(base.template)) base = { ...base, template: "signature" };
     const r = resolveLayout({ kind, ...base }, business);
     return { template: r.template, paper: r.paper, layout: base.layout || {}, payment_instructions: doc?.payment_instructions || "" };
   });
@@ -685,7 +688,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
       description={`How this ${quote ? "quotation" : "invoice"} looks. It's saved with it and used for the PDF, the print and the email.`}
       footer={<Button variant="primary" onClick={() => setTemplatesOpen(false)}>Done</Button>}>
       <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_260px]">
-        <LayoutPanel kind={kind} value={look} onChange={(v) => { setLook(v); setLookTouched(true); }} brandColor={business.brand_color} extraTemplates={extraTemplates} idPrefix="bt" />
+        <LayoutPanel kind={kind} value={look} onChange={(v) => { setLook(v); setLookTouched(true); }} brandColor={business.brand_color} extraTemplates={extraTemplates} lockedTemplates={lockedTemplates} idPrefix="bt" />
         <div className="hidden rounded-xl bg-tray p-2 md:block md:self-start md:sticky md:top-0"><TemplatePreview model={previewModel} label="Template preview" /></div>
       </div>
     </Modal>

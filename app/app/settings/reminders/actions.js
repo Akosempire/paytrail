@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/context";
 import { checkRule } from "@/lib/reminders-core";
+import { featuresOf, hasFeature, upgradeMessage } from "@/lib/entitlements";
 
 const SQL_HINT = "Reminders need the latest database update: run RUN_NEW_2026-11-01c.sql in Supabase first.";
 const notReady = (e) => /(reminder|email_template_invoice|reminders_enabled)/.test(e?.message || "");
@@ -9,6 +10,7 @@ const done = () => { revalidatePath("/app/settings/reminders"); };
 
 export async function setRemindersEnabled(on) {
   const ctx = await requirePermission("settings.business");
+  if (on && !hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "auto_reminders")) return { error: upgradeMessage("auto_reminders") };
   const { error } = await ctx.supabase.from("businesses").update({ reminders_enabled: Boolean(on) }).eq("id", ctx.business.id);
   if (error) return { error: notReady(error) ? SQL_HINT : "Could not save." };
   done();

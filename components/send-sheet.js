@@ -8,6 +8,7 @@ import { DEFAULT_MESSAGE, VARIABLES, defaultSubject, fillTemplate, looksLikeEmai
 import { formatDate } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
 import { reminderText, todayIso } from "@/lib/collect-core";
+import { PaidTag, UpgradeNote } from "@/components/upgrade-note";
 import { cancelScheduled, scheduleSend, sendNow, setRecurrence, shareDocument, undoSend } from "@/app/app/documents/send-actions";
 
 const TABS = [
@@ -20,7 +21,7 @@ const TABS = [
 
 // Send sheet: from the right on larger screens, full screen on phones.
 // props.mode: "send" (first send), "share" (already sent), "reminder"
-export function SendSheet({ open, onClose, doc, business, link, pdfHref, emailReady, savedMessage, canSaveDefault, canRepeat, scheduled = [], initialTab = "email", mode = "send" }) {
+export function SendSheet({ open, onClose, doc, business, link, pdfHref, emailReady, savedMessage, canSaveDefault, canRepeat, laterLocked = false, scheduled = [], initialTab = "email", mode = "send" }) {
   const router = useRouter();
   const toast = useToast();
   const [tab, setTab] = useState(initialTab);
@@ -202,7 +203,12 @@ export function SendSheet({ open, onClose, doc, business, link, pdfHref, emailRe
 
         {tab === "email" && (
           <footer className="border-t border-line bg-subtle px-5 pb-[max(14px,env(safe-area-inset-bottom))] pt-3.5">
-            {later === "schedule" && (
+            {later && laterLocked && (
+              <UpgradeNote compact className="mb-3" title="Scheduled and repeating invoices are on paid plans">
+                {later === "repeat" && doc.recur_interval ? "This invoice's repeats are paused on the Free plan and start again when you upgrade. You can still stop them." : later === "repeat" ? "Usetally makes the next invoice for you every week or month, and can email it too." : "Write it now and pick when it goes out."} Send now stays free.
+              </UpgradeNote>
+            )}
+            {later === "schedule" && !laterLocked && (
               <div className="mb-3 flex flex-wrap items-end gap-3">
                 <Field label="Send on" htmlFor="ss-at" className="min-w-[220px] flex-1">
                   <Input id="ss-at" type="datetime-local" value={at} min={defaultLater(5)} onChange={(e) => setAt(e.target.value)} />
@@ -210,17 +216,17 @@ export function SendSheet({ open, onClose, doc, business, link, pdfHref, emailRe
                 <Button variant="primary" icon={busy === "schedule" ? Loader2 : CalendarClock} loading={pending && busy === "schedule"} onClick={submitSchedule}>Schedule</Button>
               </div>
             )}
-            {later === "repeat" && (
+            {later === "repeat" && (!laterLocked || doc.recur_interval) && (
               <RepeatForm doc={doc} repeat={repeat} setRepeat={setRepeat} pending={pending} busy={busy} onSave={() => saveRepeat()} onStop={() => saveRepeat(true)} />
             )}
             <div className="flex flex-wrap items-center gap-2">
               {!quote && canRepeat && (
                 <Button variant="ghost" icon={Repeat} aria-expanded={later === "repeat"} onClick={() => setLater(later === "repeat" ? null : "repeat")}>
-                  {doc.recur_interval ? `Repeats ${doc.recur_interval}` : "Make recurring"}
+                  {doc.recur_interval ? `Repeats ${doc.recur_interval}` : "Make recurring"}{laterLocked && <PaidTag className="ml-1.5" />}
                 </Button>
               )}
               <div className="ml-auto flex flex-1 gap-2 sm:flex-none [&>*]:flex-1 sm:[&>*]:flex-none">
-                {emailReady && !reminder && <Button icon={CalendarClock} iconRight={ChevronDown} aria-expanded={later === "schedule"} onClick={() => setLater(later === "schedule" ? null : "schedule")}>Schedule…</Button>}
+                {emailReady && !reminder && <Button icon={CalendarClock} iconRight={ChevronDown} aria-expanded={later === "schedule"} onClick={() => setLater(later === "schedule" ? null : "schedule")}>Schedule…{laterLocked && <PaidTag className="ml-1.5" />}</Button>}
                 {(emailReady || draft) && <Button variant="primary" icon={busy === "now" && pending ? Loader2 : Send} disabled={pending && busy === "now"} onClick={submitNow}>
                   {busy === "now" && pending ? "Sending…" : !emailReady ? "Mark as sent" : reminder ? "Send reminder" : "Send now"}
                 </Button>}

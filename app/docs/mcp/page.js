@@ -74,7 +74,7 @@ export default function McpDocs() {
         </dl>
 
         <h2 className={H2}>Tools</h2>
-        <p className={P}>{tools.length} tools. View-only connections get only the read tools. Every change runs as the signed-in person, so their team role, approval rules and plan limits apply exactly as in the app. Amounts are normal amounts in the document's currency (150000 means ₦150,000).</p>
+        <p className={P}>{tools.length} tools. View-only connections, and businesses on the Free plan, get only the read tools; the write tools need a trial or paid plan. Every change runs as the signed-in person, so their team role, approval rules and plan limits apply exactly as in the app. Amounts are normal amounts in the document's currency (150000 means ₦150,000).</p>
         <div className="mt-6 flex flex-col gap-4">
           {tools.map((t) => (
             <section key={t.name} id={t.name} className="rounded-xl p-5 ring-1 ring-line">

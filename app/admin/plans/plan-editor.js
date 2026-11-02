@@ -6,8 +6,9 @@ import { Badge, Button, Card, Checkbox, EmptyState, Field, Input, Select, Textar
 import { Modal, useToast } from "@/components/ui-client";
 import { CURRENCIES, formatMoney, minorToInput } from "@/lib/money";
 import { savePlan } from "../actions";
+import { FEATURES, planFeatures } from "@/lib/entitlements";
 
-const EMPTY = { name: "", tagline: "", price: "", currency: "NGN", billing_interval: "month", document_limit: "", seat_limit: "", allow_company: true, features: "", active: true, sort_order: 0, filing_fee: "", spots: "" };
+const EMPTY = { name: "", tagline: "", price: "", currency: "NGN", billing_interval: "month", document_limit: "", seat_limit: "", allow_company: true, features: "", active: true, sort_order: 0, filing_fee: "", spots: "", features_included: FEATURES.map((f) => f.key) };
 
 export function PlanEditor({ plans, counts }) {
   const router = useRouter();
@@ -15,7 +16,7 @@ export function PlanEditor({ plans, counts }) {
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState(null);
   const open = (p) => setEditing(p ? { id: p.id, name: p.name, tagline: p.tagline, price: minorToInput(p.price_minor), currency: p.currency, billing_interval: p.billing_interval,
-    document_limit: p.document_limit ?? "", seat_limit: p.seat_limit ?? "", allow_company: p.allow_company, features: (p.features || []).join("\n"), active: p.active, sort_order: p.sort_order, filing_fee: p.tax_filing_fee_minor == null ? "" : minorToInput(p.tax_filing_fee_minor), spots: p.spots ?? "" } : { ...EMPTY });
+    document_limit: p.document_limit ?? "", seat_limit: p.seat_limit ?? "", allow_company: p.allow_company, features: (p.features || []).join("\n"), active: p.active, sort_order: p.sort_order, filing_fee: p.tax_filing_fee_minor == null ? "" : minorToInput(p.tax_filing_fee_minor), spots: p.spots ?? "", features_included: planFeatures(p) } : { ...EMPTY });
   const set = (k) => (e) => setEditing({ ...editing, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
   return (
     <>
@@ -30,6 +31,7 @@ export function PlanEditor({ plans, counts }) {
                 <li>{p.document_limit == null ? "Unlimited documents" : `${p.document_limit} documents / month`}</li>
                 <li>{p.seat_limit == null ? "Unlimited seats" : `${p.seat_limit} seats`} · {p.allow_company ? "Freelancers & companies" : "Freelancers only"}</li>
                 {(p.features || []).map((f) => <li key={f} className="text-ink-3">· {f}</li>)}
+                <li className="pt-1 text-xs text-ink-3">Unlocks: {planFeatures(p).length ? FEATURES.filter((f) => planFeatures(p).includes(f.key)).map((f) => f.label).join(", ") : "no paid features"}</li>
                 {p.tax_filing_fee_minor != null && <li className="text-ink-3">· File &amp; pay: {p.tax_filing_fee_minor ? formatMoney(p.tax_filing_fee_minor, "NGN") : "free"} per return</li>}
                 {p.spots != null && <li className="text-ink-3">· {p.spots} spots (anyone can pick it while spots are left)</li>}
               </ul>
@@ -59,6 +61,15 @@ export function PlanEditor({ plans, counts }) {
             <Field label="“File & pay for me” price (₦)" htmlFor="pff" optional hint="Per VAT return on this plan. Empty uses the price in Admin → Tax filing."><Input id="pff" inputMode="decimal" value={editing.filing_fee} onChange={set("filing_fee")} /></Field>
             <Field label="Spots" htmlFor="psp" optional hint="For a hidden offer like Founding: anyone can choose it until this many businesses are on it."><Input id="psp" inputMode="numeric" value={editing.spots} onChange={set("spots")} /></Field>
             <Field label="Display order" htmlFor="po"><Input id="po" inputMode="numeric" value={editing.sort_order} onChange={set("sort_order")} /></Field>
+            <fieldset className="flex flex-col gap-2.5 rounded-xl bg-tray p-4 sm:col-span-2">
+              <legend className="sr-only">Paid features</legend>
+              <p className="text-[13px] font-medium text-ink-2">Paid features on this plan</p>
+              <p className="-mt-1.5 text-xs text-ink-3">Ticked features work on this plan. The trial always has all of them.</p>
+              {FEATURES.map((f) => (
+                <Checkbox key={f.key} label={f.label} description={`${f.short}. ${f.free}.`} checked={editing.features_included.includes(f.key)}
+                  onChange={(e) => setEditing({ ...editing, features_included: e.target.checked ? [...new Set([...editing.features_included, f.key])] : editing.features_included.filter((k) => k !== f.key) })} />
+              ))}
+            </fieldset>
             <div className="flex flex-col justify-end gap-3">
               <Checkbox label="Companies can choose it" checked={editing.allow_company} onChange={set("allow_company")} />
               <Checkbox label="Active (visible to businesses)" checked={editing.active} onChange={set("active")} />

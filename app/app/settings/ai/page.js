@@ -8,6 +8,8 @@ import { siteUrl } from "@/lib/site";
 import { Badge, Card, CardHeader, Callout, PageHeader } from "@/components/ui";
 import { CopyButton } from "@/components/ui-client";
 import { DisconnectAssistant } from "./disconnect";
+import { UpgradeNote } from "@/components/upgrade-note";
+import { featuresOf, hasFeature } from "@/lib/entitlements";
 
 export const metadata = { title: "AI & MCP" };
 export const dynamic = "force-dynamic";
@@ -57,6 +59,7 @@ export default async function Page() {
   const manager = can(ctx.member, "settings.team");
   let q = createSupabaseService().from("ai_connections").select("id, user_id, app_name, app_host, scope, created_at, last_used_at").eq("business_id", ctx.business.id).is("revoked_at", null);
   if (!manager) q = q.eq("user_id", ctx.user.id);
+  const full = hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "ai_full");
   const { data: connections, error } = await q.order("created_at", { ascending: false }).limit(50);
   const people = manager && connections?.length
     ? Object.fromEntries(((await createSupabaseService().from("memberships").select("user_id, full_name, email").eq("business_id", ctx.business.id)).data || []).map((m) => [m.user_id, m.full_name || m.email]))
@@ -64,6 +67,7 @@ export default async function Page() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="AI & MCP" description="Connect ChatGPT, Claude or Grok to make quotes and invoices, send them, record payments and check your numbers by chatting." />
+      {!full && <UpgradeNote title="View only on the Free plan">Your assistant can look up quotes, invoices, customers and totals. Upgrade to create, send and record payments by chatting. After upgrading, connect again and choose Full access.</UpgradeNote>}
       {error && /ai_connections/.test(error.message || "") && <Callout tone="warn" title="Database update needed">Run RUN_NEW_2026-11-01g.sql in Supabase to connect AI assistants.</Callout>}
 
       <Card>
@@ -104,7 +108,7 @@ export default async function Page() {
               <li key={c.id} className="flex flex-wrap items-center gap-3 px-5 py-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-ink">{c.app_name || "AI assistant"}
-                    <Badge tone={c.scope === "read" ? "neutral" : "brand"}>{ACCESS[c.scope]?.label || c.scope}</Badge></p>
+                    <Badge tone={c.scope === "read" || !full ? "neutral" : "brand"}>{!full && c.scope !== "read" ? "View only (Free plan)" : ACCESS[c.scope]?.label || c.scope}</Badge></p>
                   <p className="text-xs text-ink-3">
                     {manager ? `${c.user_id === ctx.user.id ? "You" : people[c.user_id] || "A team member"} · ` : ""}{c.app_host ? `${c.app_host} · ` : ""}connected {formatDate(c.created_at)} · {c.last_used_at ? `last used ${timeAgo(c.last_used_at)}` : "not used yet"}
                   </p>

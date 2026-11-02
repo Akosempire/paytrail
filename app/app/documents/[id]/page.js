@@ -11,6 +11,7 @@ import { formatMoney, marginOf } from "@/lib/money";
 import { COST_CATEGORIES, PAYMENT_METHODS, formatDate, timeAgo } from "@/lib/format";
 import { Button, Callout, Card, CardHeader, cx } from "@/components/ui";
 import { DocumentLayoutEditor } from "@/components/document-layout-editor";
+import { featuresOf, hasFeature } from "@/lib/entitlements";
 import { payLinkFor } from "@/lib/pdf-response";
 import { DocumentActions } from "@/components/document-actions";
 import { StatusBadge } from "@/components/doc-bits";
@@ -90,12 +91,13 @@ export default async function DocumentPage({ params, searchParams }) {
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Africa/Lagos" });
   const unpaid = !quote && ["sent", "viewed", "partially_paid"].includes(doc.status);
   const overdueDays = unpaid && doc.due_date && doc.due_date < today ? daysBetween(doc.due_date, today) : 0;
-  const [scheduled, plan, message] = await Promise.all([waitingSends(ctx, doc.id), unpaid ? reminderPlan(ctx, doc, today) : null, savedMessage(ctx.supabase, ctx.business.id)]);
+  const [scheduled, plan, message, features] = await Promise.all([waitingSends(ctx, doc.id), unpaid ? reminderPlan(ctx, doc, today) : null, savedMessage(ctx.supabase, ctx.business.id), featuresOf(ctx.supabase, ctx.business.id)]);
+  const remindersPaused = !hasFeature(features, "auto_reminders");
   const canSendDoc = can(ctx.member, "documents.send") || (ctx.member.role === "junior_finance" && !ctx.business.require_approval);
   const send = {
     business: { name: ctx.business.name, brand_color: ctx.business.brand_color, logoUrl: absoluteLogoUrl(ctx.business.logo_path) },
     savedMessage: message, canSaveDefault: can(ctx.member, "settings.business"), canRepeat: ["owner", "manager", "finance"].includes(ctx.member.role) && doc.source !== "pos",
-    scheduled, overdue: overdueDays > 0,
+    scheduled, overdue: overdueDays > 0, laterLocked: !hasFeature(features, "scheduled_sending"),
   };
   const nextDate = plan?.date ? formatDate(plan.date, { weekday: "short", day: "numeric", month: "short" }) : null;
   const extraTemplates = await readyTemplates(ctx.supabase);
@@ -161,7 +163,7 @@ export default async function DocumentPage({ params, searchParams }) {
             <DocActionLink action="remind">Remind now</DocActionLink>
             {plan && can(ctx.member, "settings.business") && <Link className="font-semibold text-brand-ink hover:underline" href="/app/settings/reminders">Edit reminders</Link>}
           </span> : null}>
-          {money(balance)} is still to pay. {!doc.customer_email ? "There's no email for this client, so remind them on WhatsApp." : plan?.off ? "Automatic reminders are off." : nextDate ? `Next automatic reminder goes ${nextDate}.` : plan ? "No more automatic reminders are planned." : ""}
+          {money(balance)} is still to pay. {!doc.customer_email ? "There's no email for this client, so remind them on WhatsApp." : plan?.off ? "Automatic reminders are off." : remindersPaused ? "Automatic reminders are on paid plans, so use Remind to nudge them." : nextDate ? `Next automatic reminder goes ${nextDate}.` : plan ? "No more automatic reminders are planned." : ""}
         </Callout>
       )}
       {einvoiceBlocks && <EInvoiceLine banner docId={doc.id} ready={false} missingCount={einvoice.missing.length} fields={fixFields} canFix={can(ctx.member, "settings.business")} nigeria={inNigeria(ctx.business)} />}
@@ -186,7 +188,7 @@ export default async function DocumentPage({ params, searchParams }) {
         <div className="min-w-0">
           <DocumentLayoutEditor doc={doc} items={items.map(({ description, details, quantity, unit_price_minor }) => ({ description, details, quantity, unit_price_minor }))}
             business={ctx.business} payLink={payLink} canEdit={canEditLayout} canSetDefault={can(ctx.member, "settings.business")}
-            printHref={`/print/doc/${doc.id}`} pdfHref={`/app/documents/${doc.id}/pdf?download`} extraTemplates={extraTemplates} />
+            printHref={`/print/doc/${doc.id}`} pdfHref={`/app/documents/${doc.id}/pdf?download`} extraTemplates={extraTemplates} lockedTemplates={!hasFeature(features, "premium_templates")} />
         </div>
 
         {/* phones: "have I been paid / what's missing" comes before the long preview */}

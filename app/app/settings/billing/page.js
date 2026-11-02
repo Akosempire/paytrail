@@ -14,6 +14,8 @@ import { cx } from "@/components/ui";
 import { MetaEvent } from "@/components/marketing-tags";
 import { TRIAL_OFFER, offerEligible, offerPrice } from "@/lib/trial-offer";
 
+import { FEATURES } from "@/lib/entitlements";
+
 export const metadata = { title: "Plan & billing" };
 
 export default async function Billing({ searchParams }) {
@@ -75,6 +77,20 @@ export default async function Billing({ searchParams }) {
           <div className="flex items-center gap-3"><Sparkles className="size-5 text-brand" /><div><p className="text-title-3 text-ink">{onFree ? "Free plan" : active ? "Current plan" : b.subscription_status === "trialing" ? "Trial" : "No active plan"}</p><p className="text-[13px] text-ink-2">{status}</p></div></div>
           <Badge tone={onFree ? "neutral" : active ? "success" : b.subscription_status === "trialing" ? "brand" : "danger"}>{onFree ? "free" : b.subscription_status.replace("_", " ")}</Badge>
         </div>
+        {(onFree || b.subscription_status === "trialing") && (
+          <div className="mt-4 border-t border-line pt-4">
+            <p className="text-[13px] font-medium text-ink">{onFree ? "Upgrade to unlock" : "Included in your trial, and in every paid plan"}</p>
+            <ul className="mt-2 grid gap-2 sm:grid-cols-2">
+              {FEATURES.map((f) => (
+                <li key={f.key} className="flex items-start gap-2 text-[13px]">
+                  <Sparkles className="mt-0.5 size-3.5 shrink-0 text-violet-ink" aria-hidden="true" />
+                  <span><span className="font-medium text-ink">{f.label}</span><span className="block text-ink-3">{f.short}.</span></span>
+                </li>
+              ))}
+            </ul>
+            {onFree && <p className="mt-3 text-xs text-ink-3">Your settings are kept. Reminders and repeating invoices start again the moment you upgrade.</p>}
+          </div>
+        )}
       </Card>
       {deal && (
         <Card className="flex items-start gap-3 p-5 ring-2 ring-brand/40">

@@ -6,6 +6,7 @@ import { can } from "@/lib/permissions";
 import { emailConfigured } from "@/lib/email";
 import { parseEmails, looksLikeEmail } from "@/lib/send-core";
 import { sendAfterUndo } from "@/lib/send-queue";
+import { featuresOf, hasFeature, upgradeMessage } from "@/lib/entitlements";
 
 // The send sheet's actions (components/send-sheet.js). The queue itself is in
 // lib/send-queue.js and supabase/migrations/20261101000200_send_queue.sql.
@@ -77,6 +78,7 @@ export async function scheduleSend(id, form) {
   if (!maySend(ctx)) return { error: "A manager or finance officer needs to approve and send this." };
   const f = readEmailForm(form);
   if (f.error) return f;
+  if (!hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "scheduled_sending")) return { error: upgradeMessage("scheduled_sending"), upgrade: true };
   const at = new Date(form.at);
   if (!Number.isFinite(at.getTime()) || at.getTime() < Date.now() + 60000) return { error: "Choose a time at least a minute from now." };
   if (!(await emailConfigured())) return { error: "Email isn't set up on this Usetally, so it can't be scheduled. Share the link instead." };
@@ -101,6 +103,8 @@ export async function cancelScheduled(sendId, docId) {
 export async function setRecurrence(id, { interval, startOn, autoSend }) {
   const ctx = await requireBusiness();
   const every = interval === "weekly" || interval === "monthly" ? interval : null;
+  // turning repeating off always works; turning it on is a paid feature
+  if (every && !hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "scheduled_sending")) return { error: upgradeMessage("scheduled_sending"), upgrade: true };
   const { data, error } = await ctx.supabase.rpc("set_document_recurrence", { doc_id: id, every, next_on: every ? startOn : null, auto_send: Boolean(every && autoSend) });
   if (error) return { error: needsSql(error) ? SQL_MSG : friendlyError(error) };
   refresh(id);

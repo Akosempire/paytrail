@@ -3,6 +3,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { createSupabaseService, supabaseConfigured } from "@/lib/supabase/server";
 import { authenticate } from "@/lib/ai/oauth";
 import { challenge } from "@/lib/ai/oauth-core";
+import { featuresOf, hasFeature } from "@/lib/entitlements";
 import { registerTools } from "@/lib/ai/tools";
 import { aiSite, CORS, json, preflight } from "@/lib/ai/http";
 
@@ -31,11 +32,15 @@ async function handle(request) {
   const who = await authenticate(service, request.headers.get("authorization"));
   if (!who.connection) return unauthorized(who.error);
 
+  // full access is a paid feature: on Free (or once a trial ends) the app can only look
+  const full = hasFeature(await featuresOf(service, who.business.id), "ai_full");
+  const scope = full ? who.connection.scope : "read";
+  const note = !full ? "\n- This business is on the Free plan, so only looking things up works here. To create or send, the person upgrades in Usetally (Settings → Plan & billing); share that with them if they ask." : "";
   const server = new McpServer(
     { name: "usetally", title: "Usetally", version: "1.0.0", websiteUrl: aiSite(), icons: [{ src: `${aiSite()}/icons/icon-512.png`, mimeType: "image/png", sizes: ["512x512"] }] },
-    { instructions: `${INSTRUCTIONS}\nConnected business: ${who.business.name} (usual currency ${who.business.currency}).` },
+    { instructions: `${INSTRUCTIONS}${note}\nConnected business: ${who.business.name} (usual currency ${who.business.currency}).` },
   );
-  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope: who.connection.scope, site: aiSite(), appName: who.connection.app_name || "AI assistant" });
+  registerTools(server, { service, userId: who.userId, business: who.business, member: who.member, scope, site: aiSite(), appName: who.connection.app_name || "AI assistant" });
   const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined, enableJsonResponse: true });
   await server.connect(transport);
   try {

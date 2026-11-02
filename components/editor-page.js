@@ -8,6 +8,7 @@ import { emailConfigured } from "@/lib/email";
 import { Callout, PageHeader } from "@/components/ui";
 import { DocumentEditor } from "@/components/document-editor";
 import { readyTemplates } from "@/lib/templates-ready";
+import { featuresOf, hasFeature } from "@/lib/entitlements";
 import { DraftStrip, QuoteSwitcher } from "@/components/quote-switcher";
 
 // shared by "new quote", "new invoice" and "edit draft"
@@ -108,6 +109,7 @@ export async function EditorPage({ kind, id, customerId }) {
         owes={owes}
         suggestions={suggestions}
         extraTemplates={await readyTemplates(ctx.supabase)}
+        lockedTemplates={!hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "premium_templates")}
         userId={ctx.user.id}
       />
     </div>

@@ -2,6 +2,7 @@
 import { readyTemplates, SQL_FOR } from "@/lib/templates-ready";
 import { TEMPLATES } from "@/lib/doc-templates";
 import { revalidatePath } from "next/cache";
+import { featuresOf, hasFeature, isPremiumTemplate, upgradeMessage } from "@/lib/entitlements";
 import { requirePermission } from "@/lib/context";
 import { cleanLayout, fits } from "@/lib/doc-templates";
 
@@ -10,6 +11,8 @@ export async function saveDocumentDefaults(kind, input) {
   const ctx = await requirePermission("settings.business");
   if (!["quote", "invoice", "receipt"].includes(kind)) return { error: "Unknown document type." };
   if (!fits(kind, input.template, input.paper)) return { error: "That template isn't available for this paper size." };
+  if (isPremiumTemplate(input.template) && input.template !== ctx.business.document_prefs?.[kind]?.template
+    && !hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "premium_templates")) return { error: upgradeMessage("premium_templates") };
   const update = TEMPLATES[input.template]?.needsUpdate;
   if (update && !(await readyTemplates(ctx.supabase)).includes(input.template)) return { error: `This template needs a quick database update first. Run ${SQL_FOR[update]} in Supabase, then try again.` };
   const prefs = { ...(ctx.business.document_prefs || {}), [kind]: { template: input.template, paper: input.paper, layout: cleanLayout(input.layout) } };

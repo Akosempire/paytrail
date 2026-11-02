@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ShieldCheck, TriangleAlert } from "lucide-react";
 import { getContext } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
+import { featuresOf, hasFeature } from "@/lib/entitlements";
 import { ACCESS, appFor, checkAuthorizeRequest, redirectWith } from "@/lib/ai/oauth-core";
 import { getClient } from "@/lib/ai/oauth";
 import { aiSite } from "@/lib/ai/http";
@@ -33,6 +34,9 @@ export default async function Page({ searchParams }) {
 
   const app = appFor(req.redirect, client.name);
   const businesses = ctx.memberships.map((m) => ({ id: m.business_id, name: m.businesses?.name || "Your business", role: ROLES[m.role]?.label || m.role }));
+  // full access (creating and sending) is a paid feature; Free connects as view only
+  const features = await Promise.all(businesses.map((b) => featuresOf(ctx.supabase, b.id)));
+  businesses.forEach((b, i) => { b.full = hasFeature(features[i], "ai_full"); });
   if (!businesses.length) return (
     <div className="flex flex-col gap-3 text-center">
       <h1 className="text-title-1 text-ink">Set up your business first</h1>

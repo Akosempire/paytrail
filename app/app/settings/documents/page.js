@@ -2,6 +2,8 @@ import { requirePermission } from "@/lib/context";
 import { PageHeader } from "@/components/ui";
 import { DocumentDefaults } from "./defaults";
 import { readyTemplates } from "@/lib/templates-ready";
+import { featuresOf, hasFeature } from "@/lib/entitlements";
+import { UpgradeNote } from "@/components/upgrade-note";
 
 export const metadata = { title: "Documents & printing" };
 
@@ -16,11 +18,13 @@ async function latest(ctx, kind) {
 
 export default async function DocumentsSettings() {
   const ctx = await requirePermission("settings.business");
-  const [quote, invoice, receiptRow, extra] = await Promise.all([
+  const [quote, invoice, receiptRow, extra, features] = await Promise.all([
     latest(ctx, "quote"), latest(ctx, "invoice"),
     ctx.supabase.from("receipts").select("*").eq("business_id", ctx.business.id).order("issued_at", { ascending: false }).limit(1).maybeSingle().then((r) => r.data),
     readyTemplates(ctx.supabase),
+    featuresOf(ctx.supabase, ctx.business.id),
   ]);
+  const lockedTemplates = !hasFeature(features, "premium_templates");
   let receipt = null;
   if (receiptRow) {
     const [{ data: payment }, { data: doc }, { data: items }] = await Promise.all([
@@ -33,7 +37,8 @@ export default async function DocumentsSettings() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Documents & printing" description="Default template and paper size for each document type. You can still change them on any document. Quotes and invoices already sent keep the look they were sent with; receipts always use your latest settings and branding." />
-      <DocumentDefaults business={ctx.business} samples={{ quote, invoice, receipt }} extraTemplates={extra} />
+      {lockedTemplates && <UpgradeNote title="Premium templates are on paid plans">Signature and the POS receipt are free. Upgrade for Executive, Ledger, Bold, Notebook and the rest. Documents you've already sent keep their look.</UpgradeNote>}
+      <DocumentDefaults business={ctx.business} samples={{ quote, invoice, receipt }} extraTemplates={extra} lockedTemplates={lockedTemplates} />
     </div>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button, cx } from "@/components/ui";
+import { UpgradeNote } from "@/components/upgrade-note";
 import { allowAccess, denyAccess } from "./actions";
 
 function Allow() {
@@ -13,6 +14,10 @@ const option = "flex cursor-pointer items-start gap-3 rounded-xl p-3.5 ring-1 ri
 
 export function ConsentForm({ params, businesses, defaultBusiness, access, readOnly, appName }) {
   const [state, action] = useActionState(async (_, form) => allowAccess(form), null);
+  const [picked, setPicked] = useState(defaultBusiness);
+  const business = businesses.find((b) => b.id === picked) || businesses[0];
+  // on the Free plan the app connects as view only
+  const viewOnly = readOnly || business.full === false;
   return (
     <form action={action} className="flex flex-col gap-5">
       {Object.entries(params).map(([k, v]) => <input key={k} type="hidden" name={k} value={v} />)}
@@ -21,7 +26,7 @@ export function ConsentForm({ params, businesses, defaultBusiness, access, readO
           <legend className="mb-2 text-sm font-medium text-ink">Which business?</legend>
           {businesses.map((b) => (
             <label key={b.id} className={option}>
-              <input type="radio" name="business" value={b.id} defaultChecked={b.id === defaultBusiness} className="mt-0.5 accent-[var(--color-brand)]" />
+              <input type="radio" name="business" value={b.id} defaultChecked={b.id === defaultBusiness} onChange={() => setPicked(b.id)} className="mt-0.5 accent-[var(--color-brand)]" />
               <span><span className="block text-sm font-medium text-ink">{b.name}</span><span className="block text-xs text-ink-3">You're {b.role}</span></span>
             </label>
           ))}
@@ -32,12 +37,15 @@ export function ConsentForm({ params, businesses, defaultBusiness, access, readO
       )}
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-medium text-ink">What can {appName} do?</legend>
-        {Object.entries(access).filter(([k]) => !readOnly || k === "read").map(([k, a]) => (
-          <label key={k} className={option}>
-            <input type="radio" name="access" value={k} defaultChecked={readOnly ? k === "read" : k !== "read"} className="mt-0.5 accent-[var(--color-brand)]" />
+        {Object.entries(access).filter(([k]) => !viewOnly || k === "read").map(([k, a]) => (
+          <label key={`${k}-${viewOnly}`} className={option}>
+            <input type="radio" name="access" value={k} defaultChecked={viewOnly ? k === "read" : k !== "read"} className="mt-0.5 accent-[var(--color-brand)]" />
             <span><span className="block text-sm font-medium text-ink">{a.label}</span><span className="block text-xs leading-relaxed text-ink-3">{a.summary}</span></span>
           </label>
         ))}
+        {!readOnly && business.full === false && (
+          <UpgradeNote compact title="Full access is on paid plans">{appName} can look up your quotes, invoices and customers on Free. Upgrade to create and send from {appName}.</UpgradeNote>
+        )}
         <p className="text-xs text-ink-3">It can only do what your team role allows, and it asks you before sending anything. Disconnect any time in Settings → AI & MCP.</p>
       </fieldset>
       {state?.error && <p role="alert" className="text-sm text-danger">{state.error}</p>}

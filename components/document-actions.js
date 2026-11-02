@@ -175,7 +175,7 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
           return null;
         })} pending={pending && busy === "pay"} />
       {send && <SendSheet open={Boolean(sheet)} onClose={() => setSheet(null)} doc={doc} link={link} pdfHref={pdfHref || `/app/documents/${doc.id}/pdf?download`} emailReady={emailReady}
-        initialTab={sheet?.tab} mode={sheet?.mode} business={send.business} savedMessage={send.savedMessage} canSaveDefault={send.canSaveDefault} canRepeat={send.canRepeat} scheduled={send.scheduled} />}
+        initialTab={sheet?.tab} mode={sheet?.mode} business={send.business} savedMessage={send.savedMessage} canSaveDefault={send.canSaveDefault} canRepeat={send.canRepeat} laterLocked={send.laterLocked} scheduled={send.scheduled} />}
       <ReturnModal open={modal === "return"} onClose={() => setModal(null)} pending={pending && busy === "return"}
         onSubmit={(reason) => run("return", async () => { const r = await returnToDraft(doc.id, reason); if (!r.error) setModal(null); return r; })} />
       <Modal open={modal === "void"} onClose={() => setModal(null)} title={`Void ${doc.number}?`} description="The customer's link will show it as cancelled. This can't be undone."

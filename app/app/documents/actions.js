@@ -13,6 +13,7 @@ import { formatDate } from "@/lib/format";
 import { logoUrl, absoluteLogoUrl, siteUrl } from "@/lib/site";
 import { emailDocument, sendDocumentInternal } from "@/lib/document-send";
 import { pushPendingStock } from "@/lib/pos";
+import { featuresOf, hasFeature, isPremiumTemplate, upgradeMessage } from "@/lib/entitlements";
 
 // an invoice with TrackOja products that is now fully paid: TrackOja deducts the stock
 const stockSoon = (businessId) => after(() => pushPendingStock({ businessId, limit: 5 }));
@@ -55,6 +56,15 @@ export async function saveDocument(docId, input, intent = "draft") {
   if (input.look?.template) {
     const r = await applyLayout(ctx, id, input.look);
     if (r.error) { refresh(id); return { id, error: `Saved, but not in that template: ${r.error}` }; }
+  } else if (!docId) {
+    // on the Free plan a new document uses Signature, even if a premium default is saved
+    const { defaultLayout, resolveLayout } = await import("@/lib/doc-templates");
+    const kind = payload.kind || "quote";
+    const def = defaultLayout(ctx.business, kind);
+    if (isPremiumTemplate(def.template) && !hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "premium_templates")) {
+      const look = resolveLayout({ kind, template: "signature", paper: def.paper, layout: def.layout }, ctx.business);
+      await applyLayout(ctx, id, { template: look.template, paper: look.paper, layout: def.layout }).catch(() => null);
+    }
   }
   if (intent === "submit") {
     const { error: e } = await ctx.supabase.rpc("submit_document", { doc_id: id });
@@ -184,10 +194,13 @@ export async function emailReceipt(receiptId) {
 // before it's paid; a paid or cancelled document keeps the look it was paid in.
 async function applyLayout(ctx, id, input) {
   const { fits, cleanLayout, TEMPLATES } = await import("@/lib/doc-templates");
-  const { data: doc } = await ctx.supabase.from("documents").select("id, kind, status").eq("id", id).eq("business_id", ctx.business.id).maybeSingle();
+  const { data: doc } = await ctx.supabase.from("documents").select("id, kind, status, template").eq("id", id).eq("business_id", ctx.business.id).maybeSingle();
   if (!doc) return { error: "Document not found." };
   if (["paid", "void"].includes(doc.status)) return { error: doc.status === "paid" ? "This invoice is paid, so its template can't change." : "This document is cancelled, so its template can't change." };
   if (!fits(doc.kind, input.template, input.paper)) return { error: "That template isn't available for this paper size." };
+  // premium templates are a paid feature (a document already on one can keep it)
+  if (isPremiumTemplate(input.template) && input.template !== doc.template
+    && !hasFeature(await featuresOf(ctx.supabase, ctx.business.id), "premium_templates")) return { error: upgradeMessage("premium_templates") };
   const { readyTemplates, SQL_FOR } = await import("@/lib/templates-ready");
   const update = TEMPLATES[input.template]?.needsUpdate;
   if (update && !(await readyTemplates(ctx.supabase)).includes(input.template)) return { error: `This template needs a quick database update first. Run ${SQL_FOR[update]} in Supabase, then try again.` };
