@@ -1,4 +1,5 @@
 "use server";
+import { safeNext } from "@/lib/safe-next";
 import { redirect } from "next/navigation";
 import { createSupabaseServer } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site";
@@ -22,10 +23,6 @@ async function remember(n) {
 const lengthFrom = (form) => okLength(form?.get?.("code_length")) || fallbackLength();
 
 // only same-site paths may be used as a post-login destination
-function safeNext(value, fallback = "/app") {
-  const next = String(value || "");
-  return next.startsWith("/") && !next.startsWith("//") ? next : fallback;
-}
 
 export async function signIn(_prev, form) {
   await remember();

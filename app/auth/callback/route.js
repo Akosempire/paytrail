@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
+import { safeNext } from "@/lib/safe-next";
 import { createSupabaseServer } from "@/lib/supabase/server";
 
 // email confirmation, password reset and invite links all land here
 export async function GET(request) {
   const url = new URL(request.url);
   const nextParam = url.searchParams.get("next") || "/app";
-  const next = nextParam.startsWith("/") && !nextParam.startsWith("//") ? nextParam : "/app";
+  const next = safeNext(nextParam);
   // Google (or another provider) sent the person back without signing in:
   // they cancelled, or the provider refused
   if (url.searchParams.get("error")) {

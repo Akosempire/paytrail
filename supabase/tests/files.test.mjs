@@ -18,7 +18,7 @@ async function as(userId, sql, params = []) {
 }
 
 let owner, junior, outsider, biz, otherBiz, docId, otherDoc;
-const add = (user, b, d, by = user) => as(user, "insert into public.document_files(business_id,document_id,name,content_type,size_bytes,storage_key,uploaded_by) values ($1,$2,'proof.jpg','image/jpeg',1000,gen_random_uuid()::text,$3) returning id", [b, d, by]);
+const add = (user, b, d, by = user) => as(user, "insert into public.document_files(business_id,document_id,name,content_type,size_bytes,storage_key,uploaded_by) values ($1::uuid,$2::uuid,'proof.jpg','image/jpeg',1000,$1::text || '/docs/' || $2::text || '/' || gen_random_uuid()::text || '.jpg',$3) returning id", [b, d, by]);
 test.before(async () => {
   const s = Date.now();
   owner = (await one("insert into auth.users(email) values ($1) returning id", [`f-owner${s}@a.test`])).id;
@@ -60,5 +60,5 @@ test("junior finance removes only their own files", async () => {
 });
 
 test("files over 4 MB are refused", async () => {
-  await assert.rejects(as(owner, "insert into public.document_files(business_id,document_id,name,content_type,size_bytes,storage_key,uploaded_by) values ($1,$2,'big.pdf','application/pdf',5000000,'k-big',$3)", [biz, docId, owner]));
+  await assert.rejects(as(owner, "insert into public.document_files(business_id,document_id,name,content_type,size_bytes,storage_key,uploaded_by) values ($1::uuid,$2::uuid,'big.pdf','application/pdf',5000000,$1::text || '/docs/' || $2::text || '/big.pdf',$3)", [biz, docId, owner]));
 });

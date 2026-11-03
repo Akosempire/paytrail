@@ -1,3 +1,4 @@
+import { requirePlatformAdmin } from "@/lib/context";
 import Link from "next/link";
 import { FileText, Inbox, Paperclip, UsersRound } from "lucide-react";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -17,6 +18,7 @@ const WORD = { to_file: "To file", requested: "To file", filed: "Filed · to pay
 
 // "File & pay for me" requests: who asked, who's on it, and the proof
 export default async function AdminTax({ searchParams }) {
+  await requirePlatformAdmin();
   const sp = await searchParams;
   const tab = TABS.some(([k]) => k === sp.tab) ? sp.tab : "requested";
   const service = createSupabaseService();

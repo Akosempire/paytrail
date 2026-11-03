@@ -7,17 +7,12 @@ import { randomUUID } from "node:crypto";
 import { r2Delete, r2Put, r2Ready } from "@/lib/storage";
 import { MAX_FILE_BYTES, cleanFileName, fileTypeOf, formatSize } from "@/lib/file-types";
 import { toMinor } from "@/lib/money";
+import { underLimit } from "@/lib/guard";
 
-// tiny in-memory throttle per IP so a public link can't be hammered
-const hits = new Map();
+// per visitor, per minute, counted in the database so every server shares the count
 async function throttle(key, limit = 12) {
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() || "local";
-  const k = `${key}:${ip}`;
-  const now = Date.now();
-  const list = (hits.get(k) || []).filter((t) => now - t < 60000);
-  list.push(now);
-  hits.set(k, list);
-  return list.length > limit;
+  return !(await underLimit(`public.${key}`, ip, 60, limit));
 }
 
 export async function respondToQuote(token, { accept, name, reason }) {

@@ -113,8 +113,9 @@ export default async function Dashboard({ searchParams }) {
   const aiDrafts = (drafts || []).filter((d) => d.created_via);
   // news from the Usetally team (Admin → Announcements); quiet if that SQL hasn't run
   // (everyone's news, or news sent to this business; the database checks the same)
-  const { data: newsRows } = await supabase.from("announcements").select("*").eq("active", true).order("published_at", { ascending: false }).limit(10);
-  const news = (newsRows || []).filter((a) => isFor(a, business.id)).slice(0, 1);
+  let { data: newsRows, error: newsErr } = await supabase.rpc("news_for", { target: business.id });
+  if (newsErr) ({ data: newsRows } = await supabase.from("announcements").select("*").eq("active", true).order("published_at", { ascending: false }).limit(10));
+  const news = (newsRows || []).filter((a) => !a.audience || isFor(a, business.id)).slice(0, 1);
   // bank transfers customers say they've sent, waiting for someone to check
   const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
     .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
