@@ -25,9 +25,9 @@ test.before(async () => {
 });
 test.after(() => pool.end());
 
-test("Team is ₦10,000 a month and ₦100,000 a year; Free exists in naira and dollars", async () => {
-  assert.equal(Number((await one("select price_minor from public.plans where name='Team' and currency='NGN' and billing_interval='month'")).price_minor), 1000000);
-  assert.equal(Number((await one("select price_minor from public.plans where name='Team' and currency='NGN' and billing_interval='year'")).price_minor), 10000000);
+test("Team is ₦7,500 a month and ₦75,000 a year; Free exists in naira and dollars", async () => {
+  assert.equal(Number((await one("select price_minor from public.plans where name='Team' and currency='NGN' and billing_interval='month'")).price_minor), 750000);
+  assert.equal(Number((await one("select price_minor from public.plans where name='Team' and currency='NGN' and billing_interval='year'")).price_minor), 7500000);
   const free = (await pool.query("select currency, document_limit, active from public.plans where name='Free' and price_minor=0 order by currency")).rows;
   assert.deepEqual(free.map((p) => [p.currency, p.document_limit, p.active]), [["NGN", 5, true], ["USD", 5, true]]);
 });

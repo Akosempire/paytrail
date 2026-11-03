@@ -9,6 +9,8 @@ import { announcementEmail } from "@/lib/emails";
 import { siteUrl } from "@/lib/site";
 
 const SQL_MSG = "Announcements need a quick database update: run RUN_NEW_2026-11-02a.sql in Supabase.";
+const AUDIENCE_SQL = "Sending to chosen businesses needs a quick database update: run RUN_NEW_2026-11-03a.sql in Supabase.";
+const noAudience = (e) => /audience|business_ids/.test(e?.message || "");
 const refresh = () => { revalidatePath("/admin/announcements"); revalidatePath("/app"); };
 
 // save (create or update); publishing shows it on every dashboard
@@ -19,15 +21,25 @@ export async function saveAnnouncement(id, input, { publish } = {}) {
   const service = createSupabaseService();
   const now = new Date().toISOString();
   const row = { ...v.value, updated_at: now, ...(publish === true ? { active: true, published_at: now } : publish === false ? { active: false } : {}) };
-  const q = id ? service.from("announcements").update(row).eq("id", id) : service.from("announcements").insert({ ...row, created_by: ctx.user.id });
-  const { data, error } = await q.select("id").single();
+  const write = (r) => (id ? service.from("announcements").update(r).eq("id", id) : service.from("announcements").insert({ ...r, created_by: ctx.user.id })).select("id").single();
+  let { data, error } = await write(row);
+  if (error && noAudience(error)) {
+    // before RUN_NEW_2026-11-03a.sql: "everyone" still works, a chosen list doesn't
+    if (row.audience === "selected") return { error: AUDIENCE_SQL };
+    const { audience, business_ids, ...rest } = row;
+    ({ data, error } = await write(rest));
+  }
   if (error) return { error: /announcements/.test(error.message || "") ? SQL_MSG : "Couldn't save it. Try again." };
   refresh();
-  return { id: data.id, message: publish === true ? "Published. Everyone sees it on their dashboard." : publish === false ? "Taken down from dashboards." : "Saved." };
+  const who = row.audience === "selected" ? `the ${row.business_ids.length} business${row.business_ids.length === 1 ? "" : "es"} you picked` : "everyone";
+  return { id: data.id, message: publish === true ? `Published. It's on the dashboard for ${who}.` : publish === false ? "Taken down from dashboards." : "Saved." };
 }
 
-async function owners(service) {
-  const { data } = await service.from("memberships").select("email, full_name, businesses(deletion_requested_at)").eq("role", "owner").limit(10000);
+// every owner, or only the owners of the chosen businesses
+async function owners(service, a) {
+  let q = service.from("memberships").select("email, full_name, businesses(deletion_requested_at)").eq("role", "owner");
+  if (a?.audience === "selected") q = q.in("business_id", a.business_ids?.length ? a.business_ids : ["00000000-0000-0000-0000-000000000000"]);
+  const { data } = await q.limit(10000);
   return ownerRecipients(data || []);
 }
 
@@ -55,7 +67,7 @@ export async function emailOwners(id) {
   if (error) return { error: /announcements/.test(error.message || "") ? SQL_MSG : "Couldn't start sending. Try again." };
   const a = claimed?.[0];
   if (!a) return { error: "This announcement has already been emailed." };
-  const list = await owners(service);
+  const list = await owners(service, a);
   const { data: settings } = await service.from("platform_settings").select("support_email").eq("id", true).maybeSingle();
   const link = a.link_href ? absoluteLink(siteUrl(), a.link_href) : "";
   after(async () => {
@@ -69,5 +81,5 @@ export async function emailOwners(id) {
     await service.from("announcements").update({ email_sent: sent }).eq("id", a.id);
   });
   refresh();
-  return { message: `Sending to ${list.length} business owner${list.length === 1 ? "" : "s"}. The count updates here when it's done.` };
+  return { message: `Sending to ${list.length} business owner${list.length === 1 ? "" : "s"}${a.audience === "selected" ? " you picked" : ""}. The count updates here when it's done.` };
 }

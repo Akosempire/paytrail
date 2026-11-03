@@ -1,3 +1,4 @@
+import { isFor } from "@/lib/announcements-core";
 import { ShowToast } from "@/components/show-toast";
 import Link from "next/link";
 import { AlertCircle, ArrowRight, Check, CircleDashed } from "lucide-react";
@@ -111,7 +112,9 @@ export default async function Dashboard({ searchParams }) {
     supabase.from("documents").select("id", { count: "exact", head: true }).eq("business_id", business.id).eq("status", "draft").eq("kind", k))) : [{ count: 0 }, { count: 0 }];
   const aiDrafts = (drafts || []).filter((d) => d.created_via);
   // news from the Usetally team (Admin → Announcements); quiet if that SQL hasn't run
-  const { data: news } = await supabase.from("announcements").select("id, title, body, link_href, link_label").eq("active", true).order("published_at", { ascending: false }).limit(1);
+  // (everyone's news, or news sent to this business; the database checks the same)
+  const { data: newsRows } = await supabase.from("announcements").select("*").eq("active", true).order("published_at", { ascending: false }).limit(10);
+  const news = (newsRows || []).filter((a) => isFor(a, business.id)).slice(0, 1);
   // bank transfers customers say they've sent, waiting for someone to check
   const { data: claims } = await supabase.from("payment_claims").select("id, amount_minor, currency, payer_name, document_id, documents(number)")
     .eq("business_id", business.id).eq("status", "pending").order("created_at").limit(5);
