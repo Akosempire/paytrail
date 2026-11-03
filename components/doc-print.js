@@ -1,4 +1,5 @@
 "use client";
+import { PdfLink } from "@/components/pdf-link";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Download, Printer } from "lucide-react";
@@ -51,7 +52,7 @@ export function DocPrint({ model, papers, basePath, pdfHref, backHref, autoPrint
             {papers.map((p) => <option key={p} value={p}>{PAPERS[p].label}</option>)}
           </select>
         </label>
-        {pdfHref && <a href={pdfHref} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-white px-3 font-medium text-[#101828] ring-1 ring-[#d0d5dd] hover:bg-[#f9fafb]"><Download className="size-4" />PDF</a>}
+        {pdfHref && <PdfLink href={pdfHref} filename={`${model.number || "document"}.pdf`} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-white px-3 font-medium text-[#101828] ring-1 ring-[#d0d5dd] hover:bg-[#f9fafb]"><Download className="size-4" />PDF</PdfLink>}
         <button type="button" onClick={() => window.print()} className="inline-flex h-9 items-center gap-1.5 rounded-md bg-[#101828] px-3.5 font-semibold text-white hover:bg-[#1d2939] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1570ef] focus-visible:ring-offset-2"><Printer className="size-4" />Print</button>
         {spec.thermal && <p className="w-full text-right text-[12px] text-[#667085]">In the print dialog choose your receipt printer, set margins to "None" and scale to 100%.</p>}
       </div>

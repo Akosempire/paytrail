@@ -228,7 +228,7 @@ export default async function DocumentPage({ params, searchParams }) {
                     <p className="mt-1.5 text-[12.5px] text-ink-3 tabular">{money(doc.amount_paid_minor)} of {money(doc.total_minor)} paid{doc.status === "paid" && doc.paid_at ? ` · ${formatDate(doc.paid_at)}` : doc.due_date && doc.status !== "paid" ? ` · due ${formatDate(doc.due_date, { day: "numeric", month: "short" })}` : ""}</p>
                   </div>
                 )}
-                {unpaid && canRecord && <DocActionButton action="payment" icon="wallet" block>Record payment</DocActionButton>}
+                {unpaid && canRecord && <DocActionButton action="payment" icon="wallet" block>Mark as paid</DocActionButton>}
               </div>
               {payments.length > 0 ? (
                 <ul className="divide-y divide-line border-t border-line">

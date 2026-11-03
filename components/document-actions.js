@@ -1,11 +1,12 @@
 "use client";
+import { PdfLink } from "@/components/pdf-link";
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Send, Pencil, Trash2, ShieldCheck, Undo2, FileOutput, Ban, Copy, Wallet, Mail, Download, MoreHorizontal, Loader2, Printer, Share2, ExternalLink, X, BellRing, Repeat, ImageDown, Eye, Receipt, LayoutTemplate } from "lucide-react";
 import { requestDocImage } from "@/components/doc-image";
 import { DOC_ACTION, docAction } from "@/components/doc-side";
 import { whatsappUrl } from "@/lib/send-core";
-import { Button, buttonClass, Checkbox, Field, Input, Select, Textarea } from "@/components/ui";
+import { Button, buttonClass, Checkbox, cx, Field, Input, Select, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { formatMoney, minorToInput, toMinor } from "@/lib/money";
 import { convertToInvoice, deleteDraft, duplicateDocument, emailReceipt, returnToDraft, sendDocument, submitForApproval, voidDocument } from "@/app/app/documents/actions";
@@ -84,21 +85,23 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
   }
   if (!draft && doc.status !== "void") {
     // the top bar follows the status: what gets you paid next comes first
-    //   sent, not opened → Remind · Record payment     viewed → Record payment · Remind
-    //   overdue → Remind · Record payment              part paid → Record payment · Remind for balance
-    //   paid → Send receipt · Duplicate
+    //   sent, not opened → Remind · Mark as paid        viewed → Mark as paid · Remind
+    //   overdue → Remind · Mark as paid                 part paid → Mark as paid · Remind for balance
+    //   paid → View receipt · Send receipt · Duplicate  (an invoice becomes a receipt when it's marked paid)
     const unpaid = !quote && ["sent", "viewed", "partially_paid"].includes(doc.status);
     const canRemind = Boolean(send) && unpaid && perms.canSendDoc;
     const canPay = unpaid && perms.canRecord;
     const remindFirst = (send?.overdue || doc.status === "sent") && canRemind;
     const remindBtn = (variant) => <Button key="remind" variant={variant} icon={BellRing} onClick={remind}>{doc.status === "partially_paid" ? "Remind for balance" : "Remind"}</Button>;
-    const payBtn = (variant) => <Button key="pay" variant={variant} icon={Wallet} onClick={() => setModal("payment")}>Record payment</Button>;
+    const payBtn = (variant) => <Button key="pay" variant={variant} icon={Receipt} title="Record the money and issue the receipt" onClick={() => setModal("payment")}>Mark as paid</Button>;
     if (remindFirst) { if (canPay) primary.push(payBtn("secondary")); primary.push(remindBtn("primary")); }
     else { if (canRemind) primary.push(remindBtn("secondary")); if (canPay) primary.push(payBtn("primary")); }
     if (doc.status === "paid" && !quote) {
       primary.push(<Button key="dup" icon={spin("dup", Copy)} onClick={() => run("dup", () => duplicateDocument(doc.id))}>Duplicate</Button>);
+      if (receipt?.access_token) primary.push(<Button key="viewr" href={`/r/${receipt.access_token}`} icon={Eye}>View receipt</Button>);
       if (receipt) primary.push(<Button key="receipt" variant="primary" icon={spin("receipt", Receipt)} onClick={sendReceipt}>Send receipt</Button>);
     }
+    if (doc.status === "partially_paid" && receipt?.access_token) secondary.push({ key: "lastr", label: `View receipt ${receipt.number || ""}`.trim(), icon: Receipt, onClick: () => router.push(`/r/${receipt.access_token}`) });
     if (quote && perms.canConvert && !doc.converted_invoice_id && ["sent", "viewed", "accepted"].includes(doc.status)) primary.push(<Button key="convert" variant={doc.status === "accepted" ? "primary" : "secondary"} icon={spin("convert", FileOutput)} onClick={() => run("convert", () => convertToInvoice(doc.id))}>Convert to invoice</Button>);
     if (send && doc.status !== "paid" && perms.canSendDoc) secondary.push({ key: "resend", label: "Email again", icon: Mail, onClick: () => openSheet("email", "share") });
     if (send && !quote && send.canRepeat) secondary.push({ key: "repeat", label: doc.recur_interval ? `Repeats ${doc.recur_interval}` : "Make recurring", icon: Repeat, onClick: () => openSheet("email", "share") });
@@ -141,7 +144,7 @@ export function DocumentActions({ doc, perms, emailReady, balance, link, printHr
     <div className="flex w-full flex-wrap items-center gap-2 xl:w-auto xl:justify-end">
       {/* on phones the main actions share the full width; PDF and More wrap below when there's no room */}
       {primary.length > 0 && <div className="flex flex-1 gap-2 sm:flex-none [&>*]:flex-1 sm:[&>*]:flex-none">{primary}</div>}
-      <a href={pdfHref || `/app/documents/${doc.id}/pdf?download`} className={buttonClass()}><Download className="size-4 shrink-0" aria-hidden />PDF</a>
+      <PdfLink href={pdfHref || `/app/documents/${doc.id}/pdf?download`} filename={`${doc.number}.pdf`} className={buttonClass()}><Download className="size-4 shrink-0" aria-hidden />PDF</PdfLink>
       <Button icon={ImageDown} onClick={requestDocImage} title="Save as a picture, for WhatsApp and the like">Image</Button>
       <div className="relative">
         <Button icon={MoreHorizontal} aria-label="More actions" aria-expanded={more} onClick={() => setMore(!more)} className="!px-2.5" />
@@ -203,9 +206,17 @@ function PaymentModal({ open, onClose, doc, balance, onSubmit, pending, canEmail
     setForm((f) => ({ ...f, wht: minorToInput(wht), amount: minorToInput(balance - wht) }));
   };
   const cash = toMinor(form.amount) || 0, whtMinor = withheld ? toMinor(form.wht) || 0 : 0;
+  const full = cash + whtMinor >= balance && balance > 0;
   return (
-    <Modal open={open} onClose={onClose} title="Record a payment" description={`Balance on ${doc.number}: ${doc.currency} ${minorToInput(balance)}`}
-      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={pending ? Loader2 : Wallet} loading={pending} onClick={() => onSubmit({ ...form, wht: withheld ? form.wht : "" })}>Record & issue receipt</Button></>}>
+    <Modal open={open} onClose={onClose} title="Mark as paid" description={`Records the money on ${doc.number} and issues a receipt. Balance: ${formatMoney(balance, doc.currency)}`}
+      footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" icon={pending ? Loader2 : Receipt} loading={pending} onClick={() => onSubmit({ ...form, wht: withheld ? form.wht : "" })}>{full ? "Mark paid & issue receipt" : "Record part payment & receipt"}</Button></>}>
+      <div className="mb-4 inline-flex rounded-lg bg-subtle p-1 ring-1 ring-line" role="radiogroup" aria-label="How much was paid">
+        {[["full", "Paid in full"], ["part", "Part payment"]].map(([k, l]) => (
+          <button key={k} type="button" role="radio" aria-checked={(k === "full") === full}
+            onClick={() => { if (k === "full") { setWithheld(false); setForm((f) => ({ ...f, amount: minorToInput(balance), wht: "" })); } else { setForm((f) => ({ ...f, amount: "" })); setTimeout(() => document.getElementById("pa")?.focus(), 30); } }}
+            className={cx("h-8 rounded-md px-3 text-[13px] font-medium", (k === "full") === full ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-2 hover:text-ink")}>{l}</button>
+        ))}
+      </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label={withheld ? "Amount that reached you" : "Amount received"} htmlFor="pa" hint={withheld ? undefined : "Less than the balance records a part payment."}><Input id="pa" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} /></Field>
         <Field label="How they paid" htmlFor="pm">

@@ -407,7 +407,7 @@ const CREATE = [
   { href: "/app/quotes/new", label: "New quote", hint: "Price a job and send it", icon: FileText, main: true },
   { href: "/app/invoices/new", label: "New invoice", hint: "Bill a customer directly", icon: Receipt },
   { href: "/app/invoices/new?paste=1", label: "Paste a WhatsApp order", hint: "Turn a customer's list into an invoice", icon: ClipboardPaste },
-  { href: "/app/invoices?status=open", label: "Record a payment", hint: "On an unpaid invoice", icon: HandCoins, perm: "canTax" },
+  { href: "/app/invoices?status=open", label: "Mark an invoice paid", hint: "Records it and issues the receipt", icon: HandCoins, perm: "canTax" },
   { href: "/app/customers?new=1", label: "New customer", hint: "Save their details for next time", icon: UserPlus },
 ];
 

@@ -8,7 +8,7 @@ export function QuickActions({ canCreate = true, canRecord = true, hasUnpaid = f
     canCreate && { href: "/app/quotes/new", label: "New quote", short: "Quote", hint: "Price a job", icon: FileText, main: true },
     canCreate && { href: "/app/invoices/new", label: "New invoice", short: "Invoice", hint: "Bill a customer", icon: Receipt },
     canCreate && { href: "/app/invoices/new?paste=1", label: "Paste an order", short: "Paste", hint: "From WhatsApp", icon: ClipboardPaste },
-    canRecord && { href: hasUnpaid ? "#collect" : "/app/invoices?status=open", label: "Record payment", short: "Payment", hint: "Money received", icon: HandCoins },
+    canRecord && { href: hasUnpaid ? "#collect" : "/app/invoices?status=open", label: "Mark as paid", short: "Paid", hint: "Money received", icon: HandCoins },
     { href: "/app/customers?new=1", label: "New customer", short: "Customer", hint: "Save their details", icon: UserPlus },
   ].filter(Boolean);
   return (

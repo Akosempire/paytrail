@@ -1,3 +1,4 @@
+import { PdfLink } from "@/components/pdf-link";
 import { ShowToast } from "@/components/show-toast";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
@@ -81,7 +82,7 @@ export default async function PublicDocument({ params, searchParams }) {
           </div>
           <div className="flex shrink-0 gap-2">
             <Button href={`/d/${token}/print`} size="sm" icon={Printer} className="max-sm:!px-2.5" aria-label="Print"><span className="max-sm:hidden">Print</span></Button>
-            <a href={`/d/${token}/pdf?download`} className="inline-flex h-8 items-center gap-2 rounded-sm bg-white px-3 text-[13px] font-medium text-[#101828] shadow-[var(--shadow-xs)] ring-1 ring-inset ring-[#d0d5dd] hover:bg-[#f9fafb]"><Download className="size-3.5" />PDF</a>
+            <PdfLink filename={`${doc.number}.pdf`} href={`/d/${token}/pdf?download`} className="inline-flex h-8 items-center gap-2 rounded-sm bg-white px-3 text-[13px] font-medium text-[#101828] shadow-[var(--shadow-xs)] ring-1 ring-inset ring-[#d0d5dd] hover:bg-[#f9fafb]"><Download className="size-3.5" />PDF</PdfLink>
           </div>
         </div>
       </header>

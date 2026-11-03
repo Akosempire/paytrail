@@ -1,4 +1,5 @@
 "use client";
+import { PdfLink } from "@/components/pdf-link";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, MessageCircle, Link2, QrCode, FileDown, X, Send, CalendarClock, Repeat, Loader2, Download, Share2, Check, Copy, ChevronDown } from "lucide-react";
@@ -384,9 +385,9 @@ function PdfTab({ pdfHref, number, onShared, draft }) {
     <div className="flex flex-col gap-4 p-5">
       <p className="text-[13.5px] text-ink-2">The same layout your client sees, ready to attach or print.</p>
       <div className="flex flex-wrap gap-2 [&>*]:flex-1 sm:[&>*]:flex-none">
-        <a data-autofocus href={pdfHref} onClick={() => { if (!draft) onShared(); }} className={buttonClass({ variant: "primary" })}>
+        <PdfLink data-autofocus href={pdfHref} filename={`${number}.pdf`} onDone={() => { if (!draft) onShared(); }} className={buttonClass({ variant: "primary" })} label="Preparing the PDF…">
           <Download className="size-4" aria-hidden />Download {number}.pdf
-        </a>
+        </PdfLink>
       </div>
       {draft && <p className="text-[12.5px] text-ink-3">It's still a draft, so the PDF says so. Send it first to share a final copy.</p>}
     </div>

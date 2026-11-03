@@ -120,7 +120,7 @@ export function CollectActions({ doc, businessName, perms = {}, onChange, labels
         <div className="relative">
           <button type="button" className={labels ? textBtn : iconBtn} aria-haspopup="dialog" aria-expanded={open === "record"} aria-label={labels ? undefined : `Record a payment for ${doc.number}`} title="Record payment"
             onClick={() => setOpen(open === "record" ? null : "record")}>
-            <Wallet className="size-4" />{labels && "Record payment"}
+            <Wallet className="size-4" />{labels && "Mark as paid"}
           </button>
           {open === "record" && <RecordForm doc={doc} balance={balance} hasEmail={Boolean(doc.customer_email)} onSubmit={recordPayment} />}
         </div>

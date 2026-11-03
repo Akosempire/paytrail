@@ -1,3 +1,4 @@
+import { PdfLink } from "@/components/pdf-link";
 import { notFound } from "next/navigation";
 import { CheckCircle2, Download, Printer } from "lucide-react";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -24,7 +25,7 @@ export default async function ReceiptPage({ params }) {
           <p className="flex items-center gap-2 text-sm font-medium text-[#067647]"><CheckCircle2 className="size-4" />{model.receipt.fullyPaid ? "Paid in full" : "Part payment received"} · {model.receipt.amount}</p>
           <div className="flex flex-wrap gap-2">
             <Button href={`/r/${token}/print`} size="sm" icon={Printer}>Print</Button>
-            <a href={`/r/${token}/pdf?download`} className="inline-flex h-8 items-center gap-2 rounded-sm bg-white px-3 text-[13px] font-medium shadow-[var(--shadow-xs)] ring-1 ring-inset ring-[#d0d5dd] hover:bg-[#f9fafb]"><Download className="size-3.5" />PDF</a>
+            <PdfLink filename={`${model.number}.pdf`} href={`/r/${token}/pdf?download`} className="inline-flex h-8 items-center gap-2 rounded-sm bg-white px-3 text-[13px] font-medium shadow-[var(--shadow-xs)] ring-1 ring-inset ring-[#d0d5dd] hover:bg-[#f9fafb]"><Download className="size-3.5" />PDF</PdfLink>
             <Button href={`/d/${doc.access_token}`} size="sm" variant="ghost">View {doc.kind}</Button>
           </div>
         </div>

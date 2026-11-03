@@ -258,7 +258,7 @@ function DocView({ data, id }) {
       <div className="flex flex-wrap gap-2 print:hidden">
         {editable && <Button icon={Pencil} onClick={() => go(`/edit/${encodeURIComponent(id)}`)}>Edit</Button>}
         {canSend && (data.perms.send || data.perms.approval || data.member.role === "junior_finance") && <Button variant="primary" icon={Send} onClick={() => setSending(true)}>{data.perms.approval ? "Send for approval" : "Send"}</Button>}
-        {canPay && <Button variant="primary" icon={Wallet} onClick={() => setPaying(true)}>Record payment</Button>}
+        {canPay && <Button variant="primary" icon={Wallet} onClick={() => setPaying(true)}>Mark as paid</Button>}
         <Button icon={Printer} onClick={() => window.print()}>Print</Button>
         {receipt && <Button onClick={() => setReceipt(null)}>Back to {doc.kind}</Button>}
       </div>
@@ -306,7 +306,7 @@ function PaymentModal({ doc, onClose, onDone }) {
     queue({ kind: "payment.record", docId: doc.id, form }).then(onDone);
   };
   return (
-    <Modal open onClose={onClose} title="Record a payment" description={`${formatMoney(balance(doc), doc.currency)} left on ${doc.number}`}
+    <Modal open onClose={onClose} title="Mark as paid" description={`${formatMoney(balance(doc), doc.currency)} left on ${doc.number}`}
       footer={<><Button onClick={onClose}>Cancel</Button><Button variant="primary" onClick={save}>Record payment</Button></>}>
       <div className="flex flex-col gap-3">
         <Field label="Amount" htmlFor="op-amount" error={error}><Input id="op-amount" inputMode="decimal" value={form.amount} onChange={set("amount")} /></Field>

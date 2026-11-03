@@ -1,4 +1,5 @@
 "use client";
+import { PdfLink } from "@/components/pdf-link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, CreditCard, Landmark, Loader2, ShieldCheck, ThumbsUp, Copy, Check, Send, Clock, AlertCircle, Paperclip, Download } from "lucide-react";
@@ -57,7 +58,7 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
         <p className="mt-1 text-[28px] leading-9 font-bold tracking-[-0.02em] tabular">{amount}</p>
         {paid && <p className="mt-2 flex items-center gap-1.5 text-sm font-medium text-[#067647]"><CheckCircle2 className="size-4" />{paidOn ? `Paid on ${paidOn}. Thank you.` : "Paid in full. Thank you."}</p>}
         {paid && receiptHref && (
-          <a href={receiptHref} className={`${btn} mt-4 bg-white text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]`}><Download className="size-4" />Download receipt</a>
+          <PdfLink href={receiptHref} filename="receipt.pdf" className={`${btn} mt-4 bg-white text-[#344054] ring-1 ring-[#d0d5dd] hover:bg-[#f8f9fb]`}><Download className="size-4" />Download receipt</PdfLink>
         )}
         {quote && doc.status === "accepted" && !paid && <p className="mt-2 flex items-center gap-1.5 text-sm text-[#067647]"><CheckCircle2 className="size-4" />Accepted by {doc.accepted_name}{invoiceNumber ? ` · Invoice ${invoiceNumber}` : ""}</p>}
         {doc.status === "declined" && <p className="mt-2 text-sm text-[#b42318]">You declined this quote. Contact {brandName} if you've changed your mind.</p>}
