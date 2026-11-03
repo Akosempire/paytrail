@@ -40,7 +40,7 @@ export default async function Dashboard({ searchParams }) {
     supabase.from("documents").select("id, kind, number, customer_name, status, total_minor, amount_paid_minor, currency")
       .eq("business_id", business.id).eq("status", "pending_approval").order("updated_at", { ascending: false }).limit(8),
     supabase.from("documents").select("id, kind, number, customer_name, status, total_minor, currency, accepted_at").eq("business_id", business.id).eq("kind", "quote").eq("status", "accepted").is("converted_invoice_id", null).limit(5),
-    supabase.from("activity").select("id, action, actor_label, created_at, detail, document_id, documents(number, kind)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(40),
+    supabase.from("activity").select("id, action, actor_id, actor_label, created_at, detail, document_id, documents(number, kind, customer_name, customer_company, total_minor, currency)").eq("business_id", business.id).order("created_at", { ascending: false }).limit(40),
     supabase.from("payment_connections").select("provider, payment_confirmed_at, webhook_confirmed_at").eq("business_id", business.id),
     supabase.from("documents").select("id", { count: "exact", head: true }).eq("business_id", business.id).not("sent_at", "is", null),
     supabase.from("memberships").select("user_id", { count: "exact", head: true }).eq("business_id", business.id),
@@ -201,7 +201,7 @@ export default async function Dashboard({ searchParams }) {
 
         </div>
 
-        <ActivityFeed items={groupActivity(activity || [])} />
+        <ActivityFeed items={groupActivity(activity || [])} meId={ctx.user?.id} />
       </div>
     </div>
   );

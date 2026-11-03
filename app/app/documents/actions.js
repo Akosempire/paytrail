@@ -183,7 +183,7 @@ export async function emailReceipt(receiptId) {
   const link = `${siteUrl()}/r/${receipt.access_token}`;
   const r = await sendEmail({
     to: receipt.documents.customer_email, fromName: b.name, replyTo: b.email || undefined,
-    ...withDocument(({ color, attached }) => receiptEmail({ business: b, logo: absoluteLogoUrl(b.logo_path), receipt, documentNumber: receipt.documents.number, link, color, attached }), await receiptForEmail(ctx.supabase, receipt, b)),
+    ...withDocument(({ color, attached, model }) => receiptEmail({ business: b, logo: absoluteLogoUrl(b.logo_path), receipt, documentNumber: receipt.documents.number, link, color, attached, model }), await receiptForEmail(ctx.supabase, receipt, b)),
   });
   return r.sent ? { message: "Receipt emailed." } : { error: "The email could not be sent." };
 }
