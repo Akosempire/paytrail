@@ -37,7 +37,7 @@ export function CollectQueue({ docs, businessName, currency, today, perms }) {
   return (
     <section id="collect" className="flex scroll-mt-24 flex-col gap-3" aria-labelledby="collect-title">
       <SectionHeader title={<span id="collect-title">Collect</span>} count={visible.length}
-        description={visible.length ? `${money(total)} owed` : undefined}
+        description={visible.length ? <><span data-money>{money(total)}</span> owed</> : undefined}
         action={visible.length ? <Link href="/app/invoices?status=unpaid" className="inline-flex min-h-9 items-center text-[13px] font-medium text-brand-ink hover:underline">All unpaid</Link> : null} />
       {visible.length === 0 && <EmptyState compact icon={CircleCheck} title="Nothing owed to you right now." description="Invoices you send show up here until they're paid." />}
       {ordered.length > 0 && (
@@ -60,7 +60,7 @@ export function CollectQueue({ docs, businessName, currency, today, perms }) {
                     <span className="block truncate text-[13px] text-ink-3"><span className="font-mono text-[12px]">{d.number}</span>{d.title ? ` · ${d.title}` : ""}</span>
                   </Link>
                   <p className={cx("col-span-2 row-start-2 text-[13px] font-medium md:col-span-1 md:col-start-2 md:row-start-1", TONE[status.tone])} aria-live="polite">{status.text}</p>
-                  <span className="col-start-2 row-start-1 text-right text-[15px] font-semibold text-ink tabular md:col-start-3">{money(owed)}</span>
+                  <span data-money className="col-start-2 row-start-1 text-right text-[15px] font-semibold text-ink tabular md:col-start-3">{money(owed)}</span>
                   <CollectActions doc={d} businessName={businessName} perms={perms} onChange={update(d)}
                     className="col-span-2 row-start-3 mt-1 md:col-span-1 md:col-start-4 md:row-start-1 md:mt-0" />
                 </li>

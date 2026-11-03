@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, ArrowDownRight, BellRing, CheckCircle2, FileCheck2, Landmark, ShieldCheck } from "lucide-react";
 import { formatMoney } from "@/lib/money";
+import { MoneyEye } from "@/components/money-eye";
 import { compactMoney } from "@/lib/collect-core";
 import { moneyFlow } from "@/lib/dashboard-core";
 import { Button, cx } from "@/components/ui";
@@ -24,9 +25,9 @@ export function MoneyStory({ month, currency, collected, lastMonth, trend, outst
       <div className="flex flex-col gap-6 p-5 sm:p-7">
         <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-4">
           <div>
-            <p className="text-overline text-ink-3">{month} so far</p>
+            <p className="flex items-center gap-1.5 text-overline text-ink-3">{month} so far<MoneyEye className="-my-1.5 size-7" /></p>
             <p className="mt-2 flex flex-wrap items-baseline gap-x-3 gap-y-1">
-              <span className="font-display text-[clamp(34px,5vw,48px)] leading-none font-semibold tracking-[-0.03em] text-ink tabular">{money(collected)}</span>
+              <span data-money className="font-display text-[clamp(34px,5vw,48px)] leading-none font-semibold tracking-[-0.03em] text-ink tabular">{money(collected)}</span>
               <span className="text-[15px] text-ink-2">collected</span>
             </p>
             <p className="mt-2 flex flex-wrap items-center gap-2 text-[13px] text-ink-3">
@@ -35,14 +36,14 @@ export function MoneyStory({ month, currency, collected, lastMonth, trend, outst
                   {trend >= 0 ? <ArrowUpRight className="size-3.5" /> : <ArrowDownRight className="size-3.5" />}{Math.abs(trend)}%
                 </span>
               )}
-              {money(lastMonth)} last month
+              <span data-money>{money(lastMonth)}</span> last month
             </p>
           </div>
           <a href="#collect" className="group sm:text-right">
             <span className="block text-overline text-ink-3">Still owed to you</span>
-            <span className="mt-1 block text-[22px] font-semibold tracking-[-0.02em] text-ink tabular">{money(outstanding)}</span>
+            <span data-money className="mt-1 block text-[22px] font-semibold tracking-[-0.02em] text-ink tabular">{money(outstanding)}</span>
             <span className={cx("inline-flex items-center gap-1 text-[13px]", overdueCount ? "text-danger-ink" : "text-ink-3")}>
-              {overdueCount ? `${overdueCount} overdue · ${money(overdue)}` : "Nothing overdue"}<ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+              {overdueCount ? <>{overdueCount} overdue · <span data-money>{money(overdue)}</span></> : "Nothing overdue"}<ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
             </span>
           </a>
         </div>
@@ -55,7 +56,7 @@ export function MoneyStory({ month, currency, collected, lastMonth, trend, outst
             </div>
             <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1.5 text-[12.5px] text-ink-2">
               {flow.parts.map((p) => (
-                <li key={p.key} className="inline-flex items-center gap-1.5"><span className={cx("size-2 rounded-full", PART[p.key].dot)} />{PART[p.key].label}<span className="font-medium text-ink tabular">{compactMoney(p.minor, currency)}</span></li>
+                <li key={p.key} className="inline-flex items-center gap-1.5"><span className={cx("size-2 rounded-full", PART[p.key].dot)} />{PART[p.key].label}<span data-money className="font-medium text-ink tabular">{compactMoney(p.minor, currency)}</span></li>
               ))}
             </ul>
           </div>
@@ -90,14 +91,14 @@ export function MiniTiles({ currency, openQuotes, openQuotesCount, profit, costs
     <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-[1fr_1fr_1.4fr]">
       <Link href="/app/quotes" className={cx(tile, "transition-shadow hover:shadow-[var(--shadow-pop)]")}>
         <span className="text-[12.5px] font-medium text-ink-3">Open quotes</span>
-        <span><span className="block text-[20px] font-semibold tracking-[-0.02em] text-ink tabular sm:text-[22px]">{money(openQuotes)}</span>
+        <span><span data-money className="block text-[20px] font-semibold tracking-[-0.02em] text-ink tabular sm:text-[22px]">{money(openQuotes)}</span>
           <span className="text-[12.5px] text-ink-3">{openQuotesCount || 0} waiting for a reply</span></span>
       </Link>
       {showCosts ? (
         <div className={tile}>
           <span className="text-[12.5px] font-medium text-ink-3">Profit on paid invoices</span>
-          <span><span className="block text-[20px] font-semibold tracking-[-0.02em] text-ink tabular sm:text-[22px]">{profit == null ? "—" : money(profit)}</span>
-            <span className="text-[12.5px] text-ink-3">This month, after {money(costs)} costs</span></span>
+          <span><span data-money className="block text-[20px] font-semibold tracking-[-0.02em] text-ink tabular sm:text-[22px]">{profit == null ? "—" : money(profit)}</span>
+            <span className="text-[12.5px] text-ink-3">This month, after <span data-money>{money(costs)}</span> costs</span></span>
         </div>
       ) : (
         <Link href="/app/invoices?status=pending_approval" className={cx(tile, "transition-shadow hover:shadow-[var(--shadow-pop)]")}>
@@ -107,7 +108,7 @@ export function MiniTiles({ currency, openQuotes, openQuotesCount, profit, costs
       )}
       <Link href="/app/payments" className={cx(tile, "col-span-2 transition-shadow hover:shadow-[var(--shadow-pop)] lg:col-span-1")}>
         <span className="flex items-center justify-between text-[12.5px] font-medium text-ink-3">Collected, last 6 months<ArrowRight className="size-3.5" /></span>
-        <span className="flex h-16 items-end gap-2" role="img" aria-label={monthly.map((m) => `${m.month} ${money(m.collected_minor)}`).join(", ")}>
+        <span data-money className="flex h-16 items-end gap-2" role="img" aria-label={monthly.map((m) => `${m.month} ${money(m.collected_minor)}`).join(", ")}>
           {monthly.map((m, i) => (
             <span key={m.month} className="flex flex-1 flex-col items-center gap-1" title={`${m.month}: ${money(m.collected_minor)}`}>
               <span className="flex h-12 w-full items-end"><span className={cx("w-full rounded-t-[3px]", i === monthly.length - 1 ? "bg-brand" : "bg-brand/25")} style={{ height: `${Math.max(4, (m.collected_minor / max) * 100)}%` }} /></span>

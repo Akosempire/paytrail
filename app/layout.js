@@ -27,7 +27,7 @@ export const viewport = { themeColor: [{ media: "(prefers-color-scheme: light)",
 
 // sets the saved theme before the page paints, so there is no flash
 // customer links (/d, /r) are always light: they show the business's own branding
-const themeScript = `try{if(/^\\/(d|r)\\//.test(location.pathname)){document.documentElement.dataset.theme='light'}else{var t=localStorage.getItem('pt-theme');if(!t){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t}}catch(e){}`;
+const themeScript = `try{if(/^\\/(d|r)\\//.test(location.pathname)){document.documentElement.dataset.theme='light'}else{var t=localStorage.getItem('pt-theme');if(!t){t=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}document.documentElement.dataset.theme=t;if(localStorage.getItem('pt-hide-money')==='1')document.documentElement.dataset.hideMoney='1'}}catch(e){}`;
 
 export default function RootLayout({ children }) {
   return (

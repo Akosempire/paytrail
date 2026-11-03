@@ -471,3 +471,8 @@
 .gift-spark { transform-box: fill-box; transform-origin: center; animation: gift-spark 1.6s ease-in-out infinite }
 .confetti-piece { position: absolute; top: 0; width: 9px; height: 14px; border-radius: 2px; animation: confetti-fall var(--dur) cubic-bezier(.2,.6,.4,1) var(--delay) forwards }
 @media (prefers-reduced-motion: reduce) { .gift-pop, .gift-confetti, .gift-spark, .confetti-piece { animation: none } .confetti-piece { display: none } }
+
+/* the eye on the dashboard: hide amounts on this device (components/money-eye.js) */
+[data-money] { transition: filter .2s ease; }
+html[data-hide-money] [data-money] { filter: blur(8px); user-select: none; pointer-events: none; }
+@media print { html[data-hide-money] [data-money] { filter: none; } }

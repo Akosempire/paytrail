@@ -34,7 +34,7 @@ export function DraftsList({ drafts = [], total = 0, counts = {} }) {
                   </span>
                   <span className="block truncate text-xs text-ink-3"><span className="font-mono">{d.number}</span> · {d.status === "pending_approval" ? "waiting for approval" : `edited ${timeAgo(d.updated_at)}`}</span>
                 </span>
-                <span className="text-sm font-semibold text-ink tabular">{formatMoney(d.total_minor, d.currency)}</span>
+                <span data-money className="text-sm font-semibold text-ink tabular">{formatMoney(d.total_minor, d.currency)}</span>
                 <ArrowRight className={cx("size-4 shrink-0 text-ink-3 transition-transform group-hover:translate-x-0.5")} />
               </Link>
             </li>
