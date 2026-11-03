@@ -77,7 +77,8 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const tax2On = Boolean(tax2Label) || Number(tax2Rate) > 0;
   const taxNames = tax2On ? `${taxLabel || "Tax"} + ${tax2Label || "tax"}` : taxLabel || "VAT";
   const [notes, setNotes] = useState(doc?.notes || "");
-  const [terms, setTerms] = useState(doc?.terms ?? business.default_terms ?? "");
+  // blank terms on a draft use the default terms (the database does the same when it saves)
+  const [terms, setTerms] = useState(doc?.terms || business.default_terms || "");
   const [emailCustomer, setEmailCustomer] = useState(emailReady);
   const [targetMargin, setTargetMargin] = useState("30");
   const [presetOpen, setPresetOpen] = useState(false);
@@ -217,7 +218,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
     if (!worth || saved.snap === firstSnap.current) return;
     setCustomerMode(d.customerMode); setCustomerId(d.customerId || ""); setCustomer(d.customer); setDelivery(d.delivery); setDeliveryOn(d.deliveryOn);
     setTitle(d.title); setIssueDate(d.issueDate); setEndDate(d.endDate); setItems(d.items?.length ? d.items : [blankItem()]); setInclusive(d.inclusive); setCosts(d.costs || []);
-    setDiscount(d.discount); setDiscountOn(Boolean(d.discount)); setTaxRate(d.taxRate); setTaxLabel(d.taxLabel); setTax2Rate(d.tax2Rate); setTax2Label(d.tax2Label); setNotes(d.notes); setTerms(d.terms); if (CURRENCIES.includes(d.currency)) setPickedCurrency(d.currency); if (d.look?.template) { setLook(d.look); setLookTouched(true); }
+    setDiscount(d.discount); setDiscountOn(Boolean(d.discount)); setTaxRate(d.taxRate); setTaxLabel(d.taxLabel); setTax2Rate(d.tax2Rate); setTax2Label(d.tax2Label); setNotes(d.notes); setTerms(d.terms || business.default_terms || ""); if (CURRENCIES.includes(d.currency)) setPickedCurrency(d.currency); if (d.look?.template) { setLook(d.look); setLookTouched(true); }
     toast.info(`We kept your unsaved ${quote ? "quotation" : "invoice"} on this device.`, { action: { label: "Discard it", onClick: () => { clearLocal(); window.location.reload(); } } });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [snapKey]);
