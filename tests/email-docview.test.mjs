@@ -66,3 +66,16 @@ test("send sheet, reminders and receipts carry the document too", () => {
   assert.ok(receiptEmail({ business, receipt, documentNumber: "INV-0042", link, model: { ...model, stamp: "PAID" } }).html.includes("PAID"));
   assert.equal(documentBlock(null), undefined);
 });
+
+test("very long item lists are shortened so Gmail doesn't clip the email", () => {
+  const items = Array.from({ length: 55 }, (_, i) => ({ description: `Line ${i + 1}`, details: "", quantity: 1, unit: "₦1.00", amount: "₦1.00" }));
+  const html = documentCard({ ...model, items });
+  assert.ok(html.includes("Line 40") && !html.includes("Line 41<"));
+  assert.ok(html.includes("+ 15 more items"));
+  assert.ok(html.length < 60000);
+});
+
+test("logo addresses: only http(s) or this site's own paths", () => {
+  for (const bad of ["javascript:alert(1)", "data:text/html,x", "media/x.png"]) assert.ok(!documentCard({ ...model, business: { ...model.business, logo: bad } }, { site: "https://usetally.cc" }).includes("<img"), bad);
+  assert.ok(!documentCard({ ...model, accent: "red;background:url(x)" }).includes("url(x)"), "accent must be a hex colour");
+});

@@ -201,7 +201,7 @@ export default async function Dashboard({ searchParams }) {
 
         </div>
 
-        <ActivityFeed items={groupActivity(activity || [])} meId={ctx.user?.id} />
+        <ActivityFeed items={groupActivity(activity || []).map(({ actor_id, ...a }) => ({ ...a, mine: Boolean(ctx.user?.id && actor_id === ctx.user.id) }))} />
       </div>
     </div>
   );

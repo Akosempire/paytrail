@@ -71,8 +71,9 @@ function amountOf(a) {
 
 // Recent activity: grouped by day, an icon for what happened, who it was for
 // and how much. Back-to-back events on the same document are already merged
-// (groupActivity). meId: the signed-in person, shown as "You".
-export function ActivityFeed({ items = [], meId = null }) {
+// (groupActivity). a.mine: the signed-in person did it, shown as "You"
+// (worked out on the server, so teammates' account ids never reach the browser).
+export function ActivityFeed({ items = [] }) {
   const [f, setF] = useState("all");
   const [more, setMore] = useState(false);
   const present = new Set(items.map((a) => a.kind));
@@ -109,8 +110,7 @@ export function ActivityFeed({ items = [], meId = null }) {
                 <ol>
                   {day.rows.map((a, i) => {
                     const { icon: Icon, tone } = lookOf(a);
-                    const me = meId && a.actor_id === meId;
-                    const who = me ? "You" : nameOf(a.actor_label);
+                    const who = a.mine ? "You" : nameOf(a.actor_label);
                     const amount = amountOf(a);
                     const customer = a.documents?.customer_company || a.documents?.customer_name;
                     const last = i === day.rows.length - 1;
