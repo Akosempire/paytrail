@@ -513,3 +513,29 @@ export async function saveFilingFee(amount) {
   revalidatePath("/admin/tax");
   return error ? { error: "Run RUN_NEW_2026-10-27a.sql in Supabase first." } : { message: minor ? "Fee saved. Businesses see it before they request." : "Set to free while testing." };
 }
+
+// ---------------------------------------------------------------- founder access
+// Founders see the read-only founder dashboard (/founder): customers, money in
+// and the payment gateway. They are never platform admins.
+export async function addFounder(form) {
+  const ctx = await requirePlatformAdmin();
+  const email = String(form?.email || "").trim().toLowerCase().slice(0, 254);
+  if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) return { error: "Enter a valid email address." };
+  const note = String(form?.note || "").trim().slice(0, 80);
+  const { error } = await ctx.supabase.from("platform_viewers").insert({ email, note, added_by: ctx.user.id });
+  if (error) {
+    if (error.code === "23505") return { error: `${email} already has founder access.` };
+    if (error.code === "42P01" || /platform_viewers/.test(error.message || "")) return { error: "Run supabase/RUN_NEW_2026-11-08a.sql in Supabase → SQL Editor first, then try again." };
+    return { error: "Couldn't add them. Try again." };
+  }
+  revalidatePath("/admin/settings");
+  return { message: `${email} can open the founder dashboard once they've signed in with that email.` };
+}
+
+export async function removeFounder(email) {
+  const ctx = await requirePlatformAdmin();
+  const { error } = await ctx.supabase.from("platform_viewers").delete().eq("email", String(email || "").toLowerCase());
+  if (error) return { error: "Couldn't remove them. Try again." };
+  revalidatePath("/admin/settings");
+  return { message: `${email} no longer has founder access.` };
+}

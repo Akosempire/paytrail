@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import Link, { useLinkStatus } from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import {
+import { LineChart,
   LayoutDashboard, FileText, Receipt, Users, Wallet, Building2, PlugZap, UsersRound, CreditCard,
   Plus, Menu, X, Home, ChevronRight, Landmark, LogOut, ChevronsUpDown, Check, ShieldCheck, Sparkles, Tags, Printer, CircleHelp, ClipboardPaste, UserPlus, HandCoins, Store, MessageSquareHeart, Package, BellRing,
   PanelLeftOpen, PanelLeftClose, Bot, Settings, ChevronDown,
@@ -52,7 +52,7 @@ function navFor({ kind, canSettings, canBilling, canPayments, canTeam, canCosts,
   ].filter((g) => g.items.length);
 }
 
-export function AppShell({ business, member, memberships, isPlatformAdmin, allowance, perms, logo, tour, children }) {
+export function AppShell({ business, member, memberships, isPlatformAdmin, isFounder, allowance, perms, logo, tour, children }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [switcher, setSwitcher] = useState(false);
@@ -175,12 +175,15 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
             </ul>}
           </div>
         ))}
-        {isPlatformAdmin && (
+        {(isPlatformAdmin || isFounder) && (
           <div className="mt-4">
             <p className="px-3 pb-1.5 text-overline text-ink-3">{BRAND.name}</p>
-            <Link href="/admin" className="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 hover:bg-hover hover:text-ink">
-              <ShieldCheck className="size-[18px] text-violet" /> Platform admin
+            <Link href="/founder" className="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 hover:bg-hover hover:text-ink">
+              <LineChart className="size-[18px] text-brand" /> Founder dashboard
             </Link>
+            {isPlatformAdmin && <Link href="/admin" className="flex h-10 items-center gap-3 rounded-lg px-3 text-sm font-medium text-ink-2 hover:bg-hover hover:text-ink">
+              <ShieldCheck className="size-[18px] text-violet" /> Platform admin
+            </Link>}
           </div>
         )}
       </nav>
@@ -290,10 +293,11 @@ export function AppShell({ business, member, memberships, isPlatformAdmin, allow
           </ul>
         </section>
       )}
-      {isPlatformAdmin && (
-        <section>
-          <p className="px-1 pb-2 text-overline text-ink-3">{BRAND.name}</p>
-          <Link href="/admin" className={cx(row, "rounded-2xl bg-surface ring-1 ring-line")}><span className="inline-flex size-8 items-center justify-center rounded-lg bg-violet-soft text-violet"><ShieldCheck className="size-[18px]" /></span><span className="flex-1">Platform admin</span><ChevronRight className="size-4 text-ink-3" /></Link>
+      {(isPlatformAdmin || isFounder) && (
+        <section className="flex flex-col gap-2">
+          <p className="px-1 pb-0 text-overline text-ink-3">{BRAND.name}</p>
+          <Link href="/founder" className={cx(row, "rounded-2xl bg-surface ring-1 ring-line")}><span className="inline-flex size-8 items-center justify-center rounded-lg bg-brand-soft text-brand-ink"><LineChart className="size-[18px]" /></span><span className="flex-1">Founder dashboard</span><ChevronRight className="size-4 text-ink-3" /></Link>
+          {isPlatformAdmin && <Link href="/admin" className={cx(row, "rounded-2xl bg-surface ring-1 ring-line")}><span className="inline-flex size-8 items-center justify-center rounded-lg bg-violet-soft text-violet"><ShieldCheck className="size-[18px]" /></span><span className="flex-1">Platform admin</span><ChevronRight className="size-4 text-ink-3" /></Link>}
         </section>
       )}
 

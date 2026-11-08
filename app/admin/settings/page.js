@@ -4,6 +4,7 @@ import { TrialSettings } from "./platform-settings";
 import { AlertSettings, CompanyLegalSettings, PublicStatsSettings } from "./forms";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { platformRow } from "../integrations/shared";
+import { FounderAccess } from "./founders";
 
 export const metadata = { title: "Settings" };
 
@@ -20,6 +21,9 @@ export default async function SettingsPage() {
     ngnMinor: (p.data || []).filter((x) => x.currency === "NGN").reduce((n, x) => n + Number(x.amount_minor), 0),
     usdMinor: (p.data || []).filter((x) => x.currency === "USD").reduce((n, x) => n + Number(x.amount_minor), 0),
   }).catch(() => null);
+  const ctx = await requirePlatformAdmin();
+  let founders = { error: true };
+  try { founders = (await ctx.supabase.from("platform_viewers").select("email, note, created_at").order("created_at")) || founders; } catch { /* SQL not run yet */ }
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Settings" description="The free trial, who runs Usetally, and who gets alerts. Service keys live under Integrations." />
@@ -29,6 +33,7 @@ export default async function SettingsPage() {
       </div>
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <PublicStatsSettings on={s.public_stats !== false} stats={stats} />
+        <FounderAccess founders={founders.data || []} missingSql={Boolean(founders.error)} />
       </div>
       <CompanyLegalSettings saved={s} />
     </div>

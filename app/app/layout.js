@@ -26,6 +26,7 @@ export default async function Layout({ children }) {
       member={{ ...member, roleLabel: ROLES[member.role].label }}
       memberships={ctx.memberships.map((m) => ({ business_id: m.business_id, name: m.businesses?.name || "Business" }))}
       isPlatformAdmin={ctx.isPlatformAdmin}
+      isFounder={ctx.isFounder}
       allowance={ctx.allowance}
       logo={logoUrl(business.logo_path)}
       tour={{ userId: ctx.user.id, done: Boolean(ctx.profile?.tour_done_at) }}

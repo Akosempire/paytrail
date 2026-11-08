@@ -9,6 +9,7 @@ export const metadata = { title: { default: "Platform admin", template: "%s · U
 
 const NAV = [
   { href: "/admin", label: "Overview", icon: "overview" },
+  { href: "/founder", label: "Founder view", icon: "founder" },
   { href: "/admin/businesses", label: "Businesses", icon: "businesses" },
   { href: "/admin/plans", label: "Plans & pricing", icon: "plans" },
   { href: "/admin/inbox", label: "Inbox", icon: "inbox" },
