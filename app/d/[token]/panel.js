@@ -108,8 +108,8 @@ export function CustomerPanel({ token, doc, amount, paid, expired, providers, ha
             </>
           ) : !hasBank && <p className="text-sm text-[#475467]">Contact {brandName} for payment details.</p>}
           {hasBank && (
-            <div className="mt-2 rounded-lg bg-[#f8f9fb] p-3.5 text-sm">
-              <p className="flex items-center gap-1.5 text-[13px] font-medium text-[#475467]"><Landmark className="size-4" />Or pay by bank transfer</p>
+            <div id="bank-transfer" className={`scroll-mt-4 rounded-lg bg-[#f8f9fb] p-3.5 text-sm ${providers.length ? "mt-2" : ""}`}>
+              <p className="flex items-center gap-1.5 text-[13px] font-medium text-[#475467]"><Landmark className="size-4" />{providers.length ? "Or pay by bank transfer" : `Pay ${amount} by bank transfer`}</p>
               <dl className="mt-1 divide-y divide-[#eaecf0]">
                 {bank.name && <CopyRow label="Bank" value={bank.name} />}
                 <CopyRow label="Account number" value={bank.number} mono strong />

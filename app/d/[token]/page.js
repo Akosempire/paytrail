@@ -3,7 +3,7 @@ import { ShowToast } from "@/components/show-toast";
 import { notFound } from "next/navigation";
 import { after } from "next/server";
 import { reconcileSoon } from "@/lib/payments";
-import { CheckCircle2, Clock, Download, XCircle, Receipt, Ban, Printer, Paperclip } from "lucide-react";
+import { CheckCircle2, Clock, Download, XCircle, Receipt, Ban, Printer, Paperclip, Landmark } from "lucide-react";
 import { formatSize } from "@/lib/file-types";
 import { getPublicDocument } from "@/lib/documents";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -148,10 +148,16 @@ export default async function PublicDocument({ params, searchParams }) {
           <p className="flex items-center justify-center gap-1.5 text-xs text-[#98a2b3]"><Logo className="size-4" />Sent securely with Usetally · <a href="/privacy" className="underline underline-offset-2 hover:text-[#667085]">Privacy</a></p>
         </aside>
       </main>
-      {(!paid && !["void", "declined"].includes(doc.status) && !(quote && expired && doc.status !== "accepted")) && (
+      {/* phones: one button to what the customer does next. Bank transfer only:
+          it opens the bank details (no "Pay" that suggests paying online); with
+          no online payment and no bank details there's nothing to tap. */}
+      {(!paid && !["void", "declined"].includes(doc.status) && !(quote && expired && doc.status !== "accepted")
+        && (quote && doc.status !== "accepted" || providers.length > 0 || business.bank_account_number)) && (
         <div className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-[#eaecf0] bg-white/95 px-4 py-3 backdrop-blur lg:hidden">
-          <a href="#respond" className="flex h-12 items-center justify-center gap-2 rounded-lg text-[15px] font-semibold text-white doc-brand-bg">
-            {quote && doc.status !== "accepted" ? (providers.length ? `Accept & pay ${money(doc.total_minor)}` : `Accept · ${money(doc.total_minor)}`) : `Pay ${money(balance)}`}
+          <a href={quote && doc.status !== "accepted" || providers.length ? "#respond" : "#bank-transfer"} className="flex h-12 items-center justify-center gap-2 rounded-lg text-[15px] font-semibold text-white doc-brand-bg">
+            {quote && doc.status !== "accepted"
+              ? (providers.length ? `Accept & pay ${money(doc.total_minor)}` : `Accept · ${money(doc.total_minor)}`)
+              : providers.length ? `Pay ${money(balance)}` : <><Landmark className="size-[18px]" aria-hidden="true" />Bank details · {money(balance)}</>}
           </a>
         </div>
       )}

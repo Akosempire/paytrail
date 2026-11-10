@@ -79,3 +79,17 @@ test("logo addresses: only http(s) or this site's own paths", () => {
   for (const bad of ["javascript:alert(1)", "data:text/html,x", "media/x.png"]) assert.ok(!documentCard({ ...model, business: { ...model.business, logo: bad } }, { site: "https://usetally.cc" }).includes("<img"), bad);
   assert.ok(!documentCard({ ...model, accent: "red;background:url(x)" }).includes("url(x)"), "accent must be a hex colour");
 });
+
+test("bank transfer only: no 'pay online' wording or 'View & pay' button", () => {
+  const e = documentEmail({ business, doc, link, model, payOnline: false });
+  assert.ok(e.html.includes("View invoice") && !e.html.includes("View &amp; pay"));
+  assert.ok(!/pay online/i.test(e.html) && !/pay online/i.test(e.subject + e.text));
+  assert.ok(e.text.includes("Pay by bank transfer"));
+  assert.ok(e.html.includes("Bank details inside."), "preheader");
+  const r = invoiceReminderEmail({ business, doc, link, model, subject: "Reminder", message: "Just a reminder.", payOnline: false });
+  assert.ok(r.html.includes("View invoice") && !r.html.includes("View &amp; pay"));
+  const s = sentDocumentEmail({ business, doc, link, model, subject: "Your invoice", payOnline: false });
+  assert.ok(!/pay online/i.test(s.html));
+  // online payments on: unchanged
+  assert.ok(documentEmail({ business, doc, link, model }).html.includes("View &amp; pay invoice"));
+});
