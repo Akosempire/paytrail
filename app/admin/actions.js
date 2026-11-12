@@ -550,7 +550,27 @@ export async function addFounder(form) {
     return { error: "Couldn't add them. Try again." };
   }
   revalidatePath("/admin/settings");
-  return { message: `${email} can open the founder dashboard once they've signed in with that email.` };
+  const sent = await emailFounder(ctx, email, { manage: row.can_manage !== false });
+  return { message: `${email} can open the founder dashboard once they've signed in with that email.${sent ? " We've emailed them." : " (Email isn't set up, so tell them yourself.)"}` };
+}
+
+// tell a co-founder what they've been given, with a button straight to it
+async function emailFounder(ctx, email, { manage, upgraded = false }) {
+  try {
+    const { sendEmail, emailConfigured } = await import("@/lib/email");
+    if (!(await emailConfigured())) return false;
+    const { founderAccessEmail } = await import("@/lib/emails");
+    const { siteUrl } = await import("@/lib/site");
+    const { data: found } = await createSupabaseService().rpc("auth_email_status", { target_email: email });
+    const hasAccount = Boolean(found?.[0]?.user_id);
+    const link = hasAccount ? `${siteUrl()}/login?next=/founder` : `${siteUrl()}/signup?${new URLSearchParams({ email, next: "/founder" })}`;
+    const inviter = ctx.user.user_metadata?.full_name || ctx.user.email || "Usetally";
+    const r = await sendEmail({ to: email, ...founderAccessEmail({ inviter, manage, hasAccount, link, upgraded }) });
+    return Boolean(r?.sent);
+  } catch (e) {
+    console.error("founder_access.email_failed", { message: String(e?.message || e).slice(0, 200) });
+    return false;
+  }
 }
 
 // what a founder can do besides view: edit plans & prices and see customers
@@ -559,7 +579,11 @@ export async function setFounderManage(email, on) {
   const { error } = await ctx.supabase.from("platform_viewers").update({ can_manage: Boolean(on) }).eq("email", String(email || "").toLowerCase());
   if (error) return { error: /can_manage/.test(error.message || "") ? "Run supabase/RUN_NEW_2026-11-12b.sql in Supabase → SQL Editor first." : "Couldn't save. Try again." };
   revalidatePath("/admin/settings");
-  return { message: on ? `${email} can now edit plans and see customers.` : `${email} is view-only now.` };
+  if (on) {
+    const sent = await emailFounder(ctx, String(email).toLowerCase(), { manage: true, upgraded: true });
+    return { message: `${email} can now edit plans and see customers.${sent ? " We've emailed them." : ""}` };
+  }
+  return { message: `${email} is view-only now.` };
 }
 
 export async function removeFounder(email) {
