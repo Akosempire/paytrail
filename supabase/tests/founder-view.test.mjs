@@ -63,3 +63,9 @@ test("the app knows who's a founder", async () => {
   const c = (await as(admin, "select public.app_context() c")).rows[0].c;
   assert.ok("is_founder" in c);
 });
+
+test("sent-out counts: founders and admins only, POS sales kept apart", async () => {
+  const c = (await as(admin, "select public.founder_sent_counts() c")).rows[0].c;
+  for (const k of ["quotes", "invoices", "receipts", "pos_sales"]) for (const p of ["month", "last_month", "all"]) assert.equal(typeof c[k][p], "number", `${k}.${p}`);
+  await assert.rejects(as(stranger, "select public.founder_sent_counts()"), /Not allowed/);
+});

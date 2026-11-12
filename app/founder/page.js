@@ -1,4 +1,4 @@
-import { AlertTriangle, Building2, CreditCard, FileText, Layers, Sparkles, UserPlus, Wallet } from "lucide-react";
+import { AlertTriangle, Building2, CreditCard, FileCheck2, FileText, Layers, ReceiptText, ShoppingBag, Sparkles, UserPlus, Wallet } from "lucide-react";
 import { requireFounderView } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
@@ -6,6 +6,7 @@ import { Badge, Card, CardHeader, EmptyState, PageHeader, StatCard, StatGroup } 
 import { change, shortMoney, gatewayName, gatewayStatus, mainAmount, methodName, monthLabel, moneyText, successRate } from "@/lib/founder-core";
 
 export const metadata = { title: "Founder dashboard" };
+const n = (v) => Number(v || 0).toLocaleString("en-NG");
 export const dynamic = "force-dynamic";
 
 // How Usetally is doing, for founders who don't need the technical side:
@@ -13,7 +14,7 @@ export const dynamic = "force-dynamic";
 // (founder_summary), which only founders and platform admins may make.
 export default async function FounderHome() {
   const ctx = await requireFounderView();
-  const { data: s, error } = await ctx.supabase.rpc("founder_summary");
+  const [{ data: s, error }, { data: sent }] = await Promise.all([ctx.supabase.rpc("founder_summary"), ctx.supabase.rpc("founder_sent_counts")]);
   if (error || !s) {
     return (
       <div className="flex flex-col gap-6">
@@ -39,6 +40,21 @@ export default async function FounderHome() {
         <StatCard icon={Sparkles} tone="info" label="On free trial" value={s.trialing ?? 0} hint={s.lapsed ? `${s.lapsed} stopped paying` : "None have stopped paying"} />
         <StatCard icon={UserPlus} tone="violet" label="New sign-ups this month" value={s.signups_month ?? 0} trend={change(s.signups_month, s.signups_last_month)} hint={`Last month: ${s.signups_last_month ?? 0}`} />
       </StatGroup>
+
+      {sent && (
+        <section className="flex flex-col gap-3" aria-labelledby="sent-title">
+          <div className="flex items-baseline justify-between gap-3 px-1">
+            <h2 id="sent-title" className="text-[15px] font-semibold text-ink">Sent out with Usetally this month</h2>
+            <span className="text-xs text-ink-3">All businesses</span>
+          </div>
+          <StatGroup>
+            <StatCard icon={FileText} tone="brand" label="Quotes sent" value={n(sent.quotes.month)} trend={change(sent.quotes.month, sent.quotes.last_month)} hint={`Last month ${n(sent.quotes.last_month)} · All time ${n(sent.quotes.all)}`} />
+            <StatCard icon={FileCheck2} tone="violet" label="Invoices sent" value={n(sent.invoices.month)} trend={change(sent.invoices.month, sent.invoices.last_month)} hint={`Last month ${n(sent.invoices.last_month)} · All time ${n(sent.invoices.all)}`} />
+            <StatCard icon={ReceiptText} tone="success" label="Receipts issued" value={n(sent.receipts.month)} trend={change(sent.receipts.month, sent.receipts.last_month)} hint={`Last month ${n(sent.receipts.last_month)} · All time ${n(sent.receipts.all)}`} />
+            <StatCard icon={ShoppingBag} tone="info" label="Shop sales (TrackOja)" value={n(sent.pos_sales.month)} trend={change(sent.pos_sales.month, sent.pos_sales.last_month)} hint={`Last month ${n(sent.pos_sales.last_month)} · All time ${n(sent.pos_sales.all)}`} />
+          </StatGroup>
+        </section>
+      )}
 
       <div className="grid items-start gap-6 lg:grid-cols-2">
         <Card>
@@ -113,10 +129,10 @@ export default async function FounderHome() {
             ) : <EmptyState compact icon={Layers} title="No paying businesses yet" />}
           </Card>
           <Card>
-            <CardHeader icon={FileText} title="How much Usetally is used" />
+            <CardHeader icon={Building2} title="Who uses Usetally" />
             <dl className="grid grid-cols-2 gap-2 p-5 pt-0">
-              <Num label="Invoices & quotes sent this month" value={s.documents_month ?? 0} hint={`Last month: ${s.documents_last_month ?? 0}`} left />
-              <Num label="Companies (rest are freelancers)" value={s.companies ?? 0} hint={`of ${s.businesses ?? 0} businesses`} left />
+              <Num label="Freelancers" value={Math.max(0, (s.businesses ?? 0) - (s.companies ?? 0))} hint={`of ${s.businesses ?? 0} businesses`} left />
+              <Num label="Companies" value={s.companies ?? 0} hint={`of ${s.businesses ?? 0} businesses`} left />
             </dl>
           </Card>
         </div>
