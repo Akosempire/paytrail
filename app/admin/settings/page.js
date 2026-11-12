@@ -23,7 +23,11 @@ export default async function SettingsPage() {
   }).catch(() => null);
   const ctx = await requirePlatformAdmin();
   let founders = { error: true };
-  try { founders = (await ctx.supabase.from("platform_viewers").select("email, note, created_at").order("created_at")) || founders; } catch { /* SQL not run yet */ }
+  try {
+    founders = (await ctx.supabase.from("platform_viewers").select("email, note, can_manage, created_at").order("created_at")) || founders;
+    // before RUN_NEW_2026-11-12b.sql there's no access level yet
+    if (founders.error) founders = (await ctx.supabase.from("platform_viewers").select("email, note, created_at").order("created_at")) || founders;
+  } catch { /* SQL not run yet */ }
   return (
     <div className="flex flex-col gap-6">
       <PageHeader title="Settings" description="The free trial, who runs Usetally, and who gets alerts. Service keys live under Integrations." />

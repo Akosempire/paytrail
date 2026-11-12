@@ -1,4 +1,5 @@
 "use server";
+import { contactOk } from "@/lib/contact";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { getContext } from "@/lib/context";
@@ -21,6 +22,8 @@ export async function startBusiness(_prev, form) {
   // the country decides which tax features show (e.g. Nigeria's VAT returns), so it's required
   const country = String(form.get("country") || "").trim().slice(0, 60);
   if (!country) return { error: "Choose your country." };
+  // customers need a way to reach the business: an email or a phone, at least one
+  if (!contactOk(form.get("email"), form.get("phone"))) return { error: "Add a business email or phone number so customers can reach you." };
   const { data: id, error } = await ctx.supabase.rpc("create_business", {
     business_kind: kind, business_name: name, owner_name: ownerName, business_currency: String(form.get("currency") || "NGN"),
   });
@@ -99,3 +102,4 @@ export async function finishOnboarding(_prev, form) {
   const next = want === "payments" ? "/app/settings/payments?welcome=1" : want === "invoice" ? "/app/invoices/new" : "/app?welcome=1";
   redirect(next);
 }
+

@@ -69,3 +69,46 @@ test("sent-out counts: founders and admins only, POS sales kept apart", async ()
   for (const k of ["quotes", "invoices", "receipts", "pos_sales"]) for (const p of ["month", "last_month", "all"]) assert.equal(typeof c[k][p], "number", `${k}.${p}`);
   await assert.rejects(as(stranger, "select public.founder_sent_counts()"), /Not allowed/);
 });
+
+// ---- co-founder access (20261112000200_cofounder_access.sql)
+test("a managing co-founder edits plans and sees customers; a view-only one can't", async () => {
+  const cofounder = await user("cofounder"), viewer = await user("viewonly");
+  await as(admin, "insert into public.platform_viewers(email, can_manage, added_by) values ($1, true, $3), ($2, false, $3)", [`cofounder${stamp}@founder.test`, `viewonly${stamp}@founder.test`, admin]);
+  assert.equal((await as(cofounder, "select public.is_platform_manager() m")).rows[0].m, true);
+  assert.equal((await as(viewer, "select public.is_platform_manager() m")).rows[0].m, false);
+  assert.equal((await as(cofounder, "select public.is_platform_admin() a")).rows[0].a, false, "still not an admin");
+
+  const plan = (await as(cofounder, "insert into public.plans(name, price_minor, currency, billing_interval, active) values ('Cofounder test plan', 500000, 'NGN', 'month', false) returning id")).rows[0].id;
+  await as(cofounder, "update public.plans set price_minor = 600000 where id = $1", [plan]);
+  assert.equal(Number((await one("select price_minor from public.plans where id = $1", [plan])).price_minor), 600000);
+  // a view-only founder can't touch plans (the update matches nothing, the insert is refused)
+  await as(viewer, "update public.plans set price_minor = 1 where id = $1", [plan]);
+  assert.equal(Number((await one("select price_minor from public.plans where id = $1", [plan])).price_minor), 600000);
+  await assert.rejects(as(viewer, "insert into public.plans(name, price_minor, currency, billing_interval) values ('x', 1, 'NGN', 'month')"));
+  await assert.rejects(as(viewer, "select public.delete_plan($1)", [plan]), /Not allowed/);
+
+  // customers list with contacts: managers yes, view-only no
+  const c = (await as(cofounder, "select public.founder_customers('', 5, 0) c")).rows[0].c;
+  assert.ok(typeof c.total === "number" && Array.isArray(c.rows));
+  if (c.rows[0]) for (const k of ["name", "owner_name", "owner_email", "email", "phone", "plan", "status", "documents_sent"]) assert.ok(k in c.rows[0], k);
+  await assert.rejects(as(viewer, "select public.founder_customers('', 5, 0)"), /Not allowed/);
+  await assert.rejects(as(stranger, "select public.founder_customers('', 5, 0)"), /Not allowed/);
+
+  // delete: refused while a business is on the plan, fine once nobody is
+  const biz = (await one("select id from public.businesses limit 1"))?.id;
+  if (biz) {
+    const old = (await one("select plan_id from public.businesses where id = $1", [biz])).plan_id;
+    await pool.query("update public.businesses set plan_id = $2 where id = $1", [biz, plan]);
+    await assert.rejects(as(cofounder, "select public.delete_plan($1)", [plan]), /IN_USE:1/);
+    const u = (await as(cofounder, "select businesses, paying from public.plan_usage() where plan_id = $1", [plan])).rows[0];
+    assert.equal(Number(u.businesses), 1);
+    await pool.query("update public.businesses set plan_id = $2 where id = $1", [biz, old]);
+  }
+  await assert.rejects(as(cofounder, "delete from public.plans where id = $1", [plan]), /permission denied/, "only through delete_plan");
+  await as(cofounder, "select public.delete_plan($1)", [plan]);
+  assert.equal((await one("select count(*)::int n from public.plans where id = $1", [plan])).n, 0);
+
+  // co-founders still can't reach admin-only things
+  await assert.rejects(as(cofounder, "select billing_secret_enc from public.platform_settings"), /permission denied/);
+  await assert.rejects(as(cofounder, "select public.platform_summary()"), /Not allowed/);
+});

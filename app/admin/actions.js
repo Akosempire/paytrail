@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath, updateTag } from "next/cache";
 import { PUBLIC_PLANS_TAG } from "@/lib/public-plans";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requirePlanManager, requirePlatformAdmin } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { decryptSecret, encryptSecret, hint } from "@/lib/crypto";
 import { toMinor, CURRENCIES } from "@/lib/money";
@@ -10,8 +10,9 @@ import { requireStepUp } from "@/lib/step-up";
 import { notifyAdmins } from "@/lib/admin-alerts";
 import { ALL_FEATURES } from "@/lib/entitlements";
 
+// plans: platform admins and co-founders who manage plans (requirePlanManager)
 export async function savePlan(id, form) {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requirePlanManager();
   const price = toMinor(form.price);
   const intOrNull = (v) => (String(v ?? "").trim() === "" ? null : Math.max(0, parseInt(v, 10)));
   const row = {
@@ -44,8 +45,26 @@ export async function savePlan(id, form) {
   }
   if (error) return { error: error.message };
   revalidatePath("/admin/plans");
+  revalidatePath("/founder/plans");
   updateTag(PUBLIC_PLANS_TAG); // the landing page shows the change straight away
   return { message: (id ? "Plan updated. Existing subscribers keep their current period." : "Plan created.") + note };
+}
+
+// Delete a plan nobody is on (the database checks). Anyone on it: keep it and
+// hide it instead, so no paying business loses its plan.
+export async function deletePlan(id) {
+  const ctx = await requirePlanManager();
+  const { error } = await ctx.supabase.rpc("delete_plan", { p_id: id });
+  if (error) {
+    const inUse = /IN_USE:(\d+)/.exec(error.message || "");
+    if (inUse) return { error: `${inUse[1]} business${inUse[1] === "1" ? " is" : "es are"} on this plan, so it can't be deleted. Untick "Active" to hide it from new customers instead.` };
+    if (/delete_plan/.test(error.message || "")) return { error: "Run supabase/RUN_NEW_2026-11-12b.sql in Supabase → SQL Editor first, then try again." };
+    return { error: "Couldn't delete the plan. Try again." };
+  }
+  revalidatePath("/admin/plans");
+  revalidatePath("/founder/plans");
+  updateTag(PUBLIC_PLANS_TAG);
+  return { message: "Plan deleted." };
 }
 
 export async function saveTrial(form) {
@@ -522,7 +541,9 @@ export async function addFounder(form) {
   const email = String(form?.email || "").trim().toLowerCase().slice(0, 254);
   if (!/^[^\s@]+@[^\s@]+\.[a-z]{2,}$/i.test(email)) return { error: "Enter a valid email address." };
   const note = String(form?.note || "").trim().slice(0, 80);
-  const { error } = await ctx.supabase.from("platform_viewers").insert({ email, note, added_by: ctx.user.id });
+  const row = { email, note, added_by: ctx.user.id, can_manage: form?.can_manage !== false };
+  let { error } = await ctx.supabase.from("platform_viewers").insert(row);
+  if (error && /can_manage/.test(error.message || "")) { delete row.can_manage; ({ error } = await ctx.supabase.from("platform_viewers").insert(row)); }
   if (error) {
     if (error.code === "23505") return { error: `${email} already has founder access.` };
     if (error.code === "42P01" || /platform_viewers/.test(error.message || "")) return { error: "Run supabase/RUN_NEW_2026-11-08a.sql in Supabase → SQL Editor first, then try again." };
@@ -530,6 +551,15 @@ export async function addFounder(form) {
   }
   revalidatePath("/admin/settings");
   return { message: `${email} can open the founder dashboard once they've signed in with that email.` };
+}
+
+// what a founder can do besides view: edit plans & prices and see customers
+export async function setFounderManage(email, on) {
+  const ctx = await requirePlatformAdmin();
+  const { error } = await ctx.supabase.from("platform_viewers").update({ can_manage: Boolean(on) }).eq("email", String(email || "").toLowerCase());
+  if (error) return { error: /can_manage/.test(error.message || "") ? "Run supabase/RUN_NEW_2026-11-12b.sql in Supabase → SQL Editor first." : "Couldn't save. Try again." };
+  revalidatePath("/admin/settings");
+  return { message: on ? `${email} can now edit plans and see customers.` : `${email} is view-only now.` };
 }
 
 export async function removeFounder(email) {

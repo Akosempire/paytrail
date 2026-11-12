@@ -88,13 +88,17 @@ export function StepStart({ ownerName, firstBusiness, ipCountry }) {
   // Canada asks for the province: it decides GST, HST, PST or QST
   const [countryCode, setCountryCode] = useState("");
   const [region, setRegion] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   // started an invoice on /try first: bring over what they typed about their business
   useEffect(() => {
     let b = null;
     try { b = readGuestDraft(localStorage.getItem(GUEST_KEY), Date.now(), CURRENCIES)?.business; } catch { b = null; }
     if (!b) return;
     if (b.currency) setCurrency(b.currency);
-    for (const k of ["name", "email", "phone", "address"]) {
+    if (b.email) setEmail(b.email);
+    if (b.phone) setPhone(b.phone);
+    for (const k of ["name", "address"]) {
       const el = document.getElementById(k);
       if (el && !el.value && b[k]) el.value = b[k];
     }
@@ -125,11 +129,15 @@ export function StepStart({ ownerName, firstBusiness, ipCountry }) {
           <RegionSelect countryCode={countryCode} value={region} onChange={setRegion} />
           <Field label="Main currency" htmlFor="currency"><Select id="currency" name="currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>{CURRENCIES.map((c) => <option key={c}>{c}</option>)}</Select></Field>
         </div>
-        <More label="Add contact details (optional)">
+        {/* how customers reach you: an email or a phone number, at least one */}
+        <fieldset className="grid items-start gap-4 sm:grid-cols-2">
+          <legend className="mb-2.5 text-[13px] font-medium text-ink-2">How customers reach you <span className="font-normal text-ink-3">(email, phone or both)</span></legend>
+          <Field label="Business email" htmlFor="email" hint="Customers reply to this."><Input id="email" name="email" type="email" placeholder="hello@yourbusiness.com" value={email} onChange={(e) => setEmail(e.target.value)} required={!phone.trim()} /></Field>
+          <Field label="Phone / WhatsApp" htmlFor="phone" hint="Shown on your invoices."><Input id="phone" name="phone" type="tel" inputMode="tel" placeholder="+234 801 234 5678" value={phone} onChange={(e) => setPhone(e.target.value)} required={!email.trim()} /></Field>
+        </fieldset>
+        <More label="Add more details (optional)">
           <div className="grid items-start gap-4 sm:grid-cols-2">
             {kind === "company" && <Field label="Registered name" htmlFor="legal_name" optional><Input id="legal_name" name="legal_name" placeholder="As on your CAC certificate" /></Field>}
-            <Field label="Business email" htmlFor="email" hint="Customers reply to this."><Input id="email" name="email" type="email" placeholder="hello@yourbusiness.com" /></Field>
-            <Field label="Phone / WhatsApp" htmlFor="phone"><Input id="phone" name="phone" placeholder="+234 801 234 5678" /></Field>
             <Field label="Website" htmlFor="website" optional><Input id="website" name="website" placeholder="yourbusiness.com" /></Field>
             <Field label="Address" htmlFor="address" className="sm:col-span-2"><Input id="address" name="address" placeholder="12 Admiralty Way, Lekki Phase 1" /></Field>
             <Field label="City" htmlFor="city"><Input id="city" name="city" placeholder="Your city" /></Field>

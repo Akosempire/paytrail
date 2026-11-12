@@ -1,20 +1,22 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Pencil, Plus, Tags } from "lucide-react";
+import { Loader2, Pencil, Plus, Tags, Trash2 } from "lucide-react";
 import { Badge, Button, Card, Checkbox, EmptyState, Field, Input, Select, Textarea } from "@/components/ui";
 import { Modal, useToast } from "@/components/ui-client";
 import { CURRENCIES, formatMoney, minorToInput } from "@/lib/money";
-import { savePlan } from "../actions";
+import { deletePlan, savePlan } from "../actions";
 import { FEATURES, planFeatures } from "@/lib/entitlements";
 
 const EMPTY = { name: "", tagline: "", price: "", currency: "NGN", billing_interval: "month", document_limit: "", seat_limit: "", allow_company: true, features: "", active: true, sort_order: 0, filing_fee: "", spots: "", features_included: FEATURES.map((f) => f.key) };
 
-export function PlanEditor({ plans, counts }) {
+// usage: businesses on each plan, any status (a plan can only be deleted when nobody is on it)
+export function PlanEditor({ plans, counts, usage = {} }) {
   const router = useRouter();
   const toast = useToast();
   const [pending, start] = useTransition();
   const [editing, setEditing] = useState(null);
+  const [deleting, setDeleting] = useState(null);
   const open = (p) => setEditing(p ? { id: p.id, name: p.name, tagline: p.tagline, price: minorToInput(p.price_minor), currency: p.currency, billing_interval: p.billing_interval,
     document_limit: p.document_limit ?? "", seat_limit: p.seat_limit ?? "", allow_company: p.allow_company, features: (p.features || []).join("\n"), active: p.active, sort_order: p.sort_order, filing_fee: p.tax_filing_fee_minor == null ? "" : minorToInput(p.tax_filing_fee_minor), spots: p.spots ?? "", features_included: planFeatures(p) } : { ...EMPTY });
   const set = (k) => (e) => setEditing({ ...editing, [k]: e.target.type === "checkbox" ? e.target.checked : e.target.value });
@@ -36,7 +38,7 @@ export function PlanEditor({ plans, counts }) {
                 {p.spots != null && <li className="text-ink-3">· {p.spots} spots (anyone can pick it while spots are left)</li>}
               </ul>
               <div className="mt-4 flex items-center justify-between border-t border-line pt-3">
-                <span className="text-xs text-ink-3">{counts[p.id] || 0} paying</span>
+                <span className="text-xs text-ink-3">{counts[p.id] || 0} paying{usage[p.id] > (counts[p.id] || 0) ? ` · ${usage[p.id]} on it` : ""}</span>
                 <Button size="sm" icon={Pencil} onClick={() => open(p)}>Edit</Button>
               </div>
             </Card>
@@ -44,7 +46,7 @@ export function PlanEditor({ plans, counts }) {
         </div>
       )}
       <Modal open={Boolean(editing)} onClose={() => setEditing(null)} size="lg" title={editing?.id ? "Edit plan" : "New plan"}
-        footer={<><Button onClick={() => setEditing(null)}>Cancel</Button><Button variant="primary" icon={pending ? Loader2 : undefined} loading={pending}
+        footer={<>{editing?.id && <Button variant="ghost" icon={Trash2} className="mr-auto text-danger-ink" onClick={() => setDeleting(plans.find((p) => p.id === editing.id) || null)}>Delete plan</Button>}<Button onClick={() => setEditing(null)}>Cancel</Button><Button variant="primary" icon={pending ? Loader2 : undefined} loading={pending}
           onClick={() => start(async () => { const r = await savePlan(editing.id || null, editing); if (r.error) return toast(r.error, "error"); toast(r.message); setEditing(null); router.refresh(); })}>Save plan</Button></>}>
         {editing && (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -76,6 +78,15 @@ export function PlanEditor({ plans, counts }) {
             </div>
           </div>
         )}
+      </Modal>
+      <Modal open={Boolean(deleting)} onClose={() => setDeleting(null)} title={`Delete ${deleting?.name || "plan"}?`}
+        footer={usage[deleting?.id]
+          ? <Button variant="primary" onClick={() => setDeleting(null)}>OK</Button>
+          : <><Button onClick={() => setDeleting(null)}>Keep it</Button><Button variant="danger" icon={Trash2} loading={pending}
+              onClick={() => start(async () => { const r = await deletePlan(deleting.id); if (r.error) return toast(r.error, "error"); toast(r.message); setDeleting(null); setEditing(null); router.refresh(); })}>Delete plan</Button></>}>
+        {usage[deleting?.id] ? (
+          <p className="text-sm leading-relaxed text-ink-2">{usage[deleting.id]} business{usage[deleting.id] === 1 ? " is" : "es are"} on this plan, so it can't be deleted: they'd lose their plan. Untick <strong>Active</strong> instead to hide it from new customers. Once nobody is on it, you can delete it.</p>
+        ) : <p className="text-sm leading-relaxed text-ink-2">Nobody is on this plan. It disappears from the billing page and the website, and past payments keep their amounts. This can't be undone.</p>}
       </Modal>
     </>
   );
