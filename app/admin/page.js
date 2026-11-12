@@ -1,12 +1,14 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Building2, FileText, Sparkles, Wallet, AlertTriangle } from "lucide-react";
-import { requirePlatformAdmin } from "@/lib/context";
+import { adminAreaAccess } from "@/lib/context";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, CardHeader, PageHeader, StatCard, StatGroup } from "@/components/ui";
 
 export default async function AdminHome() {
-  const ctx = await requirePlatformAdmin();
+  const { ctx, cofounder } = await adminAreaAccess();
+  if (cofounder) redirect("/admin/businesses"); // the overview is for platform admins
   const [{ data: s }, { data: recent }] = await Promise.all([
     ctx.supabase.rpc("platform_summary"),
     ctx.supabase.from("businesses").select("id, name, kind, subscription_status, created_at, plans(name)").order("created_at", { ascending: false }).limit(10),

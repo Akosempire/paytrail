@@ -19,7 +19,7 @@ export default async function FounderLayout({ children }) {
         <div className="mx-auto flex h-16 max-w-[1200px] items-center gap-4 px-4 sm:px-6 lg:px-8">
           <Link href="/founder" className="flex items-center gap-2.5"><Logo withWord /><Badge tone="brand" size="sm">Founder</Badge></Link>
           <div className="flex-1" />
-          {ctx.isPlatformAdmin && <Link href="/admin" className="hidden text-[13px] font-medium whitespace-nowrap text-ink-2 hover:text-ink sm:inline">Platform admin</Link>}
+          {(ctx.isPlatformAdmin || manage) && <Link href={ctx.isPlatformAdmin ? "/admin" : "/admin/businesses"} className="text-[13px] font-medium whitespace-nowrap text-ink-2 hover:text-ink">{ctx.isPlatformAdmin ? "Platform admin" : "Admin tools"}</Link>}
           <ThemeToggle />
           <Link href="/app" className="inline-flex items-center gap-1.5 text-[13px] font-medium whitespace-nowrap text-ink-2 hover:text-ink"><ArrowLeft className="size-4" /><span className="hidden sm:inline">Back to app</span><span className="sm:hidden">App</span></Link>
         </div>

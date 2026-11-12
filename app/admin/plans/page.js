@@ -1,4 +1,4 @@
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { PageHeader } from "@/components/ui";
 import { PlanEditor } from "./plan-editor";
 import { loadPlans } from "./load";
@@ -6,7 +6,7 @@ import { loadPlans } from "./load";
 export const metadata = { title: "Plans & pricing" };
 
 export default async function Plans() {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("plans");
   const { plans, counts, usage } = await loadPlans(ctx);
   return (
     <div className="flex flex-col gap-6">

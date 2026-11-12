@@ -1,5 +1,5 @@
 import { BarChart3, CircleDollarSign, Clock, Coins, Megaphone, ReceiptText, TrendingUp, UserPlus, Users } from "lucide-react";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { Badge, Callout, Card, CardHeader, EmptyState, PageHeader, StatCard } from "@/components/ui";
 import { marketingSettings } from "@/lib/meta";
@@ -19,7 +19,7 @@ const ago = (iso) => {
 };
 
 export default async function Marketing({ searchParams }) {
-  await requirePlatformAdmin();
+  await requireAdminSection("marketing");
   const sp = await searchParams;
   const period = PERIODS[sp.period] ? sp.period : "7d";
   const country = ["NG", "UK"].includes(sp.country) ? sp.country : "all";

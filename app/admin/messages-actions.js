@@ -1,7 +1,7 @@
 "use server";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { checkMessage } from "@/lib/admin-messages-core";
 import { sendEmail } from "@/lib/email";
@@ -12,7 +12,7 @@ import { siteUrl } from "@/lib/site";
 // a conversation in their Ideas & help (so they can reply in the app) and emails
 // them a copy. It also shows in Admin → Inbox with the rest of the conversations.
 export async function sendBusinessMessage(businessId, input) {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("businesses");
   const v = checkMessage(input || {});
   if (!v.ok) return { error: v.error };
   const service = createSupabaseService();

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Inbox } from "lucide-react";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { timeAgo } from "@/lib/format";
 import { Badge, Callout, Card, EmptyState, ListRow, PageHeader, StatCard, StatGroup, cx } from "@/components/ui";
 import { KINDS, STATUSES } from "@/lib/feedback-core";
@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const FILTERS = [["active", "Open & planned"], ["unread", "Unread"], ["feature", "Feature ideas"], ["problem", "Problems"], ["trackoja", "From TrackOja"], ["done", "Done"], ["all", "All"]];
 
 export default async function Page({ searchParams }) {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("inbox");
   const sp = await searchParams;
   const filter = FILTERS.some(([k]) => k === sp.show) ? sp.show : "active";
   let q = ctx.supabase.from("feedback_threads").select("id, kind, subject, status, author_name, author_email, unread_admin, last_message_at, source, origin_label, businesses(name)")

@@ -1,4 +1,4 @@
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { DRAFT, audienceLabel } from "@/lib/announcements-core";
 import { formatDate } from "@/lib/format";
@@ -9,7 +9,7 @@ export const metadata = { title: "Announcements" };
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
-  await requirePlatformAdmin();
+  await requireAdminSection("announcements");
   const service = createSupabaseService();
   const [{ data: list, error }, { data: owners }, { data: bizRows }] = await Promise.all([
     service.from("announcements").select("*").order("created_at", { ascending: false }).limit(20),

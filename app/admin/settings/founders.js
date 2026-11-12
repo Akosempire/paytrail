@@ -22,7 +22,7 @@ export function FounderAccess({ founders, missingSql }) {
   return (
     <Card>
       <CardHeader icon={LineChart} iconTone="brand" title="Founder access"
-        description="Co-founders see customers, money in and the payment gateway on their own dashboard. With “Can edit plans and see customers” they can also change plans and prices and see customers' contact details. They never get this admin area, keys or settings." />
+        description="Co-founders see customers, money in and the payment gateway on their own dashboard. With “Can edit plans and see customers” they also manage plans and prices, see customers' contact details, and work in Businesses, Inbox, Announcements, Usage, Marketing, Tax filing and Health. Overview, Integrations and Settings (payment keys, email, billing, founder access) stay with admins." />
       <div className="flex flex-col gap-5 p-5">
         {missingSql ? <p className="text-sm text-warn-ink">Run supabase/RUN_NEW_2026-11-08a.sql in Supabase → SQL Editor to turn this on.</p> : (
           <>
@@ -30,7 +30,7 @@ export function FounderAccess({ founders, missingSql }) {
               <Field label="Their email" htmlFor="fd-email"><Input id="fd-email" type="email" required value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} placeholder="chima@usetally.cc" autoComplete="off" /></Field>
               <Field label="Note" htmlFor="fd-note" optional><Input id="fd-note" value={form.note} maxLength={80} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Co-founder, growth" /></Field>
               <Button type="submit" variant="primary" icon={UserPlus} loading={pending}>Give access</Button>
-              <div className="sm:col-span-3"><Checkbox label="Can edit plans and see customers" description="Plans & prices (including deleting a plan nobody is on) and the customer list with contact details." checked={form.can_manage} onChange={(e) => setForm({ ...form, can_manage: e.target.checked })} /></div>
+              <div className="sm:col-span-3"><Checkbox label="Can edit plans and see customers" description="Plans & prices, the customer list with contacts, and the admin sections Businesses, Inbox, Announcements, Usage, Marketing, Tax filing and Health." checked={form.can_manage} onChange={(e) => setForm({ ...form, can_manage: e.target.checked })} /></div>
             </form>
             {founders.length ? (
               <ul className="divide-y divide-line rounded-xl ring-1 ring-line">

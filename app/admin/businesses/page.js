@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Search } from "lucide-react";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { Badge, Card, Input, PageHeader } from "@/components/ui";
@@ -10,7 +10,7 @@ export const metadata = { title: "Businesses" };
 
 export default async function Businesses({ searchParams }) {
   const { q = "", status = "" } = await searchParams;
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("businesses");
   const service = createSupabaseService();
   let query = service.from("businesses").select("id, name, kind, email, subscription_status, plan_id, current_period_end, trial_documents_used, trial_ends_at, deletion_scheduled_for, created_at, plans(name)").order("created_at", { ascending: false }).limit(300);
   const term = q.replace(/[%,()]/g, " ").trim();

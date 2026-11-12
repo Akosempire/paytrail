@@ -1,7 +1,7 @@
 "use server";
 import { after } from "next/server";
 import { revalidatePath } from "next/cache";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { absoluteLink, checkAnnouncement, ownerRecipients } from "@/lib/announcements-core";
 import { sendEmail } from "@/lib/email";
@@ -15,7 +15,7 @@ const refresh = () => { revalidatePath("/admin/announcements"); revalidatePath("
 
 // save (create or update); publishing shows it on every dashboard
 export async function saveAnnouncement(id, input, { publish } = {}) {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("announcements");
   const v = checkAnnouncement(input);
   if (v.error) return { error: v.error };
   const service = createSupabaseService();
@@ -44,13 +44,13 @@ async function owners(service, a) {
 }
 
 export async function recipientCount() {
-  await requirePlatformAdmin();
+  await requireAdminSection("announcements");
   return { count: (await owners(createSupabaseService())).length };
 }
 
 // a copy to yourself first, to check how it looks
 export async function sendTest(input) {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("announcements");
   const v = checkAnnouncement(input);
   if (v.error) return { error: v.error };
   const to = ctx.user.email;
@@ -60,7 +60,7 @@ export async function sendTest(input) {
 
 // one email to every business owner, once per announcement
 export async function emailOwners(id) {
-  await requirePlatformAdmin();
+  await requireAdminSection("announcements");
   const service = createSupabaseService();
   // claim it first, so a double click can't send twice
   const { data: claimed, error } = await service.from("announcements").update({ emailed_at: new Date().toISOString() }).eq("id", id).is("emailed_at", null).select("*");

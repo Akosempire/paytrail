@@ -1,4 +1,4 @@
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import Link from "next/link";
 import { Activity, AlertTriangle, BellRing, CheckCircle2, CircleX, Clock, ScrollText } from "lucide-react";
 import { createSupabaseService } from "@/lib/supabase/server";
@@ -19,7 +19,7 @@ const SHORT = { email: "Email", payments: "Payment", storage: "Upload", backup_f
 const FILTERS = [["", "All"], ["email", "Email"], ["payments", "Payments"], ["storage", "Uploads"], ["check", "Checks"], ["backup", "Backups"]];
 
 export default async function HealthPage({ searchParams }) {
-  await requirePlatformAdmin();
+  await requireAdminSection("health");
   const sp = await searchParams;
   const service = createSupabaseService();
   const filter = FILTERS.some(([k]) => k === sp.kind) ? sp.kind : "";

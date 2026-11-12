@@ -112,3 +112,25 @@ test("a managing co-founder edits plans and sees customers; a view-only one can'
   await assert.rejects(as(cofounder, "select billing_secret_enc from public.platform_settings"), /permission denied/);
   await assert.rejects(as(cofounder, "select public.platform_summary()"), /Not allowed/);
 });
+
+// ---- co-founders in admin sections (20261112000300_cofounder_admin_sections.sql)
+test("a co-founder works the Inbox and extends subscriptions; view-only founders and strangers can't", async () => {
+  const cof = await user("inboxcof"), vo = await user("inboxvo"), member = await user("asker");
+  await as(admin, "insert into public.platform_viewers(email, can_manage, added_by) values ($1, true, $3), ($2, false, $3)", [`inboxcof${stamp}@founder.test`, `inboxvo${stamp}@founder.test`, admin]);
+  assert.equal((await as(cof, "select public.is_platform_staff() s")).rows[0].s, true);
+  assert.equal((await as(vo, "select public.is_platform_staff() s")).rows[0].s, false);
+
+  const thread = (await one("insert into public.feedback_threads(user_id, subject) values ($1, 'Can I export to Excel?') returning id", [member])).id;
+  assert.equal((await as(cof, "select count(*)::int n from public.feedback_threads where id = $1", [thread])).rows[0].n, 1, "co-founder reads the inbox");
+  assert.equal((await as(vo, "select count(*)::int n from public.feedback_threads where id = $1", [thread])).rows[0].n, 0, "view-only doesn't");
+  await as(cof, "select public.feedback_reply($1, 'Yes, from Reports → Export.')", [thread]);
+  await as(cof, "select public.feedback_set_status($1, 'done')", [thread]);
+  assert.equal((await one("select status from public.feedback_threads where id = $1", [thread])).status, "done");
+  await assert.rejects(as(vo, "select public.feedback_set_status($1, 'open')", [thread]), /Not allowed/);
+  await assert.rejects(as(stranger, "select public.feedback_set_status($1, 'open')", [thread]), /Not allowed/);
+
+  await assert.rejects(as(vo, "select public.admin_extend_subscription(gen_random_uuid(), gen_random_uuid(), 'x', 0)"), /Not allowed/);
+  // still no admin-only things: summary, keys
+  await assert.rejects(as(cof, "select public.platform_summary()"), /Not allowed/);
+  await assert.rejects(as(cof, "select billing_secret_enc from public.platform_settings"), /permission denied/);
+});

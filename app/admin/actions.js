@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath, updateTag } from "next/cache";
 import { PUBLIC_PLANS_TAG } from "@/lib/public-plans";
-import { requirePlanManager, requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection, requirePlanManager, requirePlatformAdmin } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { decryptSecret, encryptSecret, hint } from "@/lib/crypto";
 import { toMinor, CURRENCIES } from "@/lib/money";
@@ -122,7 +122,7 @@ export async function saveBilling(form) {
 }
 
 export async function updateBusinessAccount(businessId, form) {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("businesses");
   const action = form.action;
   if (action === "extend") {
     if (!form.plan_id) return { error: "Choose a plan." };
@@ -131,14 +131,16 @@ export async function updateBusinessAccount(businessId, form) {
     if (error) return { error: error.message };
   } else if (action === "status") {
     if (!["trialing", "active", "past_due", "canceled", "suspended"].includes(form.status)) return { error: "Unknown status." };
-    const { error } = await ctx.supabase.from("businesses").update({ subscription_status: form.status }).eq("id", businessId);
+    // the server's own connection: the section check above decides who may (admins, co-founders)
+    const { error } = await createSupabaseService().from("businesses").update({ subscription_status: form.status }).eq("id", businessId);
     if (error) return { error: error.message };
   } else if (action === "trial") {
     const extra = Math.max(0, parseInt(form.extra_documents || 0, 10) || 0);
     const days = Math.max(0, parseInt(form.extra_days || 0, 10) || 0);
-    const { data: b } = await ctx.supabase.from("businesses").select("trial_documents_used, trial_ends_at").eq("id", businessId).single();
+    const service = createSupabaseService();
+    const { data: b } = await service.from("businesses").select("trial_documents_used, trial_ends_at").eq("id", businessId).single();
     const base = b.trial_ends_at && new Date(b.trial_ends_at) > new Date() ? new Date(b.trial_ends_at) : new Date();
-    const { error } = await ctx.supabase.from("businesses").update({
+    const { error } = await service.from("businesses").update({
       subscription_status: "trialing",
       trial_documents_used: Math.max(0, b.trial_documents_used - extra),
       trial_ends_at: days ? new Date(base.getTime() + days * 86400000).toISOString() : b.trial_ends_at,
@@ -153,7 +155,7 @@ export async function updateBusinessAccount(businessId, form) {
 // Free access (e.g. a free year of Team for early users): activates the plan
 // for N months with no payment, recorded in their billing history.
 export async function giveFreeAccess(businessId, form) {
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("businesses");
   const months = [1, 3, 6, 12].includes(Number(form.months)) ? Number(form.months) : 12;
   const service = createSupabaseService();
   const [{ data: b }, { data: plan }] = await Promise.all([
@@ -437,7 +439,7 @@ export async function savePublicStats(on) {
 
 // ---------------------------------------------------------------- monitoring
 export async function runHealthChecks() {
-  await requirePlatformAdmin();
+  await requireAdminSection("health");
   const { runChecks } = await import("@/lib/monitor");
   const out = await runChecks();
   revalidatePath("/admin/health");
@@ -447,7 +449,7 @@ export async function runHealthChecks() {
 }
 
 export async function saveAlertWebhook(raw) {
-  await requirePlatformAdmin();
+  await requireAdminSection("health");
   const url = String(raw || "").trim();
   const service = createSupabaseService();
   if (!url) {
@@ -469,7 +471,7 @@ export async function saveAlertWebhook(raw) {
 }
 
 export async function sendTestAlert() {
-  await requirePlatformAdmin();
+  await requireAdminSection("health");
   const { sendAlert } = await import("@/lib/monitor");
   const ok = await sendAlert(["🧪 Test alert: this is what you'll get when something breaks."]);
   return ok ? { message: "Test alert sent to your webhook and/or alert email." } : { error: "The test alert couldn't be delivered anywhere. Add a webhook below, and check Admin → Integrations → Email." };
@@ -477,7 +479,7 @@ export async function sendTestAlert() {
 
 // ---------------------------------------------------------------- tax filing (VAT returns)
 export async function saveConsultant(form) {
-  await requirePlatformAdmin();
+  await requireAdminSection("tax");
   const row = {
     name: String(form.name || "").trim().slice(0, 120), firm: String(form.firm || "").trim().slice(0, 120),
     email: String(form.email || "").trim().toLowerCase().slice(0, 200), phone: String(form.phone || "").trim().slice(0, 40),
@@ -493,7 +495,7 @@ export async function saveConsultant(form) {
 }
 
 export async function setConsultantActive(id, active) {
-  await requirePlatformAdmin();
+  await requireAdminSection("tax");
   await createSupabaseService().from("tax_consultants").update({ active: Boolean(active) }).eq("id", id);
   revalidatePath("/admin/tax");
   return { message: active ? "Consultant is active again." : "Consultant paused: they get no new requests." };
@@ -501,7 +503,7 @@ export async function setConsultantActive(id, active) {
 
 // a new private link (the old one stops working)
 export async function newConsultantLink(id) {
-  await requirePlatformAdmin();
+  await requireAdminSection("tax");
   const { randomBytes } = await import("node:crypto");
   await createSupabaseService().from("tax_consultants").update({ access_token: randomBytes(24).toString("hex") }).eq("id", id);
   revalidatePath("/admin/tax");
@@ -509,7 +511,7 @@ export async function newConsultantLink(id) {
 }
 
 export async function assignConsultant(returnId, consultantId) {
-  await requirePlatformAdmin();
+  await requireAdminSection("tax");
   const service = createSupabaseService();
   const { data: ret } = await service.from("vat_returns").select("*").eq("id", returnId).maybeSingle();
   if (!ret) return { error: "That request wasn't found." };
@@ -525,7 +527,7 @@ export async function assignConsultant(returnId, consultantId) {
 }
 
 export async function saveFilingFee(amount) {
-  await requirePlatformAdmin();
+  await requireAdminSection("tax");
   const minor = toMinor(amount || 0);
   if (!Number.isFinite(minor) || minor < 0) return { error: "Enter an amount, or 0 for free." };
   const { error } = await createSupabaseService().from("platform_settings").update({ tax_filing_fee_minor: minor }).eq("id", true);

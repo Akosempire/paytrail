@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { formatDate } from "@/lib/format";
 import { Button, Card, CardHeader, DescriptionList, PageHeader } from "@/components/ui";
 import { KINDS } from "@/lib/feedback-core";
@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 
 export default async function Page({ params }) {
   const { id } = await params;
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("inbox");
   const { data: t } = await ctx.supabase.from("feedback_threads").select("*, businesses(id, name)").eq("id", id).maybeSingle();
   if (!t) notFound();
   const since = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Clock, Timer, Users } from "lucide-react";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { formatDate } from "@/lib/format";
 import { Button, Callout, Card, CardHeader, EmptyState, PageHeader, StatCard, StatGroup, cx } from "@/components/ui";
@@ -13,7 +13,7 @@ const PERIODS = { "7": "7 days", "30": "30 days", "90": "90 days" };
 const lagosDay = (offset) => new Date(Date.now() + 3600_000 - offset * 86400_000).toISOString().slice(0, 10);
 
 export default async function Page({ searchParams }) {
-  await requirePlatformAdmin();
+  await requireAdminSection("usage");
   const sp = await searchParams;
   const period = PERIODS[sp.days] ? sp.days : "30";
   const businessId = typeof sp.business === "string" && /^[0-9a-f-]{36}$/i.test(sp.business) ? sp.business : null;

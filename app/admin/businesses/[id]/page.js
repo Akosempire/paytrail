@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, Building2, CreditCard, FileText, History, Landmark, Mail, Phone, Plug, Users, Wallet } from "lucide-react";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { formatDate, timeAgo } from "@/lib/format";
 import { formatMoney } from "@/lib/money";
@@ -25,7 +25,7 @@ const TONE = { active: "success", trialing: "brand", past_due: "warn", canceled:
 export default async function BusinessDetail({ params, searchParams }) {
   const { id } = await params;
   const sp = (await searchParams) || {};
-  const ctx = await requirePlatformAdmin();
+  const ctx = await requireAdminSection("businesses");
   if (!/^[0-9a-f-]{36}$/.test(id)) notFound();
   const service = createSupabaseService();
   const { data: b } = await service.from("businesses").select("*, plans(id, name, price_minor, currency, billing_interval, document_limit, seat_limit)").eq("id", id).maybeSingle();

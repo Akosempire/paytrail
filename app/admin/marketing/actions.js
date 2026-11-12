@@ -1,6 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { requirePlatformAdmin } from "@/lib/context";
+import { requireAdminSection } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { encryptSecret, hint } from "@/lib/crypto";
 import { forgetMarketingSettings, marketingSettings } from "@/lib/meta";
@@ -19,7 +19,7 @@ const ask = async (path, token, params = {}) => {
 // Meta connection: tokens checked with Meta before saving, stored encrypted.
 // An empty token box keeps the saved one.
 export async function saveMetaConnection(form) {
-  await requirePlatformAdmin();
+  await requireAdminSection("marketing");
   const cfg = await marketingSettings();
   if (!cfg.ready) return { error: SQL };
   const account = String(form.adAccountId || "").trim().replace(/^act_/, "");
@@ -52,7 +52,7 @@ export async function saveMetaConnection(form) {
 
 // thresholds, report email, reports on/off
 export async function saveMarketingSettings(form) {
-  await requirePlatformAdmin();
+  await requireAdminSection("marketing");
   const num = (v, min, max) => { const n = Number(String(v ?? "").replace(/[, ]/g, "")); return Number.isFinite(n) && n >= min && n <= max ? n : null; };
   const row = {
     kill_spend_no_signup: num(form.kill, 0, 1e9), max_cost_per_signup: num(form.maxCps, 0, 1e9),
@@ -71,7 +71,7 @@ export async function saveMarketingSettings(form) {
 
 // "Sync now": the same job as the 6-hourly one, run here (admin only)
 export async function syncNow() {
-  await requirePlatformAdmin();
+  await requireAdminSection("marketing");
   const { runMarketingSync } = await import("@/lib/marketing");
   const r = await runMarketingSync({ trigger: "admin" }).catch((e) => ({ ok: false, error: String(e?.message || e) }));
   done();
