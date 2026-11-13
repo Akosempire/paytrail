@@ -30,6 +30,8 @@ export async function GET(request) {
   // a real query on Usetally's and TrackOja's databases, so free projects never pause
   const { keepAlive } = await import("@/lib/keep-alive");
   const awake = await keepAlive().catch((e) => ({ error: String(e?.message || e) }));
+  // WhatsApp: blank message text older than 30 days, drop old link codes
+  const whatsapp = await (async () => { const { createSupabaseService } = await import("@/lib/supabase/server"); const { error } = await createSupabaseService().rpc("whatsapp_cleanup"); return error ? { skipped: true } : { ok: true }; })().catch(() => ({ skipped: true }));
   const health = await runChecks().then((h) => h.results.map((r) => `${r.key}:${r.status}`), (e) => ({ error: String(e?.message || e) }));
-  return Response.json({ checked: results.length, results, stock, purged, digests, invoiceReminders, vatReminders, sending, awake, health });
+  return Response.json({ checked: results.length, results, stock, purged, digests, invoiceReminders, vatReminders, sending, awake, whatsapp, health });
 }

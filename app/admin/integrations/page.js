@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BarChart3, ChevronRight, CreditCard, Database, HardDrive, KeyRound, Mail, ShieldCheck } from "lucide-react";
+import { BarChart3, ChevronRight, CreditCard, Database, HardDrive, KeyRound, Mail, MessageCircle, ShieldCheck } from "lucide-react";
 import { requirePlatformAdmin } from "@/lib/context";
 import { Badge, Card, PageHeader, cx } from "@/components/ui";
 import { emailStatus } from "@/lib/email";
@@ -9,6 +9,7 @@ import { platformConfig } from "@/lib/platform-config";
 import { googleEnabled } from "@/lib/auth-providers";
 import { supabaseUrl } from "@/lib/supabase/url";
 import { createSupabaseService } from "@/lib/supabase/server";
+import { whatsappConfig } from "@/lib/whatsapp/config";
 
 export const metadata = { title: "Integrations" };
 
@@ -33,12 +34,13 @@ function Tile({ href, icon: Icon, name, what, state, label, detail }) {
 
 export default async function Integrations() {
   await requirePlatformAdmin();
-  const [email, storage, billing, cfg, google] = await Promise.all([
+  const [email, storage, billing, cfg, google, wa] = await Promise.all([
     emailStatus().catch(() => null),
     r2Check().catch(() => ({ ready: false, note: "Couldn't check" })),
     credentialsFor(createSupabaseService(), null).catch(() => null),
     platformConfig(),
     googleEnabled().catch(() => false),
+    whatsappConfig().catch(() => ({})),
   ]);
   const provider = { sendhiiv: "Sendhiiv", brevo: "Brevo", "brevo-smtp": "Brevo" }[email?.provider] || "SMTP";
   const billName = { stripe: "Stripe", paystack: "Paystack", flutterwave: "Flutterwave", bachs: "Bachs" }[billing?.provider];
@@ -68,6 +70,9 @@ export default async function Integrations() {
             state={cfg.analytics.sabilytics || cfg.analytics.ga ? "ok" : "off"}
             label={[cfg.analytics.sabilytics && "Sabilytics", cfg.analytics.ga && "Google Analytics"].filter(Boolean).join(" + ") || "Off"}
             detail={cfg.analytics.sabilytics ? `Sabilytics site ${cfg.analytics.sabilytics.site} on ${cfg.analytics.sabilytics.domain}` : null} />
+          <Tile href="/admin/integrations/whatsapp" icon={MessageCircle} name="WhatsApp" what="WhatsApp to invoice: make, send and chase invoices by chatting (paid plans)."
+            state={wa.ready ? "ok" : wa.connected ? "warn" : "off"} label={wa.ready ? `On${wa.ai ? " · AI" : " · menus"}` : wa.connected ? "Connected, switched off" : "Not set up"}
+            detail={wa.missingSql ? "Run RUN_NEW_2026-11-14a.sql first." : wa.ready ? `Twilio · ${wa.from}${Object.values(wa.templates || {}).every(Boolean) ? "" : " · customer templates missing"}` : "Twilio for messages; an AI key for chatting in your own words."} />
           <Tile href={ref ? `https://supabase.com/dashboard/project/${ref}/auth/providers` : null} icon={ShieldCheck} name="Sign in with Google" what="Set up in Supabase (Authentication → Sign In / Providers)."
             state={google ? "ok" : "off"} label={google ? "On" : "Off"} detail={google ? "The Google button shows on sign-in and sign-up." : "Turn it on in Supabase; the button appears here within 5 minutes."} />
         </div>

@@ -29,7 +29,7 @@ async function svc(sql, params = []) {
     return r;
   } catch (e) { await client.query("rollback"); throw e; } finally { client.release(); }
 }
-const ALL = ["ai_full", "auto_reminders", "scheduled_sending", "premium_templates"];
+const ALL = ["ai_full", "auto_reminders", "scheduled_sending", "premium_templates", "whatsapp"];
 let owner, outsider, biz, freePlans, settings;
 const features = async (who = owner) => (await as(who, "select public.business_features($1) f", [biz])).rows[0].f;
 const toFree = () => pool.query("update public.businesses set subscription_status='trialing', trial_documents_used=999 where id=$1", [biz]);

@@ -80,7 +80,7 @@ test("Notebook and Case file: every document kind, sheet paper only, their own c
 test("sheet templates: stamp, due sentence and pay details follow the document", async () => {
   const { buildModel } = await import("../lib/doc-model.js");
   const business = { name: "Mikky Innovate", currency: "NGN", signatory_name: "Michael Adeyemo", signatory_title: "Designer", bank_account_number: "0123456789", bank_name: "GTBank", email: "hi@mikky.ng" };
-  const base = { kind: "invoice", number: "INV-1", template: "casefile", paper: "a4", currency: "NGN", issue_date: "2026-10-29", due_date: "2026-11-12", customer_name: "Chioma", subtotal_minor: 100, total_minor: 100, amount_paid_minor: 0, tax_rate: 0, tax_minor: 0, discount_minor: 0 };
+  const base = { kind: "invoice", number: "INV-1", template: "casefile", paper: "a4", currency: "NGN", issue_date: "2099-10-29", due_date: "2099-11-12", customer_name: "Chioma", subtotal_minor: 100, total_minor: 100, amount_paid_minor: 0, tax_rate: 0, tax_minor: 0, discount_minor: 0 };
   const sent = buildModel({ doc: { ...base, status: "sent" }, items: [], business });
   assert.equal(sent.sheet.stamp, "DUE");
   assert.equal(sent.sheet.due, "Payment due within 14 days.");
@@ -91,7 +91,7 @@ test("sheet templates: stamp, due sentence and pay details follow the document",
   assert.equal(paid.sheet.stamp, "PAID");
   assert.equal(paid.sheet.bank, null);
   assert.equal(paid.sheet.due, "");
-  const quote = buildModel({ doc: { ...base, kind: "quote", status: "sent", due_date: null, valid_until: "2026-11-30" }, items: [], business });
+  const quote = buildModel({ doc: { ...base, kind: "quote", status: "sent", due_date: null, valid_until: "2099-11-30" }, items: [], business });
   assert.equal(quote.sheet.stamp, "QUOTE");
   assert.match(quote.sheet.due, /valid until/);
   assert.equal(buildModel({ doc: { ...base, template: "signature", status: "sent" }, items: [], business }).sheet, null);

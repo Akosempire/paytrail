@@ -595,3 +595,130 @@ export async function removeFounder(email) {
   revalidatePath("/admin/settings");
   return { message: `${email} no longer has founder access.` };
 }
+
+// ---------------------------------------------------------------- WhatsApp (Admin → Integrations → WhatsApp)
+// Twilio carries the messages; the AI key powers chatting in your own words.
+// Secrets are checked with the provider before they're saved, stored
+// encrypted, and only the last 4 characters are shown again. Replacing a
+// working secret needs a security code, like email keys.
+
+function whatsappProblem(e) {
+  const m = String(e?.message || e || "");
+  if (/wa_|whatsapp|column|schema cache/i.test(m)) return "The database is missing the WhatsApp tables. Run supabase/RUN_NEW_2026-11-14a.sql in Supabase → SQL Editor, then try again.";
+  return serverProblem(e);
+}
+
+export async function saveWhatsappTwilio(form) {
+  const ctx = await requirePlatformAdmin();
+  try {
+    const { checkTwilio } = await import("@/lib/whatsapp/twilio");
+    const { normPhone } = await import("@/lib/whatsapp/core");
+    const { forgetWhatsappConfig } = await import("@/lib/whatsapp/config");
+    const service = createSupabaseService();
+    const { data: current, error: readError } = await service.from("platform_settings").select("wa_account_sid, wa_auth_token_enc, wa_from").eq("id", true).single();
+    if (readError) return { error: whatsappProblem(readError) };
+    const accountSid = String(form.accountSid || "").trim();
+    const token = String(form.authToken || "").trim();
+    const from = normPhone(form.from, "United States");
+    if (!from) return { error: "Enter the bot's WhatsApp number with its country code, like +14155238886 (the Sandbox) or your own approved number." };
+    if (!token && !current?.wa_auth_token_enc) return { error: "Paste your Twilio Auth Token." };
+    const savedToken = current?.wa_auth_token_enc ? decryptSecret(current.wa_auth_token_enc) : "";
+    const savedWorks = savedToken && current.wa_account_sid ? (await checkTwilio({ accountSid: current.wa_account_sid, authToken: savedToken })).ok : false;
+    if (savedWorks && (token || accountSid !== current.wa_account_sid || from !== String(current.wa_from || "").replace(/\D/g, ""))) {
+      const gate = await requireStepUp(ctx, "whatsapp_settings", null);
+      if (gate) return gate;
+    }
+    const check = await checkTwilio({ accountSid, authToken: token || savedToken });
+    if (!check.ok) return { error: check.error };
+    const tpl = (v) => String(v || "").trim();
+    const templates = { wa_tpl_invoice: tpl(form.tplInvoice), wa_tpl_quote: tpl(form.tplQuote), wa_tpl_receipt: tpl(form.tplReceipt) };
+    for (const [k, v] of Object.entries(templates)) if (v && !/^HX[0-9a-f]{32}$/i.test(v)) return { error: `The ${k.replace("wa_tpl_", "")} template's Content SID should start with HX followed by 32 letters and numbers.` };
+    const update = { wa_account_sid: accountSid, wa_from: `+${from}`, wa_account_name: check.account || null, wa_checked_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...templates };
+    if (token) { update.wa_auth_token_enc = encryptSecret(token); update.wa_token_hint = hint(token); }
+    const { error } = await service.from("platform_settings").update(update).eq("id", true);
+    if (error) return { error: whatsappProblem(error) };
+    forgetWhatsappConfig();
+    if (token && current?.wa_auth_token_enc) await notifyAdmins({ subject: "Usetally WhatsApp token changed", lines: [`${ctx.user.email} replaced the Twilio Auth Token at ${new Date().toUTCString()}.`, "If this wasn't you, sign in and replace it straight away."], link: "/admin/integrations/whatsapp" });
+    revalidatePath("/admin/integrations", "layout");
+    return { message: `Connected to Twilio${check.account ? ` (${check.account})` : ""}. Paste the webhook address into Twilio, then switch the bot on.` };
+  } catch (e) {
+    console.error("whatsapp_settings.save_failed", { message: e?.message });
+    return { error: whatsappProblem(e) };
+  }
+}
+
+export async function saveWhatsappAi(form) {
+  const ctx = await requirePlatformAdmin();
+  try {
+    const { checkAi } = await import("@/lib/whatsapp/ai");
+    const { AI_DEFAULT_MODEL, forgetWhatsappConfig } = await import("@/lib/whatsapp/config");
+    const service = createSupabaseService();
+    const provider = ["anthropic", "openai"].includes(form.provider) ? form.provider : "off";
+    const model = String(form.model || "").trim().slice(0, 80);
+    if (provider === "off") {
+      const { error } = await service.from("platform_settings").update({ wa_ai_provider: "off", updated_at: new Date().toISOString() }).eq("id", true);
+      if (error) return { error: whatsappProblem(error) };
+      forgetWhatsappConfig(); revalidatePath("/admin/integrations", "layout");
+      return { message: "AI is off. The bot answers with numbered menus." };
+    }
+    const { data: current, error: readError } = await service.from("platform_settings").select("wa_ai_provider, wa_ai_key_enc").eq("id", true).single();
+    if (readError) return { error: whatsappProblem(readError) };
+    const key = String(form.key || "").trim().replace(/^["']|["']$/g, "");
+    const sameProvider = current?.wa_ai_provider === provider;
+    if (!key && !(sameProvider && current?.wa_ai_key_enc)) return { error: `Paste your ${provider === "anthropic" ? "Anthropic" : "OpenAI"} API key.` };
+    if (key && provider === "anthropic" && !/^sk-ant-/.test(key)) return { error: "An Anthropic API key starts with sk-ant-. Create one at console.anthropic.com → API Keys." };
+    if (key && provider === "openai" && !/^sk-/.test(key)) return { error: "An OpenAI API key starts with sk-. Create one at platform.openai.com → API keys." };
+    if (key && current?.wa_ai_key_enc) {
+      const gate = await requireStepUp(ctx, "whatsapp_settings", null);
+      if (gate) return gate;
+    }
+    const secret = key || decryptSecret(current.wa_ai_key_enc);
+    const check = await checkAi({ provider, key: secret, model: model || AI_DEFAULT_MODEL[provider] });
+    if (!check.ok) return { error: check.error };
+    const update = { wa_ai_provider: provider, wa_ai_model: model, wa_ai_checked_at: new Date().toISOString(), updated_at: new Date().toISOString() };
+    if (key) { update.wa_ai_key_enc = encryptSecret(key); update.wa_ai_key_hint = hint(key); }
+    const { error } = await service.from("platform_settings").update(update).eq("id", true);
+    if (error) return { error: whatsappProblem(error) };
+    forgetWhatsappConfig(); revalidatePath("/admin/integrations", "layout");
+    return { message: `AI connected (${provider === "anthropic" ? "Anthropic" : "OpenAI"}, ${model || AI_DEFAULT_MODEL[provider]}). People can now just say what they need.` };
+  } catch (e) {
+    console.error("whatsapp_ai.save_failed", { message: e?.message });
+    return { error: whatsappProblem(e) };
+  }
+}
+
+export async function setWhatsappEnabled(on) {
+  await requirePlatformAdmin();
+  const { whatsappConfig, forgetWhatsappConfig } = await import("@/lib/whatsapp/config");
+  const cfg = await whatsappConfig();
+  if (on && !cfg.connected) return { error: "Connect Twilio first." };
+  const { error } = await createSupabaseService().from("platform_settings").update({ wa_enabled: Boolean(on), updated_at: new Date().toISOString() }).eq("id", true);
+  if (error) return { error: whatsappProblem(error) };
+  forgetWhatsappConfig(); revalidatePath("/admin/integrations", "layout");
+  return { message: on ? "The WhatsApp bot is on. Paid businesses can link their number in Settings → WhatsApp." : "The WhatsApp bot is off. Messages to it get no answer." };
+}
+
+// a plain message to a number (it must have messaged the bot in the last 24 hours, or joined the Sandbox)
+export async function sendWhatsappTest(phone) {
+  await requirePlatformAdmin();
+  try {
+    const { whatsappConfig } = await import("@/lib/whatsapp/config");
+    const { sendWhatsapp } = await import("@/lib/whatsapp/twilio");
+    const cfg = await whatsappConfig();
+    if (!cfg.connected) return { error: "Connect Twilio first." };
+    const r = await sendWhatsapp(cfg, { to: phone, body: "✅ Usetally's WhatsApp bot can reach you. Reply *menu* to try it (link your number in Settings → WhatsApp first)." });
+    return r.ok ? { message: "Sent. Check WhatsApp on that phone." } : { error: r.error };
+  } catch (e) { return { error: whatsappProblem(e) }; }
+}
+
+// asks Twilio whether each saved template exists and WhatsApp approved it
+export async function checkWhatsappTemplates() {
+  await requirePlatformAdmin();
+  const { whatsappConfig } = await import("@/lib/whatsapp/config");
+  const { checkTemplate } = await import("@/lib/whatsapp/twilio");
+  const cfg = await whatsappConfig();
+  if (!cfg.connected) return { error: "Connect Twilio first." };
+  const out = {};
+  for (const [k, sid] of Object.entries(cfg.templates)) out[k] = sid ? await checkTemplate(cfg, sid) : { ok: false, status: "not set" };
+  return { templates: out };
+}
