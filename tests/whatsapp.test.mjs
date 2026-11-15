@@ -182,6 +182,7 @@ test("a pasted key picks its provider", () => {
   assert.equal(prov.providerOfKey("hello"), null);
   assert.equal(prov.providerOfKey("sk-or-v1-abcdefghijklmnopqrstuvwxyz1234"), "openrouter", "not mistaken for OpenAI");
   assert.deepEqual(prov.FREE_IDS, ["gemini", "groq", "nvidia", "openrouter"]);
+  assert.deepEqual(prov.OFFERED_IDS, ["gemini", "groq", "nvidia", "openrouter", "anthropic"], "Claude is back; OpenAI stays off");
 });
 test("model lists: chat models only, the bot's best fit first", () => {
   const g = prov.chatModels("gemini", [{ name: "models/gemini-2.5-pro" }, { name: "models/gemini-2.5-flash" }, { name: "models/gemini-2.5-flash-lite" }, { name: "models/text-embedding-004" }, { name: "models/gemini-2.5-flash-preview-tts" }, { name: "models/imagen-4.0-generate" }]);

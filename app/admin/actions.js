@@ -666,7 +666,8 @@ export async function saveWhatsappAi(form) {
     const { data: current, error: readError } = await service.from("platform_settings").select("wa_ai_provider, wa_ai_key_enc").eq("id", true).single();
     if (readError) return { error: whatsappProblem(readError) };
     // free providers only (a paid one already saved can still be re-checked)
-    if (!p.free && current?.wa_ai_provider !== provider) return { error: `${p.name} is paid. Use a free provider: Google Gemini, Groq, NVIDIA or OpenRouter (DeepSeek).` };
+    const { OFFERED_IDS } = await import("@/lib/whatsapp/providers");
+    if (!OFFERED_IDS.includes(provider) && current?.wa_ai_provider !== provider) return { error: `${p.name} isn't offered. Use Google Gemini, Groq, NVIDIA, OpenRouter (DeepSeek) or Claude.` };
     const key = String(form.key || "").trim().replace(/^["']|["']$/g, "");
     const sameProvider = current?.wa_ai_provider === provider;
     if (!key && !(sameProvider && current?.wa_ai_key_enc)) return { error: `Paste your ${p.name} API key.` };
@@ -698,8 +699,9 @@ export async function listWhatsappAiModels({ provider, key }) {
     const { PROVIDERS, PROVIDER_IDS, providerOfKey } = await import("@/lib/whatsapp/providers");
     let k = String(key || "").trim().replace(/^["']|["']$/g, "");
     let p = k ? providerOfKey(k) : provider;
-    if (k && !p) return { error: "That key isn't one we know. Use a free key: Gemini (AIza…), Groq (gsk_…), NVIDIA (nvapi-…) or OpenRouter for DeepSeek (sk-or-…)." };
-    if (k && !PROVIDERS[p].free) return { provider: p, error: `That's a ${PROVIDERS[p].name} key, which is paid. Use a free key: Gemini, Groq, NVIDIA or OpenRouter (DeepSeek).` };
+    if (k && !p) return { error: "That key isn't one we know. Use Gemini (AIza…), Groq (gsk_…), NVIDIA (nvapi-…), OpenRouter for DeepSeek (sk-or-…) or Claude (sk-ant-…)." };
+    const { OFFERED_IDS } = await import("@/lib/whatsapp/providers");
+    if (k && !OFFERED_IDS.includes(p)) return { provider: p, error: `${PROVIDERS[p].name} keys aren't offered. Use Gemini, Groq, NVIDIA, OpenRouter (DeepSeek) or Claude.` };
     if (!k) {
       if (!PROVIDER_IDS.includes(p)) return { error: "Paste an API key first." };
       const { data } = await createSupabaseService().from("platform_settings").select("wa_ai_provider, wa_ai_key_enc").eq("id", true).single();

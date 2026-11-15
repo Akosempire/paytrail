@@ -5,10 +5,10 @@ import { Bot, Eye, EyeOff, KeyRound, Loader2, RefreshCw, Save, Sparkles } from "
 import { Badge, Button, Card, CardHeader, Field, Input, Select } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { useStepUp } from "@/components/step-up";
-import { FREE_IDS, PROVIDERS, providerOfKey } from "@/lib/whatsapp/providers";
+import { OFFERED_IDS, PROVIDERS, providerOfKey } from "@/lib/whatsapp/providers";
 import { listWhatsappAiModels, saveWhatsappAi } from "../../actions";
 
-const FREE_KEYS = "Gemini (AIza…), Groq (gsk_…), NVIDIA (nvapi-…) or OpenRouter for DeepSeek (sk-or-…)";
+const FREE_KEYS = "Gemini (AIza…), Groq (gsk_…), NVIDIA (nvapi-…), OpenRouter for DeepSeek (sk-or-…) or Claude (sk-ant-…)";
 
 // Paste a key: the provider is recognised from it, the models that key can use
 // are fetched from the provider, and the best one for the bot is pre-selected.
@@ -28,7 +28,7 @@ export function AiCard({ saved }) {
   const hasSaved = saved.hasAiKey && saved.aiProvider === provider;
   const p = PROVIDERS[provider];
   // free providers only; a paid one shows only if it's what's saved now
-  const order = [...FREE_IDS, ...(saved.aiProvider && !FREE_IDS.includes(saved.aiProvider) && PROVIDERS[saved.aiProvider] ? [saved.aiProvider] : [])];
+  const order = [...OFFERED_IDS, ...(saved.aiProvider && !OFFERED_IDS.includes(saved.aiProvider) && PROVIDERS[saved.aiProvider] ? [saved.aiProvider] : [])];
 
   async function load(k, prov) {
     const tag = `${prov}:${k}`;
@@ -48,7 +48,7 @@ export function AiCard({ saved }) {
   const onKey = (v) => {
     setKey(v);
     const found = providerOfKey(v);
-    if (found && !PROVIDERS[found].free) { setModels(null); setListError(`That's a ${PROVIDERS[found].name} key, which is paid. Use a free key: ${FREE_KEYS}.`); return; }
+    if (found && !OFFERED_IDS.includes(found)) { setModels(null); setListError(`${PROVIDERS[found].name} keys aren't offered. Use ${FREE_KEYS}.`); return; }
     if (found) {
       if (found !== provider) { setProvider(found); setModel(""); }
       load(v.trim(), found);
@@ -69,21 +69,21 @@ export function AiCard({ saved }) {
   return (
     <Card>
       {dialog}
-      <CardHeader icon={Bot} title="4. AI (chat in your own words)" description="Free providers only. Powers the WhatsApp bot (“Invoice Ada for 2 logo designs at 150k”) and Paste a list in the invoice editor (reads a customer's chatty message into items). Without a key: numbered menus and simple line-by-line reading."
+      <CardHeader icon={Bot} title="4. AI (chat in your own words)" description="Free providers, or Claude at the lowest cost. Powers the WhatsApp bot (“Invoice Ada for 2 logo designs at 150k”) and Paste a list in the invoice editor (reads a customer's chatty message into items). Without a key: numbered menus and simple line-by-line reading."
         actions={saved.aiProvider !== "off" && saved.hasAiKey ? <Badge tone="success" size="sm">{PROVIDERS[saved.aiProvider]?.name || "Connected"}</Badge> : <Badge size="sm">Menus only</Badge>} />
       <div className="flex flex-col gap-4 px-5 pb-5">
         <Secret value={key} onChange={onKey} show={show} setShow={setShow} loading={loading}
-          placeholder={hasSaved ? "•••••••• (saved) — paste a new key to replace it" : "Paste a free API key: AIza…, gsk_…, nvapi-… or sk-or-…"}
+          placeholder={hasSaved ? "•••••••• (saved) — paste a new key to replace it" : "Paste an API key: AIza…, gsk_…, nvapi-…, sk-or-… or sk-ant-…"}
           hint={hasSaved ? `Saved ${p?.name} key ends ${saved.aiKeyHint}.` : "We recognise the provider from the key and load its models. Stored encrypted."} />
 
-        <div role="radiogroup" aria-label="AI provider" className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+        <div role="radiogroup" aria-label="AI provider" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
           {["off", ...order].map((id) => {
             const on = provider === id;
             return (
               <button key={id} type="button" role="radio" aria-checked={on} onClick={() => pick(id)}
                 className={`flex flex-col items-start gap-0.5 rounded-xl px-3 py-2.5 text-left ring-1 transition ${on ? "bg-brand-soft ring-brand" : "bg-surface ring-line hover:bg-hover"}`}>
                 <span className="text-[13px] font-semibold text-ink">{id === "off" ? "Off" : PROVIDERS[id].name}</span>
-                <span className="text-xs text-ink-3">{id === "off" ? "Numbered menus, free" : PROVIDERS[id].free ? "Free tier" : "Paid (saved now)"}</span>
+                <span className="text-xs text-ink-3">{id === "off" ? "Numbered menus, free" : PROVIDERS[id].free ? "Free tier" : PROVIDERS[id].lowCost ? "Paid, low use" : "Paid (saved now)"}</span>
               </button>
             );
           })}
@@ -93,6 +93,7 @@ export function AiCard({ saved }) {
           <>
             <p className="rounded-xl bg-tray px-4 py-3 text-[13px] leading-relaxed text-ink-2">
               Get a key at <strong className="font-medium text-ink">{p.where}</strong>.
+              {p.lowCost && " Set up to use as few tokens as possible: Haiku by default, short replies, only recent messages sent, and the instructions cached so repeat messages cost about a tenth."}
               {p.free && " Free tiers limit messages per minute and per day, and the provider may use what's sent to improve its models, so move to a paid plan once businesses rely on it."}
               {" "}The AI only reads and makes drafts; sending, payments and cancelling always wait for the owner's YES.
             </p>
