@@ -52,7 +52,8 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
   const rules = useMemo(() => parseItemList(text, { mode }), [text, mode]);
   const byAi = Boolean(read && readFor === text.trim() && !simple);
   const base = byAi ? read.items : rules;
-  useEffect(() => { setOff(new Set()); setPrices({}); }, [base]);
+  // lines whose amount isn't in the message start unticked
+  useEffect(() => { setOff(new Set(base.map((i, n) => (i.check === "This amount isn't in the message" ? n : -1)).filter((n) => n >= 0))); setPrices({}); }, [base]);
   const items = base.map((i, n) => (n in prices ? { ...i, price: prices[n] === "" ? null : Number(prices[n]) } : i));
   const chosen = items.filter((_, n) => !off.has(n));
   const noPrice = chosen.filter((i) => i.price == null).length;
@@ -97,6 +98,9 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
             </span>
           </div>
         )}
+        {byAi && read.understanding && (
+          <p className="rounded-xl bg-violet-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-violet-ink"><span className="font-semibold">AI understood:</span> {read.understanding}</p>
+        )}
         {(aiOff || simple || (!byAi && !waiting)) && text.trim() && (
           <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-2">
             Prices in the list are
@@ -116,7 +120,7 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
                 <li key={n}>
                   <label className={cx("flex cursor-pointer items-baseline gap-3 px-3.5 py-2.5 text-[13.5px] hover:bg-hover", off.has(n) && "opacity-50")}>
                     <input type="checkbox" checked={!off.has(n)} onChange={() => toggle(n)} className="size-4 shrink-0 translate-y-0.5 accent-[var(--color-brand)]" aria-label={`Add ${i.description}`} />
-                    <span className={cx("min-w-0 flex-1 truncate text-ink", off.has(n) && "line-through")}>{i.description}</span>
+                    <span className="min-w-0 flex-1"><span className={cx("block truncate text-ink", off.has(n) && "line-through")}>{i.description}</span>{i.check && !(n in prices) && <span className="block text-[12px] text-warn-ink">{i.check}</span>}</span>
                     <span className="shrink-0 tabular-nums text-ink-3">{i.quantity} ×</span>
                     <input type="text" inputMode="decimal" aria-label={`Price for ${i.description}`} placeholder="Add price"
                       value={n in prices ? prices[n] : i.price == null ? "" : String(i.price)}

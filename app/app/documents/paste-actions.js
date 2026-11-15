@@ -2,8 +2,8 @@
 import { requireBusiness } from "@/lib/context";
 import { featuresOf, hasFeature } from "@/lib/entitlements";
 import { whatsappConfig } from "@/lib/whatsapp/config";
-import { askJson } from "@/lib/whatsapp/ai";
-import { PASTE_AI_MAX, pasteAiPrompt, readPasteAi } from "@/lib/paste-ai";
+import { readMessageWithAi } from "@/lib/paste-ai-run";
+import { PASTE_AI_MAX } from "@/lib/paste-ai";
 
 // "Paste a list" with AI: reads a customer's message into invoice lines with
 // the free AI set in Admin → Integrations → WhatsApp → AI. Paid plans.
@@ -23,8 +23,7 @@ export async function readPastedList(text, currency = "NGN") {
     const times = (recent.get(ctx.business.id) || []).filter((x) => now - x < 60_000);
     if (times.length >= 12) return { fallback: "busy" };
     recent.set(ctx.business.id, [...times, now]);
-    const reply = await askJson(cfg.ai, pasteAiPrompt(String(currency || "NGN").slice(0, 3)), t);
-    const read = readPasteAi(reply, t);
+    const read = await readMessageWithAi(cfg.ai, t, currency);
     return read ? { ai: true, ...read } : { fallback: "unreadable" };
   } catch (e) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) return { fallback: "signed-out" };
