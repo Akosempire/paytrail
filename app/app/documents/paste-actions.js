@@ -45,11 +45,11 @@ export async function readPastedList(text, currency = "NGN") {
   } catch (e) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) return { fallback: "signed-out" };
     const message = String(e?.message || "");
-    console.error("paste_ai.failed", { message: message.slice(0, 200) });
-    // say why, in words: over the free limit, a key problem, or the AI being slow
-    if (/limit|credit|429/i.test(message)) return { fallback: "error", why: "The AI is over its limit right now. Try again in a minute." };
-    if (/key|accept/i.test(message)) return { fallback: "error", why: "The AI key isn't working. Ask your admin to check it." };
-    if (/timeout|abort|reach/i.test(message)) return { fallback: "error", why: "The AI took too long. Try again." };
-    return { fallback: "error", why: "" };
+    console.error("paste_ai.failed", { status: e?.status, message: message.slice(0, 300) });
+    // say why, in words: a key problem, over the limit, slow, or what the provider said
+    if (e?.status === 401 || e?.status === 403) return { fallback: "error", why: "The AI key isn't working. Ask your admin to check it in Admin → Integrations → WhatsApp → AI." };
+    if (e?.status === 429) return { fallback: "error", why: "The AI is over its limit right now. Try again in a minute." };
+    if (/timeout|abort|reach/i.test(message) && !e?.status) return { fallback: "error", why: "The AI took too long. Try again." };
+    return { fallback: "error", why: message ? `AI error: ${message.slice(0, 160)}` : "" };
   }
 }
