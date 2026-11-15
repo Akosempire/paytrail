@@ -8,7 +8,7 @@ import { useStepUp } from "@/components/step-up";
 import { FREE_IDS, PROVIDERS, providerOfKey } from "@/lib/whatsapp/providers";
 import { listWhatsappAiModels, saveWhatsappAi } from "../../actions";
 
-const FREE_KEYS = "Gemini (AIza…), Groq (gsk_…) or NVIDIA (nvapi-…)";
+const FREE_KEYS = "Gemini (AIza…), Groq (gsk_…), NVIDIA (nvapi-…) or OpenRouter for DeepSeek (sk-or-…)";
 
 // Paste a key: the provider is recognised from it, the models that key can use
 // are fetched from the provider, and the best one for the bot is pre-selected.
@@ -73,10 +73,10 @@ export function AiCard({ saved }) {
         actions={saved.aiProvider !== "off" && saved.hasAiKey ? <Badge tone="success" size="sm">{PROVIDERS[saved.aiProvider]?.name || "Connected"}</Badge> : <Badge size="sm">Menus only</Badge>} />
       <div className="flex flex-col gap-4 px-5 pb-5">
         <Secret value={key} onChange={onKey} show={show} setShow={setShow} loading={loading}
-          placeholder={hasSaved ? "•••••••• (saved) — paste a new key to replace it" : "Paste a free API key: AIza…, gsk_… or nvapi-…"}
+          placeholder={hasSaved ? "•••••••• (saved) — paste a new key to replace it" : "Paste a free API key: AIza…, gsk_…, nvapi-… or sk-or-…"}
           hint={hasSaved ? `Saved ${p?.name} key ends ${saved.aiKeyHint}.` : "We recognise the provider from the key and load its models. Stored encrypted."} />
 
-        <div role="radiogroup" aria-label="AI provider" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <div role="radiogroup" aria-label="AI provider" className="grid grid-cols-2 gap-2 sm:grid-cols-5">
           {["off", ...order].map((id) => {
             const on = provider === id;
             return (

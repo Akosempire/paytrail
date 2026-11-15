@@ -31,6 +31,7 @@ Paste a free API key in Admin → Integrations → WhatsApp → AI. The provider
 - **Google Gemini**: aistudio.google.com → Get API key (key starts `AIza`). Use a Flash model.
 - **Groq**: console.groq.com → API Keys, no card (key starts `gsk_`).
 - **NVIDIA**: build.nvidia.com → pick a model → Get API Key (key starts `nvapi-`; about 40 requests a minute).
+- **DeepSeek (via OpenRouter)**: openrouter.ai → Keys → Create key (key starts `sk-or-`). Only the free models (ending `:free`) are listed; about 50 messages a day without credit. Needs RUN_NEW_2026-11-15b.sql.
 
 Free tiers limit messages per minute and per day, and the provider may use what's sent to improve its models. Without AI the bot uses numbered menus and short commands (`menu`, `paid INV-0042 50000`, `send INV-0042`, `receipt INV-0042`, `convert QT-0007`). The AI can only read and make drafts; sending, payments, converting and voiding always wait for YES.
 

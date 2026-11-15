@@ -180,7 +180,8 @@ test("a pasted key picks its provider", () => {
   assert.equal(prov.providerOfKey(' "gsk_abcdefghijklmnopqrstuvwxyz123456" '), "groq", "quotes and spaces from copying");
   assert.equal(prov.providerOfKey("nvapi-abcdefghijklmnopqrstuvwxyz12"), "nvidia");
   assert.equal(prov.providerOfKey("hello"), null);
-  assert.deepEqual(prov.FREE_IDS, ["gemini", "groq", "nvidia"]);
+  assert.equal(prov.providerOfKey("sk-or-v1-abcdefghijklmnopqrstuvwxyz1234"), "openrouter", "not mistaken for OpenAI");
+  assert.deepEqual(prov.FREE_IDS, ["gemini", "groq", "nvidia", "openrouter"]);
 });
 test("model lists: chat models only, the bot's best fit first", () => {
   const g = prov.chatModels("gemini", [{ name: "models/gemini-2.5-pro" }, { name: "models/gemini-2.5-flash" }, { name: "models/gemini-2.5-flash-lite" }, { name: "models/text-embedding-004" }, { name: "models/gemini-2.5-flash-preview-tts" }, { name: "models/imagen-4.0-generate" }]);
@@ -190,6 +191,10 @@ test("model lists: chat models only, the bot's best fit first", () => {
   assert.deepEqual(q.map((m) => m.id), ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]);
   const n = prov.chatModels("nvidia", [{ id: "meta/llama-3.1-8b-instruct" }, { id: "nvidia/nv-embedqa-e5-v5" }, { id: "meta/llama-3.3-70b-instruct" }, { id: "meta/llama-3.2-11b-vision-instruct" }, { id: "nvidia/llama-3.2-nv-rerankqa-1b-v2" }]);
   assert.deepEqual(n.map((m) => m.id), ["meta/llama-3.3-70b-instruct", "meta/llama-3.1-8b-instruct"]);
+  const r = prov.chatModels("openrouter", [{ id: "deepseek/deepseek-chat-v3-0324", supported_parameters: ["tools"] }, { id: "deepseek/deepseek-r1:free", supported_parameters: ["tools"] }, { id: "deepseek/deepseek-chat-v3-0324:free", supported_parameters: ["tools", "temperature"] }, { id: "some/model:free", supported_parameters: ["temperature"] }, { id: "meta-llama/llama-3.3-70b-instruct:free", supported_parameters: ["tools"] }]);
+  assert.deepEqual(r.map((m) => m.id).sort(), ["deepseek/deepseek-chat-v3-0324:free", "deepseek/deepseek-r1:free", "meta-llama/llama-3.3-70b-instruct:free"]);
+  assert.ok(r.every((m) => m.id.endsWith(":free")), "paid models left out");
+  assert.equal(r[0].id, "deepseek/deepseek-chat-v3-0324:free");
   const o = prov.chatModels("openai", [{ id: "gpt-4.1-mini" }, { id: "gpt-4.1" }, { id: "text-embedding-3-small" }, { id: "gpt-4o-mini-tts" }, { id: "gpt-4.1-mini-2025-04-14" }, { id: "dall-e-3" }]);
   assert.deepEqual(o.map((m) => m.id), ["gpt-4.1-mini", "gpt-4.1"]);
 });
