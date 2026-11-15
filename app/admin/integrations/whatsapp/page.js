@@ -1,7 +1,7 @@
 import { requirePlatformAdmin } from "@/lib/context";
 import { createSupabaseService } from "@/lib/supabase/server";
 import { siteUrl } from "@/lib/site";
-import { AI_DEFAULT_MODEL, webhookUrl, whatsappConfig } from "@/lib/whatsapp/config";
+import { webhookUrl, whatsappConfig } from "@/lib/whatsapp/config";
 import { Callout } from "@/components/ui";
 import { IntegrationHeader } from "../shared";
 import { WhatsappSettings } from "./settings";
@@ -32,7 +32,6 @@ export default async function WhatsappPage() {
         connected={cfg.connected}
         webhook={webhookUrl()}
         host={host}
-        defaults={AI_DEFAULT_MODEL}
         stats={{ linked, inbound, customer }}
       />
     </div>

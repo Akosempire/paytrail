@@ -169,3 +169,27 @@ test("the confirmation says exactly what will happen", () => {
   assert.match(describePending({ action: "pay", ref: "INV-0042", args: { amount: "full", receipt: "whatsapp" } }, doc), /full ₦100,000.00 as paid on INV-0042 \(Ada\)\? The receipt goes to Ada on WhatsApp/);
   assert.match(describePending({ action: "void", ref: "INV-0042", args: {} }, doc), /can't be undone/);
 });
+
+// ---- AI providers: a pasted key picks its provider; model lists are filtered and ranked
+const prov = await import("../lib/whatsapp/providers.js");
+test("a pasted key picks its provider", () => {
+  assert.equal(prov.providerOfKey("AIzaSyA1234567890abcdefghijklmnopqrs"), "gemini");
+  assert.equal(prov.providerOfKey("gsk_abcdefghijklmnopqrstuvwxyz123456"), "groq");
+  assert.equal(prov.providerOfKey("sk-ant-api03-abcdefghijklmnopqrstuvwx"), "anthropic");
+  assert.equal(prov.providerOfKey("sk-proj-abcdefghijklmnopqrstuvwxyz"), "openai");
+  assert.equal(prov.providerOfKey(' "gsk_abcdefghijklmnopqrstuvwxyz123456" '), "groq", "quotes and spaces from copying");
+  assert.equal(prov.providerOfKey("hello"), null);
+});
+test("model lists: chat models only, the bot's best fit first", () => {
+  const g = prov.chatModels("gemini", [{ name: "models/gemini-2.5-pro" }, { name: "models/gemini-2.5-flash" }, { name: "models/gemini-2.5-flash-lite" }, { name: "models/text-embedding-004" }, { name: "models/gemini-2.5-flash-preview-tts" }, { name: "models/imagen-4.0-generate" }]);
+  assert.deepEqual(g.map((m) => m.id), ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro"]);
+  assert.equal(g[0].recommended, true);
+  const q = prov.chatModels("groq", [{ id: "whisper-large-v3" }, { id: "llama-3.1-8b-instant" }, { id: "llama-3.3-70b-versatile" }, { id: "meta-llama/llama-guard-4-12b" }]);
+  assert.deepEqual(q.map((m) => m.id), ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]);
+  const o = prov.chatModels("openai", [{ id: "gpt-4.1-mini" }, { id: "gpt-4.1" }, { id: "text-embedding-3-small" }, { id: "gpt-4o-mini-tts" }, { id: "gpt-4.1-mini-2025-04-14" }, { id: "dall-e-3" }]);
+  assert.deepEqual(o.map((m) => m.id), ["gpt-4.1-mini", "gpt-4.1"]);
+});
+test("tool schemas are trimmed to what Gemini accepts", () => {
+  const s = prov.simpleSchema({ $schema: "x", type: "object", additionalProperties: false, properties: { a: { type: "string", maxLength: 5, default: "x" }, b: { type: ["number", "null"], exclusiveMinimum: 0 } }, required: ["a"] });
+  assert.deepEqual(s, { type: "object", properties: { a: { type: "string" }, b: { type: "number", nullable: true } }, required: ["a"] });
+});

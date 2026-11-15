@@ -1,11 +1,12 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Bot, CheckCircle2, Eye, EyeOff, FileText, KeyRound, Link2, MessageCircle, Phone, Save, Send, ShieldCheck } from "lucide-react";
+import { CheckCircle2, Eye, EyeOff, FileText, KeyRound, Link2, MessageCircle, Phone, Save, Send, ShieldCheck } from "lucide-react";
 import { Badge, Button, Card, CardHeader, Field, Input } from "@/components/ui";
-import { CopyButton, Segmented, Switch, useToast } from "@/components/ui-client";
+import { CopyButton, Switch, useToast } from "@/components/ui-client";
 import { useStepUp } from "@/components/step-up";
-import { checkWhatsappTemplates, saveWhatsappAi, saveWhatsappTwilio, sendWhatsappTest, setWhatsappEnabled } from "../../actions";
+import { AiCard } from "./ai-card";
+import { checkWhatsappTemplates, saveWhatsappTwilio, sendWhatsappTest, setWhatsappEnabled } from "../../actions";
 
 const STATUS = { approved: ["Approved", "success"], pending: ["Waiting for WhatsApp", "warn"], received: ["Waiting for WhatsApp", "warn"], rejected: ["Rejected", "danger"], unsubmitted: ["Not submitted", "warn"], "not set": ["Not set", "neutral"], unknown: ["Couldn't check", "neutral"] };
 
@@ -25,12 +26,11 @@ function Secret({ id, label, hint, value, onChange, placeholder }) {
 
 const Steps = ({ children }) => <ol className="list-decimal space-y-1 rounded-xl bg-tray px-5 py-3.5 pl-9 text-[13px] leading-relaxed text-ink-2">{children}</ol>;
 
-export function WhatsappSettings({ saved, connected, webhook, host, defaults, stats }) {
+export function WhatsappSettings({ saved, connected, webhook, host, stats }) {
   const router = useRouter();
   const toast = useToast();
   const { guarded, dialog } = useStepUp("platform");
   const [tw, setTw] = useState({ accountSid: saved.accountSid || "", authToken: "", from: saved.from || "", tplInvoice: saved.templates?.invoice || "", tplQuote: saved.templates?.quote || "", tplReceipt: saved.templates?.receipt || "" });
-  const [ai, setAi] = useState({ provider: saved.aiProvider || "off", key: "", model: saved.aiModel || "" });
   const [enabled, setEnabled] = useState(Boolean(saved.enabled));
   const [testTo, setTestTo] = useState("");
   const [tplStatus, setTplStatus] = useState(null);
@@ -47,7 +47,6 @@ export function WhatsappSettings({ saved, connected, webhook, host, defaults, st
   }); };
 
   const saveTwilio = () => run("twilio", () => guarded(() => saveWhatsappTwilio(tw)), () => setTw((f) => ({ ...f, authToken: "" })));
-  const saveAi = () => run("ai", () => guarded(() => saveWhatsappAi(ai)), () => setAi((f) => ({ ...f, key: "" })));
   const toggle = (on) => { setEnabled(on); run("toggle", () => setWhatsappEnabled(on), null); };
   const checkTpl = () => run("tpl", async () => { const r = await checkWhatsappTemplates(); if (r.templates) setTplStatus(r.templates); return r.error ? r : {}; });
 
@@ -137,28 +136,7 @@ export function WhatsappSettings({ saved, connected, webhook, host, defaults, st
         </div>
       </Card>
 
-      <Card>
-        <CardHeader icon={Bot} title="4. AI (chat in your own words)" description="With an AI key, people just say “Invoice Ada for 2 logo designs at 150k”. Without one, the bot uses numbered menus." actions={saved.aiProvider !== "off" && saved.hasAiKey ? <Badge tone="success" size="sm">Connected</Badge> : <Badge size="sm">Menus only</Badge>} />
-        <div className="flex flex-col gap-4 px-5 pb-5">
-          <Segmented ariaLabel="AI provider" value={ai.provider} onChange={(v) => setAi({ ...ai, provider: v })} options={[{ value: "off", label: "Off (menus)" }, { value: "anthropic", label: "Claude (Anthropic)" }, { value: "openai", label: "OpenAI" }]} />
-          {ai.provider !== "off" && (
-            <>
-              <Steps>
-                {ai.provider === "anthropic"
-                  ? <li>At <strong>console.anthropic.com</strong> → <strong>API Keys</strong>, create a key (starts sk-ant-) and add credit under Billing.</li>
-                  : <li>At <strong>platform.openai.com</strong> → <strong>API keys</strong>, create a key (starts sk-) and add credit under Billing.</li>}
-                <li>The AI only reads and makes drafts. Sending, recording payments and cancelling always wait for the owner's YES.</li>
-              </Steps>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Secret id="wa-ai-key" label="API key" value={ai.key} onChange={(e) => setAi({ ...ai, key: e.target.value })} placeholder={saved.hasAiKey && saved.aiProvider === ai.provider ? "•••••••• (saved)" : ai.provider === "anthropic" ? "sk-ant-…" : "sk-…"}
-                  hint={saved.hasAiKey && saved.aiProvider === ai.provider ? `Saved key ends ${saved.aiKeyHint}. Leave empty to keep it.` : "Stored encrypted."} />
-                <Field label="Model" htmlFor="wa-ai-model" optional hint={`Leave empty for ${defaults[ai.provider]}.`}><Input id="wa-ai-model" autoComplete="off" spellCheck={false} placeholder={defaults[ai.provider]} value={ai.model} onChange={(e) => setAi({ ...ai, model: e.target.value })} /></Field>
-              </div>
-            </>
-          )}
-          <div><Button variant="primary" icon={Save} loading={busy && which === "ai"} disabled={busy} onClick={saveAi}>{ai.provider === "off" ? "Use menus only" : "Save and check"}</Button></div>
-        </div>
-      </Card>
+      <AiCard saved={saved} />
 
       <Card>
         <CardHeader icon={Send} title="Send a test" description="To a phone that messaged the bot in the last 24 hours (or joined the Sandbox)." />

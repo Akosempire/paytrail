@@ -651,9 +651,10 @@ export async function saveWhatsappAi(form) {
   const ctx = await requirePlatformAdmin();
   try {
     const { checkAi } = await import("@/lib/whatsapp/ai");
+    const { PROVIDERS, PROVIDER_IDS, providerOfKey } = await import("@/lib/whatsapp/providers");
     const { AI_DEFAULT_MODEL, forgetWhatsappConfig } = await import("@/lib/whatsapp/config");
     const service = createSupabaseService();
-    const provider = ["anthropic", "openai"].includes(form.provider) ? form.provider : "off";
+    const provider = PROVIDER_IDS.includes(form.provider) ? form.provider : "off";
     const model = String(form.model || "").trim().slice(0, 80);
     if (provider === "off") {
       const { error } = await service.from("platform_settings").update({ wa_ai_provider: "off", updated_at: new Date().toISOString() }).eq("id", true);
@@ -661,13 +662,13 @@ export async function saveWhatsappAi(form) {
       forgetWhatsappConfig(); revalidatePath("/admin/integrations", "layout");
       return { message: "AI is off. The bot answers with numbered menus." };
     }
+    const p = PROVIDERS[provider];
     const { data: current, error: readError } = await service.from("platform_settings").select("wa_ai_provider, wa_ai_key_enc").eq("id", true).single();
     if (readError) return { error: whatsappProblem(readError) };
     const key = String(form.key || "").trim().replace(/^["']|["']$/g, "");
     const sameProvider = current?.wa_ai_provider === provider;
-    if (!key && !(sameProvider && current?.wa_ai_key_enc)) return { error: `Paste your ${provider === "anthropic" ? "Anthropic" : "OpenAI"} API key.` };
-    if (key && provider === "anthropic" && !/^sk-ant-/.test(key)) return { error: "An Anthropic API key starts with sk-ant-. Create one at console.anthropic.com → API Keys." };
-    if (key && provider === "openai" && !/^sk-/.test(key)) return { error: "An OpenAI API key starts with sk-. Create one at platform.openai.com → API keys." };
+    if (!key && !(sameProvider && current?.wa_ai_key_enc)) return { error: `Paste your ${p.name} API key.` };
+    if (key && providerOfKey(key) !== provider) return { error: `That doesn't look like a ${p.name} key (it ${p.keyHint}). Get one at ${p.where}.` };
     if (key && current?.wa_ai_key_enc) {
       const gate = await requireStepUp(ctx, "whatsapp_settings", null);
       if (gate) return gate;
@@ -680,9 +681,31 @@ export async function saveWhatsappAi(form) {
     const { error } = await service.from("platform_settings").update(update).eq("id", true);
     if (error) return { error: whatsappProblem(error) };
     forgetWhatsappConfig(); revalidatePath("/admin/integrations", "layout");
-    return { message: `AI connected (${provider === "anthropic" ? "Anthropic" : "OpenAI"}, ${model || AI_DEFAULT_MODEL[provider]}). People can now just say what they need.` };
+    return { message: `AI connected (${p.name}, ${model || AI_DEFAULT_MODEL[provider]}). People can now just say what they need.` };
   } catch (e) {
     console.error("whatsapp_ai.save_failed", { message: e?.message });
+    return { error: whatsappProblem(e) };
+  }
+}
+
+// a pasted key (or the saved one) → its provider and the chat models it can use
+export async function listWhatsappAiModels({ provider, key }) {
+  await requirePlatformAdmin();
+  try {
+    const { listModels } = await import("@/lib/whatsapp/ai");
+    const { PROVIDER_IDS, providerOfKey } = await import("@/lib/whatsapp/providers");
+    let k = String(key || "").trim().replace(/^["']|["']$/g, "");
+    let p = k ? providerOfKey(k) : provider;
+    if (k && !p) return { error: "That key isn't from Gemini (AIza…), Groq (gsk_…), Anthropic (sk-ant-…) or OpenAI (sk-…)." };
+    if (!k) {
+      if (!PROVIDER_IDS.includes(p)) return { error: "Paste an API key first." };
+      const { data } = await createSupabaseService().from("platform_settings").select("wa_ai_provider, wa_ai_key_enc").eq("id", true).single();
+      if (data?.wa_ai_provider !== p || !data?.wa_ai_key_enc) return { error: "Paste an API key first." };
+      k = decryptSecret(data.wa_ai_key_enc);
+    }
+    const r = await listModels({ provider: p, key: k });
+    return r.ok ? { provider: p, models: r.models } : { provider: p, error: r.error };
+  } catch (e) {
     return { error: whatsappProblem(e) };
   }
 }
