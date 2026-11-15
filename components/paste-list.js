@@ -1,11 +1,12 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ClipboardPaste, CircleAlert, Loader2, Sparkles, UserRound, StickyNote } from "lucide-react";
+import Link from "next/link";
+import { ClipboardPaste, CircleAlert, Loader2, Lock, Sparkles, UserRound, StickyNote } from "lucide-react";
 import { Badge, Button, Textarea, cx } from "@/components/ui";
 import { Modal } from "@/components/ui-client";
 import { formatMoney } from "@/lib/money";
 import { parseItemList } from "@/lib/paste-items";
-import { readPastedList } from "@/app/app/documents/paste-actions";
+import { pasteAiAccess, readPastedList } from "@/app/app/documents/paste-actions";
 
 // Paste the message a customer sent (WhatsApp, SMS, email) and get invoice
 // items. On paid plans, AI reads it (chatty messages, sentences, emails with
@@ -17,7 +18,8 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
   const [read, setRead] = useState(null);       // AI result for `readFor`
   const [readFor, setReadFor] = useState("");
   const [reading, setReading] = useState(false);
-  const [aiOff, setAiOff] = useState(!ai);      // plan, no key, or failed: simple reading
+  const [aiOff, setAiOff] = useState(true);     // until we know AI reading is allowed
+  const [locked, setLocked] = useState(false);  // Free plan or trial: AI reading is for paying businesses
   const [simple, setSimple] = useState(false);  // the person chose simple reading
   const [off, setOff] = useState(() => new Set()); // unticked lines
   const [useCustomer, setUseCustomer] = useState(true);
@@ -27,6 +29,14 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
   const cache = useRef(new Map());
 
   useEffect(() => { if (open) { setText(initialText); setSimple(false); setTimeout(() => box.current?.focus(), 50); } }, [open, initialText]);
+
+  // AI reading is for paying businesses: ask once when the box opens
+  useEffect(() => {
+    if (!open || !ai) return;
+    let live = true;
+    pasteAiAccess().then((r) => { if (!live) return; setAiOff(!r?.ai); setLocked(r?.reason === "plan"); }).catch(() => {});
+    return () => { live = false; };
+  }, [open, ai]);
 
   // ask the AI once the text stops changing
   useEffect(() => {
@@ -41,7 +51,7 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
         const r = await readPastedList(t, currency);
         if (!live) return;
         if (r?.ai) { cache.current.set(t, r); setRead(r); setReadFor(t); }
-        else if (["plan", "off", "signed-out"].includes(r?.fallback)) setAiOff(true);
+        else if (["plan", "off", "signed-out"].includes(r?.fallback)) { setAiOff(true); if (r.fallback === "plan") setLocked(true); }
         else { setRead(null); setReadFor(t); }
       } catch { if (live) { setRead(null); setReadFor(t); } }
       finally { if (live) setReading(false); }
@@ -100,6 +110,13 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
         )}
         {byAi && read.understanding && (
           <p className="rounded-xl bg-violet-soft px-3.5 py-2.5 text-[13px] leading-relaxed text-violet-ink"><span className="font-semibold">AI understood:</span> {read.understanding}</p>
+        )}
+        {locked && (
+          <div className="flex flex-wrap items-center gap-3 rounded-xl bg-violet-soft px-3.5 py-2.5">
+            <span className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-violet-ink"><Lock className="size-3.5" aria-hidden="true" /><Sparkles className="size-3.5" aria-hidden="true" />AI reading is on paid plans</span>
+            <span className="min-w-0 flex-1 text-[12.5px] text-violet-ink/80">Paste any chatty message and AI picks out just the items and prices. You're using simple reading: one item per line.</span>
+            <Link href="/app/settings/billing" className="shrink-0 rounded-lg bg-violet px-3 py-1.5 text-[12.5px] font-semibold text-white hover:opacity-90">Upgrade</Link>
+          </div>
         )}
         {(aiOff || simple || (!byAi && !waiting)) && text.trim() && (
           <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-2">
