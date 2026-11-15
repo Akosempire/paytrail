@@ -69,7 +69,7 @@ export function AiCard({ saved }) {
   return (
     <Card>
       {dialog}
-      <CardHeader icon={Bot} title="4. AI (chat in your own words)" description="Free providers only. With an AI key, people just say “Invoice Ada for 2 logo designs at 150k”. Without one, the bot uses numbered menus."
+      <CardHeader icon={Bot} title="4. AI (chat in your own words)" description="Free providers only. Powers the WhatsApp bot (“Invoice Ada for 2 logo designs at 150k”) and Paste a list in the invoice editor (reads a customer's chatty message into items). Without a key: numbered menus and simple line-by-line reading."
         actions={saved.aiProvider !== "off" && saved.hasAiKey ? <Badge tone="success" size="sm">{PROVIDERS[saved.aiProvider]?.name || "Connected"}</Badge> : <Badge size="sm">Menus only</Badge>} />
       <div className="flex flex-col gap-4 px-5 pb-5">
         <Secret value={key} onChange={onKey} show={show} setShow={setShow} loading={loading}

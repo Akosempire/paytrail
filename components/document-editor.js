@@ -126,9 +126,16 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   const [detailsOpen, setDetailsOpen] = useState(() => new Set()); // items whose "Details" box was opened
   // "Paste a WhatsApp order" from the ➕ opens straight into the list reader
   useEffect(() => { if (!doc?.id && new URLSearchParams(window.location.search).get("paste") === "1") setPaste(""); }, [doc?.id]);
-  function addPasted(parsed) {
+  function addPasted(parsed, extra = {}) {
     const fresh = parsed.map((p) => ({ ...blankItem(), description: p.description.slice(0, 300), quantity: String(p.quantity), price: p.price == null ? "" : String(p.price) }));
     setItems((list) => [...list.filter((i) => i.description.trim() || i.price), ...fresh]);
+    // the AI found who sent it: fill in a new customer, unless one is already chosen or typed
+    const c = extra.customer;
+    if (c && !customerId && !customer.name.trim()) {
+      setCustomerMode("new");
+      setCustomer((x) => ({ ...x, name: c.name || x.name, phone: x.phone || c.phone || "", email: x.email || c.email || "" }));
+    }
+    if (extra.notes && !notes.trim()) setNotes(extra.notes);
     setPaste(null);
     toast.success(`${fresh.length} item${fresh.length === 1 ? "" : "s"} added. Check the prices before you send.`);
   }
@@ -504,7 +511,7 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
               {pos && <Button size="sm" icon={Boxes} onClick={() => setPosOpen(true)}>Add from TrackOja</Button>}
             </div>
             {pos && <TrackOjaPicker open={posOpen} onClose={() => setPosOpen(false)} onPick={addFromTrackOja} currency={currency} store={pos.store} />}
-            <PasteList open={paste !== null} initialText={paste || ""} onClose={() => setPaste(null)} onAdd={addPasted} currency={currency} />
+            <PasteList open={paste !== null} initialText={paste || ""} onClose={() => setPaste(null)} onAdd={addPasted} currency={currency} ai={!guest} />
             <dl className="w-full max-w-xs space-y-2.5 text-sm">
               <Row label="Subtotal" value={money(totals.subtotal)} />
               {discountOn && (

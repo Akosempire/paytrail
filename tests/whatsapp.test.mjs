@@ -202,3 +202,11 @@ test("tool schemas are trimmed to what Gemini accepts", () => {
   const s = prov.simpleSchema({ $schema: "x", type: "object", additionalProperties: false, properties: { a: { type: "string", maxLength: 5, default: "x" }, b: { type: ["number", "null"], exclusiveMinimum: 0 } }, required: ["a"] });
   assert.deepEqual(s, { type: "object", properties: { a: { type: "string" }, b: { type: "number", nullable: true } }, required: ["a"] });
 });
+
+test("guided: a chatty items message goes to the AI reader when the simple reading can't cope", async () => {
+  const act = fakeAct();
+  act.readItems = async () => ({ items: [{ description: "Rice 50kg", quantity: 3, price: 45000 }, { description: "Delivery", quantity: 1, price: 3000 }, { description: "Bag", quantity: 1, price: null }] });
+  const r = await guided({ state: { flow: "new", kind: "invoice", step: "items", customer: { name: "Ada" } }, text: "Good morning ma, 3 bags of rice 50kg at 45k each plus delivery 3000 and a bag", act });
+  assert.deepEqual(act.calls[0][2].items, [{ description: "Rice 50kg", quantity: 3, unit_price: 45000 }, { description: "Delivery", quantity: 1, unit_price: 3000 }]);
+  assert.match(r.reply, /skipped: Bag/);
+});
