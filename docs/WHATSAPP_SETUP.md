@@ -25,8 +25,14 @@ Variables: {{1}} customer name, {{2}} business name, {{3}} e.g. "invoice INV-004
 
 Without approved templates the bot still works: the owner gets a tap-to-send link that opens their own WhatsApp with the message ready to go to the customer.
 
-## 5. AI (optional)
-Pick Claude (Anthropic) or OpenAI, paste an API key with credit, leave the model empty for the default, and **Save and check**. Without AI the bot uses numbered menus and short commands (`menu`, `paid INV-0042 50000`, `send INV-0042`, `receipt INV-0042`, `convert QT-0007`). The AI can only read and make drafts; sending, payments, converting and voiding always wait for YES.
+## 5. AI (optional, free providers only)
+Paste a free API key in Admin → Integrations → WhatsApp → AI. The provider is recognised from the key, the models that key can use are loaded, and the best one for the bot is pre-selected (★). Select **Save and check**.
+
+- **Google Gemini**: aistudio.google.com → Get API key (key starts `AIza`). Use a Flash model.
+- **Groq**: console.groq.com → API Keys, no card (key starts `gsk_`).
+- **NVIDIA**: build.nvidia.com → pick a model → Get API Key (key starts `nvapi-`; about 40 requests a minute).
+
+Free tiers limit messages per minute and per day, and the provider may use what's sent to improve its models. Without AI the bot uses numbered menus and short commands (`menu`, `paid INV-0042 50000`, `send INV-0042`, `receipt INV-0042`, `convert QT-0007`). The AI can only read and make drafts; sending, payments, converting and voiding always wait for YES.
 
 ## 6. Switch on
 Turn on **Answer messages**. Businesses then link a number in Settings → WhatsApp (a 10-minute one-time code they send to the bot). The owner gets an email when a number is linked.

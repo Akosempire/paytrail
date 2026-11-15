@@ -5,10 +5,10 @@ import { Bot, Eye, EyeOff, KeyRound, Loader2, RefreshCw, Save, Sparkles } from "
 import { Badge, Button, Card, CardHeader, Field, Input, Select } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { useStepUp } from "@/components/step-up";
-import { PROVIDERS, providerOfKey } from "@/lib/whatsapp/providers";
+import { FREE_IDS, PROVIDERS, providerOfKey } from "@/lib/whatsapp/providers";
 import { listWhatsappAiModels, saveWhatsappAi } from "../../actions";
 
-const ORDER = ["gemini", "groq", "anthropic", "openai"];
+const FREE_KEYS = "Gemini (AIza…), Groq (gsk_…) or NVIDIA (nvapi-…)";
 
 // Paste a key: the provider is recognised from it, the models that key can use
 // are fetched from the provider, and the best one for the bot is pre-selected.
@@ -27,6 +27,8 @@ export function AiCard({ saved }) {
   const asked = useRef("");
   const hasSaved = saved.hasAiKey && saved.aiProvider === provider;
   const p = PROVIDERS[provider];
+  // free providers only; a paid one shows only if it's what's saved now
+  const order = [...FREE_IDS, ...(saved.aiProvider && !FREE_IDS.includes(saved.aiProvider) && PROVIDERS[saved.aiProvider] ? [saved.aiProvider] : [])];
 
   async function load(k, prov) {
     const tag = `${prov}:${k}`;
@@ -46,10 +48,11 @@ export function AiCard({ saved }) {
   const onKey = (v) => {
     setKey(v);
     const found = providerOfKey(v);
+    if (found && !PROVIDERS[found].free) { setModels(null); setListError(`That's a ${PROVIDERS[found].name} key, which is paid. Use a free key: ${FREE_KEYS}.`); return; }
     if (found) {
       if (found !== provider) { setProvider(found); setModel(""); }
       load(v.trim(), found);
-    } else { setModels(null); setListError(v.trim().length > 12 ? "That key isn't from Gemini (AIza…), Groq (gsk_…), Anthropic (sk-ant-…) or OpenAI (sk-…)." : ""); }
+    } else { setModels(null); setListError(v.trim().length > 12 ? `That key isn't one we know. Use a free key: ${FREE_KEYS}.` : ""); }
   };
   const pick = (v) => {
     setProvider(v); setModels(null); setListError(""); setModel(v === saved.aiProvider ? saved.aiModel || "" : "");
@@ -66,21 +69,21 @@ export function AiCard({ saved }) {
   return (
     <Card>
       {dialog}
-      <CardHeader icon={Bot} title="4. AI (chat in your own words)" description="With an AI key, people just say “Invoice Ada for 2 logo designs at 150k”. Without one, the bot uses numbered menus."
+      <CardHeader icon={Bot} title="4. AI (chat in your own words)" description="Free providers only. With an AI key, people just say “Invoice Ada for 2 logo designs at 150k”. Without one, the bot uses numbered menus."
         actions={saved.aiProvider !== "off" && saved.hasAiKey ? <Badge tone="success" size="sm">{PROVIDERS[saved.aiProvider]?.name || "Connected"}</Badge> : <Badge size="sm">Menus only</Badge>} />
       <div className="flex flex-col gap-4 px-5 pb-5">
         <Secret value={key} onChange={onKey} show={show} setShow={setShow} loading={loading}
-          placeholder={hasSaved ? "•••••••• (saved) — paste a new key to replace it" : "Paste any API key: AIza…, gsk_…, sk-ant-… or sk-…"}
+          placeholder={hasSaved ? "•••••••• (saved) — paste a new key to replace it" : "Paste a free API key: AIza…, gsk_… or nvapi-…"}
           hint={hasSaved ? `Saved ${p?.name} key ends ${saved.aiKeyHint}.` : "We recognise the provider from the key and load its models. Stored encrypted."} />
 
-        <div role="radiogroup" aria-label="AI provider" className="grid grid-cols-2 gap-2 sm:grid-cols-5">
-          {["off", ...ORDER].map((id) => {
+        <div role="radiogroup" aria-label="AI provider" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {["off", ...order].map((id) => {
             const on = provider === id;
             return (
               <button key={id} type="button" role="radio" aria-checked={on} onClick={() => pick(id)}
                 className={`flex flex-col items-start gap-0.5 rounded-xl px-3 py-2.5 text-left ring-1 transition ${on ? "bg-brand-soft ring-brand" : "bg-surface ring-line hover:bg-hover"}`}>
                 <span className="text-[13px] font-semibold text-ink">{id === "off" ? "Off" : PROVIDERS[id].name}</span>
-                <span className="text-xs text-ink-3">{id === "off" ? "Numbered menus" : PROVIDERS[id].free ? "Free tier" : "Paid"}</span>
+                <span className="text-xs text-ink-3">{id === "off" ? "Numbered menus, free" : PROVIDERS[id].free ? "Free tier" : "Paid (saved now)"}</span>
               </button>
             );
           })}

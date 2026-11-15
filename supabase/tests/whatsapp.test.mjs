@@ -79,7 +79,7 @@ test("cleanup blanks old message text and drops old codes", async () => {
 test("the AI provider can be Gemini or Groq too, nothing else", async () => {
   await pool.query("begin");
   try {
-    for (const p of ["gemini", "groq", "anthropic", "openai", "off"]) await pool.query("update public.platform_settings set wa_ai_provider = $1 where id", [p]);
+    for (const p of ["gemini", "groq", "nvidia", "anthropic", "openai", "off"]) await pool.query("update public.platform_settings set wa_ai_provider = $1 where id", [p]);
     await assert.rejects(pool.query("update public.platform_settings set wa_ai_provider = 'mystery' where id"), /check/);
   } finally { await pool.query("rollback"); }
 });
