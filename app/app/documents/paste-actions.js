@@ -24,7 +24,7 @@ export async function readPastedList(text, currency = "NGN") {
     if (times.length >= 12) return { fallback: "busy" };
     recent.set(ctx.business.id, [...times, now]);
     const reply = await askJson(cfg.ai, pasteAiPrompt(String(currency || "NGN").slice(0, 3)), t);
-    const read = readPasteAi(reply);
+    const read = readPasteAi(reply, t);
     return read ? { ai: true, ...read } : { fallback: "unreadable" };
   } catch (e) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) return { fallback: "signed-out" };

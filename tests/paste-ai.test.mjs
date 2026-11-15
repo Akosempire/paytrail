@@ -23,5 +23,25 @@ test("unusable replies give null, so the simple reading is used", () => {
 test("the instructions name the currency and forbid invented prices", () => {
   const p = pasteAiPrompt("GHS");
   assert.match(p, /plain number in GHS/);
-  assert.match(p, /Never invent a price/);
+  assert.match(p, /Never invent an amount/);
+});
+
+const { moneyIn } = await import("../lib/paste-ai.js");
+const OFFICE = "Good morning everyone, I heard that some people have started receiving their November allowances. Please, let's contribute 1,500 naira each so we can sort out the office internet subscription before Friday. Kindly send your contribution to my PalmPay account, 7012345678, account name Ibrahim Akorede. Also, James said we should remember that the meeting has been moved to Thursday, 19th November, by 10:30am at the conference room.";
+test("money in a chatty message: amounts only, not account numbers, dates or times", () => {
+  assert.deepEqual(moneyIn(OFFICE), [1500]);
+  assert.deepEqual(moneyIn("Rice is 45k per bag, oil ₦12,500 each, delivery N 3,000. Call 08031234567"), [45000, 12500, 3000]);
+  assert.deepEqual(moneyIn("Meeting 19th November 10:30am, room 204"), []);
+});
+test("a small model that misses the only price gets it filled from the message", () => {
+  const r = readPasteAi('{"items":[{"description":"Contribution: office internet subscription","quantity":1,"unit_price":null}]}', OFFICE);
+  assert.deepEqual(r.items, [{ description: "Contribution: office internet subscription", quantity: 1, price: 1500 }]);
+  // more than one item or more than one amount: left for the person to fill in
+  const two = readPasteAi('{"items":[{"description":"A","quantity":1,"unit_price":null},{"description":"B","quantity":1,"unit_price":null}]}', "A 1,500 naira, B 2,000 naira");
+  assert.equal(two.items[0].price, null);
+});
+test("the instructions cover contributions and say account numbers aren't prices", () => {
+  const p = pasteAiPrompt();
+  assert.match(p, /contributions/);
+  assert.match(p, /Account numbers, phone numbers, dates, times/);
 });

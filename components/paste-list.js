@@ -22,6 +22,7 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
   const [off, setOff] = useState(() => new Set()); // unticked lines
   const [useCustomer, setUseCustomer] = useState(true);
   const [useNotes, setUseNotes] = useState(true);
+  const [prices, setPrices] = useState({}); // prices typed in here, by line
   const box = useRef(null);
   const cache = useRef(new Map());
 
@@ -50,8 +51,9 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
 
   const rules = useMemo(() => parseItemList(text, { mode }), [text, mode]);
   const byAi = Boolean(read && readFor === text.trim() && !simple);
-  const items = byAi ? read.items : rules;
-  useEffect(() => { setOff(new Set()); }, [items]);
+  const base = byAi ? read.items : rules;
+  useEffect(() => { setOff(new Set()); setPrices({}); }, [base]);
+  const items = base.map((i, n) => (n in prices ? { ...i, price: prices[n] === "" ? null : Number(prices[n]) } : i));
   const chosen = items.filter((_, n) => !off.has(n));
   const noPrice = chosen.filter((i) => i.price == null).length;
   const total = chosen.reduce((s, i) => s + (i.price || 0) * i.quantity, 0);
@@ -77,29 +79,35 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
           {!text && <Button size="sm" icon={ClipboardPaste} onClick={fromClipboard} className="absolute bottom-2 left-2">Paste from clipboard</Button>}
         </div>
 
-        <div className="flex min-h-7 flex-wrap items-center gap-2 text-[13px] text-ink-2">
-          {byAi ? (
-            <>
-              <Badge size="sm" tone="violet"><Sparkles className="size-3" aria-hidden="true" />Read by AI</Badge>
-              <span className="text-ink-3">Check it, untick anything that isn't an item.</span>
-              <button type="button" onClick={() => setSimple(true)} className="ml-auto text-[12.5px] font-medium text-ink-3 underline-offset-2 hover:text-ink hover:underline">Use simple reading</button>
-            </>
-          ) : waiting ? (
-            <span className="inline-flex items-center gap-1.5 text-ink-3"><Loader2 className="size-3.5 animate-spin" aria-hidden="true" />Reading the message with AI…</span>
-          ) : text.trim() ? (
-            <>
-              Prices in the list are
-              <span className="inline-flex rounded-lg bg-tray p-0.5">
-                {[["each", "for one"], ["total", "for the whole line"]].map(([k, label]) => (
-                  <button key={k} type="button" onClick={() => setMode(k)} aria-pressed={mode === k}
-                    className={cx("rounded-md px-2.5 py-1 text-[12.5px] font-medium", mode === k ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3 hover:text-ink")}>{label}</button>
-                ))}
-              </span>
-              {simple && read && readFor === text.trim() && <button type="button" onClick={() => setSimple(false)} className="ml-auto inline-flex items-center gap-1 text-[12.5px] font-medium text-brand-ink hover:underline"><Sparkles className="size-3.5" aria-hidden="true" />Use AI reading</button>}
-              {!aiOff && !read && readFor === text.trim() && <span className="ml-auto text-[12.5px] text-ink-3">AI couldn't read it, so this is the simple reading.</span>}
-            </>
-          ) : null}
-        </div>
+        {!aiOff && text.trim() && (
+          <div className="flex flex-wrap items-center gap-3">
+            <div role="radiogroup" aria-label="How to read the message" className="inline-flex rounded-xl bg-tray p-1">
+              {[[false, "AI reading", Sparkles], [true, "Simple reading", null]].map(([isSimple, label, Icon]) => {
+                const on = simple === isSimple;
+                return (
+                  <button key={label} type="button" role="radio" aria-checked={on} onClick={() => setSimple(isSimple)}
+                    className={cx("inline-flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-[13px] font-semibold", on ? (isSimple ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "bg-violet text-white shadow-[var(--shadow-xs)]") : "text-ink-3 hover:text-ink")}>
+                    {Icon && <Icon className="size-3.5" aria-hidden="true" />}{label}
+                  </button>
+                );
+              })}
+            </div>
+            <span className="text-[12.5px] text-ink-3">
+              {simple ? "Each line becomes an item." : waiting ? <span className="inline-flex items-center gap-1.5"><Loader2 className="size-3.5 animate-spin" aria-hidden="true" />Reading the message…</span> : byAi ? "Picks out only what's being charged. Check it below." : readFor === text.trim() ? "AI couldn't read this one, so the simple reading is shown." : ""}
+            </span>
+          </div>
+        )}
+        {(aiOff || simple || (!byAi && !waiting)) && text.trim() && (
+          <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-2">
+            Prices in the list are
+            <span className="inline-flex rounded-lg bg-tray p-0.5">
+              {[["each", "for one"], ["total", "for the whole line"]].map(([k, label]) => (
+                <button key={k} type="button" onClick={() => setMode(k)} aria-pressed={mode === k}
+                  className={cx("rounded-md px-2.5 py-1 text-[12.5px] font-medium", mode === k ? "bg-surface text-ink shadow-[var(--shadow-xs)] ring-1 ring-line" : "text-ink-3 hover:text-ink")}>{label}</button>
+              ))}
+            </span>
+          </div>
+        )}
 
         {items.length > 0 && !waiting && (
           <div className="overflow-hidden rounded-xl ring-1 ring-line">
@@ -110,7 +118,11 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
                     <input type="checkbox" checked={!off.has(n)} onChange={() => toggle(n)} className="size-4 shrink-0 translate-y-0.5 accent-[var(--color-brand)]" aria-label={`Add ${i.description}`} />
                     <span className={cx("min-w-0 flex-1 truncate text-ink", off.has(n) && "line-through")}>{i.description}</span>
                     <span className="shrink-0 tabular-nums text-ink-3">{i.quantity} ×</span>
-                    <span className={cx("w-28 shrink-0 text-right tabular-nums", i.price == null ? "text-warn-ink" : "text-ink")}>{i.price == null ? "No price" : money(i.price)}</span>
+                    <input type="text" inputMode="decimal" aria-label={`Price for ${i.description}`} placeholder="Add price"
+                      value={n in prices ? prices[n] : i.price == null ? "" : String(i.price)}
+                      onClick={(e) => e.preventDefault()}
+                      onChange={(e) => setPrices((x) => ({ ...x, [n]: e.target.value.replace(/[^\d.]/g, "") }))}
+                      className={cx("h-8 w-28 shrink-0 rounded-md bg-surface px-2 text-right tabular-nums ring-1 ring-inset focus:ring-2 focus:ring-brand focus:outline-none", i.price == null ? "ring-warn placeholder:text-warn-ink" : "ring-line text-ink")} />
                   </label>
                 </li>
               ))}
@@ -138,7 +150,7 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
             )}
           </div>
         )}
-        {noPrice > 0 && !waiting && <p className="flex items-center gap-1.5 text-[12.5px] text-ink-3"><CircleAlert className="size-3.5 shrink-0" />{noPrice} line{noPrice === 1 ? " has" : "s have"} no price yet. Add {noPrice === 1 ? "it" : "them"} after.</p>}
+        {noPrice > 0 && !waiting && <p className="flex items-center gap-1.5 text-[12.5px] text-ink-3"><CircleAlert className="size-3.5 shrink-0" />{noPrice} line{noPrice === 1 ? " has" : "s have"} no price yet. Type {noPrice === 1 ? "it" : "them"} in, or add {noPrice === 1 ? "it" : "them"} after.</p>}
       </div>
     </Modal>
   );
