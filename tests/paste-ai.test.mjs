@@ -67,3 +67,27 @@ test("the instructions: think about every number first, never invent, currency n
   assert.match(p, /Never invent amounts/);
   assert.match(p, /in GHS/);
 });
+
+const BRIEF = "Hi, we are opening a new restaurant in Abuja next month and need a logo and brand colours. We also need about 5 promotional flyers for our opening campaign.\n\nFor the menu, we have approximately 35 food and drink items. We want both a printable version and a digital version that customers can access through a QR code. Our opening is scheduled for December 12, so we need the designs completed before December 5. We have allocated ₦450,000 for the entire project. Let me know if this is something you can handle.";
+test("a brief with one budget for the whole job: one line at the budget, scope in details", () => {
+  assert.deepEqual(numbersIn(BRIEF), [5, 35, 450000]);
+  const { result, problems } = checkPasteAi({
+    understanding: "A new Abuja restaurant wants branding, flyers and a menu for ₦450,000 in total.",
+    numbers: [{ text: "5 promotional flyers", value: 5, kind: "quantity" }, { text: "35 food and drink items", value: 35, kind: "quantity" }, { text: "December 12", value: 12, kind: "date_or_time" }, { text: "₦450,000 for the entire project", value: 450000, kind: "budget" }],
+    items: [{ description: "Restaurant branding project", details: "Logo and brand colours; 5 promotional flyers; menu design (35 items, print and QR)", quantity: 1, unit_price: 450000 }],
+    notes: "Designs needed before 5 December",
+  }, BRIEF);
+  assert.deepEqual(problems, []);
+  assert.deepEqual(result.items, [{ description: "Restaurant branding project", details: "Logo and brand colours; 5 promotional flyers; menu design (35 items, print and QR)", quantity: 1, price: 450000 }]);
+});
+test("the budget left out while lines have no price is sent back to fix", () => {
+  const { problems } = checkPasteAi({
+    numbers: [{ text: "₦450,000 for the entire project", value: 450000, kind: "budget" }],
+    items: [{ description: "Logo", quantity: 1, unit_price: null }, { description: "Flyers", quantity: 5, unit_price: null }],
+  }, BRIEF);
+  assert.equal(problems.length, 1);
+  assert.match(problems[0], /450,000 for the entire project/);
+});
+test("JSON in code fences or with trailing commas still reads", () => {
+  assert.deepEqual(parseJson('```json\n{"items":[{"description":"A","quantity":1,},],}\n```'), { items: [{ description: "A", quantity: 1 }] });
+});

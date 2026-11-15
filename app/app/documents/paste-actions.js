@@ -44,7 +44,12 @@ export async function readPastedList(text, currency = "NGN") {
     return read ? { ai: true, ...read } : { fallback: "unreadable" };
   } catch (e) {
     if (e?.digest?.startsWith?.("NEXT_REDIRECT")) return { fallback: "signed-out" };
-    console.error("paste_ai.failed", { message: String(e?.message || "").slice(0, 200) });
-    return { fallback: "error" };
+    const message = String(e?.message || "");
+    console.error("paste_ai.failed", { message: message.slice(0, 200) });
+    // say why, in words: over the free limit, a key problem, or the AI being slow
+    if (/limit|credit|429/i.test(message)) return { fallback: "error", why: "The AI is over its limit right now. Try again in a minute." };
+    if (/key|accept/i.test(message)) return { fallback: "error", why: "The AI key isn't working. Ask your admin to check it." };
+    if (/timeout|abort|reach/i.test(message)) return { fallback: "error", why: "The AI took too long. Try again." };
+    return { fallback: "error", why: "" };
   }
 }

@@ -17,6 +17,8 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
   const [mode, setMode] = useState("each");
   const [read, setRead] = useState(null);       // AI result for `readFor`
   const [readFor, setReadFor] = useState("");
+  const [why, setWhy] = useState("");
+  const [retry, setRetry] = useState(0);          // why the AI couldn't read the last message
   const [reading, setReading] = useState(false);
   const [aiOff, setAiOff] = useState(true);     // until we know AI reading is allowed
   const [locked, setLocked] = useState(false);  // Free plan or trial: AI reading is for paying businesses
@@ -52,12 +54,12 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
         if (!live) return;
         if (r?.ai) { cache.current.set(t, r); setRead(r); setReadFor(t); }
         else if (["plan", "off", "signed-out"].includes(r?.fallback)) { setAiOff(true); if (r.fallback === "plan") setLocked(true); }
-        else { setRead(null); setReadFor(t); }
+        else { setRead(null); setReadFor(t); setWhy(r?.why || ""); }
       } catch { if (live) { setRead(null); setReadFor(t); } }
       finally { if (live) setReading(false); }
     }, 700);
     return () => { live = false; clearTimeout(timer); };
-  }, [text, open, aiOff, currency]);
+  }, [text, open, aiOff, currency, retry]);
 
   const rules = useMemo(() => parseItemList(text, { mode }), [text, mode]);
   const byAi = Boolean(read && readFor === text.trim() && !simple);
@@ -104,7 +106,7 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
               })}
             </div>
             <span className="text-[12.5px] text-ink-3">
-              {simple ? "Each line becomes an item." : waiting ? <span className="inline-flex items-center gap-1.5"><Loader2 className="size-3.5 animate-spin" aria-hidden="true" />Reading the message…</span> : byAi ? "Picks out only what's being charged. Check it below." : readFor === text.trim() ? "AI couldn't read this one, so the simple reading is shown." : ""}
+              {simple ? "Each line becomes an item." : waiting ? <span className="inline-flex items-center gap-1.5"><Loader2 className="size-3.5 animate-spin" aria-hidden="true" />Reading the message…</span> : byAi ? "Picks out only what's being charged. Check it below." : readFor === text.trim() ? <>{why || "AI couldn't read this one."} Showing the simple reading. <button type="button" onClick={() => { cache.current.delete(text.trim()); setReadFor(""); setWhy(""); setRetry((x) => x + 1); }} className="font-medium text-brand-ink hover:underline">Try AI again</button></> : ""}
             </span>
           </div>
         )}
@@ -137,7 +139,7 @@ export function PasteList({ open, onClose, onAdd, currency, initialText = "", ai
                 <li key={n}>
                   <label className={cx("flex cursor-pointer items-baseline gap-3 px-3.5 py-2.5 text-[13.5px] hover:bg-hover", off.has(n) && "opacity-50")}>
                     <input type="checkbox" checked={!off.has(n)} onChange={() => toggle(n)} className="size-4 shrink-0 translate-y-0.5 accent-[var(--color-brand)]" aria-label={`Add ${i.description}`} />
-                    <span className="min-w-0 flex-1"><span className={cx("block truncate text-ink", off.has(n) && "line-through")}>{i.description}</span>{i.check && !(n in prices) && <span className="block text-[12px] text-warn-ink">{i.check}</span>}</span>
+                    <span className="min-w-0 flex-1"><span className={cx("block truncate text-ink", off.has(n) && "line-through")}>{i.description}</span>{i.details && <span className="block truncate text-[12px] text-ink-3" title={i.details}>{i.details}</span>}{i.check && !(n in prices) && <span className="block text-[12px] text-warn-ink">{i.check}</span>}</span>
                     <span className="shrink-0 tabular-nums text-ink-3">{i.quantity} ×</span>
                     <input type="text" inputMode="decimal" aria-label={`Price for ${i.description}`} placeholder="Add price"
                       value={n in prices ? prices[n] : i.price == null ? "" : String(i.price)}

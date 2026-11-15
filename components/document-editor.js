@@ -127,8 +127,10 @@ export function DocumentEditor({ kind, doc, items: initialItems, costs: initialC
   // "Paste a WhatsApp order" from the ➕ opens straight into the list reader
   useEffect(() => { if (!doc?.id && new URLSearchParams(window.location.search).get("paste") === "1") setPaste(""); }, [doc?.id]);
   function addPasted(parsed, extra = {}) {
-    const fresh = parsed.map((p) => ({ ...blankItem(), description: p.description.slice(0, 300), quantity: String(p.quantity), price: p.price == null ? "" : String(p.price) }));
+    const fresh = parsed.map((p) => ({ ...blankItem(), description: p.description.slice(0, 300), details: p.details || "", quantity: String(p.quantity), price: p.price == null ? "" : String(p.price) }));
     setItems((list) => [...list.filter((i) => i.description.trim() || i.price), ...fresh]);
+    const withDetails = fresh.filter((f) => f.details).map((f) => f.key);
+    if (withDetails.length) setDetailsOpen((s) => new Set([...s, ...withDetails]));
     // the AI found who sent it: fill in a new customer, unless one is already chosen or typed
     const c = extra.customer;
     if (c && !customerId && !customer.name.trim()) {
