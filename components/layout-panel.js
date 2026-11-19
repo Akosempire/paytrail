@@ -1,7 +1,8 @@
 "use client";
 import { useState } from "react";
+import Link from "next/link";
 import { Check } from "lucide-react";
-import { PaidTag, UpgradeNote } from "@/components/upgrade-note";
+import { PaidTag } from "@/components/upgrade-note";
 import { isPremiumTemplate } from "@/lib/entitlements";
 import { cx } from "@/components/ui";
 import { PAPERS, SECTIONS, SIGNATURE_BLUE, NOTEBOOK_YELLOW, CASEFILE_GREEN, TEMPLATES, accentFor, papersFor, templatesFor } from "@/lib/doc-templates";
@@ -132,23 +133,29 @@ export function LayoutPanel({ kind, value, onChange, brandColor, showInstruction
     <div className="flex flex-col gap-5">
       <fieldset>
         <legend className="mb-2 text-[13px] font-medium text-ink">Template</legend>
-        {lockedTemplates && nudge && (
-          <UpgradeNote compact className="mb-2" title={`${TEMPLATES[nudge]?.name || "This template"} is a premium template`}>Premium templates are on paid plans. Essential and Signature stay free in any colour, and documents you've already sent keep their look.</UpgradeNote>
-        )}
         <div className="grid grid-cols-2 gap-2" role="radiogroup">
           {templatesFor(kind, { extra: extraTemplates === true ? true : [...(Array.isArray(extraTemplates) ? extraTemplates : []), value.template] }).map((t) => {
             const on = value.template === t.id;
             const locked = lockedTemplates && isPremiumTemplate(t.id) && !on;
             return (
-              <button key={t.id} type="button" role="radio" aria-checked={on} onClick={() => pickTemplate(t.id)}
-                className={cx("group relative flex flex-col gap-2 rounded-xl p-2 text-left ring-1 transition focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]", on ? "bg-brand-soft ring-2 ring-brand" : "bg-surface ring-line hover:ring-line-strong", locked && "[&>span:first-child]:opacity-70")}>
-                <span className="block aspect-[4/5] overflow-hidden rounded-lg bg-tray p-2"><TemplateThumb id={t.id} accent={t.id === value.template ? currentAccent : t.id === "executive" ? brandColor : ["notebook", "casefile"].includes(t.id) ? accentFor(t.id, null, brandColor) : SIGNATURE_BLUE} /></span>
-                <span className="flex items-center justify-between gap-1 px-0.5">
-                  <span className="text-[13px] font-semibold text-ink">{t.name}</span>
-                  {on ? <Check className="size-4 text-brand" aria-hidden="true" /> : locked ? <PaidTag /> : t.recommended && <span className="rounded-full bg-success-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-success-ink">Default</span>}
-                </span>
-                <span className="px-0.5 text-[11.5px] leading-snug text-ink-3">{t.description}</span>
-              </button>
+              <div key={t.id} className="flex flex-col gap-1.5">
+                <button type="button" role="radio" aria-checked={on} onClick={() => pickTemplate(t.id)}
+                  className={cx("group relative flex w-full flex-col gap-2 rounded-xl p-2 text-left ring-1 transition focus-visible:outline-none focus-visible:shadow-[var(--shadow-focus)]", on ? "bg-brand-soft ring-2 ring-brand" : nudge === t.id ? "bg-violet-soft/40 ring-2 ring-violet" : "bg-surface ring-line hover:ring-line-strong", locked && "[&>span:first-child]:opacity-70")}>
+                  <span className="block aspect-[4/5] overflow-hidden rounded-lg bg-tray p-2"><TemplateThumb id={t.id} accent={t.id === value.template ? currentAccent : t.id === "executive" ? brandColor : ["notebook", "casefile"].includes(t.id) ? accentFor(t.id, null, brandColor) : SIGNATURE_BLUE} /></span>
+                  <span className="flex items-center justify-between gap-1 px-0.5">
+                    <span className="text-[13px] font-semibold text-ink">{t.name}</span>
+                    {on ? <Check className="size-4 text-brand" aria-hidden="true" /> : locked ? <PaidTag /> : t.recommended && <span className="rounded-full bg-success-soft px-1.5 py-0.5 text-[10.5px] font-semibold text-success-ink">Default</span>}
+                  </span>
+                  <span className="px-0.5 text-[11.5px] leading-snug text-ink-3">{t.description}</span>
+                </button>
+                {/* a premium template tapped on the Free plan: say so right here, not at the top of the list */}
+                {lockedTemplates && nudge === t.id && (
+                  <div role="status" className="flex flex-col gap-2 rounded-lg bg-violet-soft px-2.5 py-2 text-[12px] leading-snug text-violet-ink">
+                    <span><span className="font-semibold">{t.name} is on paid plans.</span> Your invoice stays on {TEMPLATES[value.template]?.name || "its current template"}. Essential and Signature are free in any colour.</span>
+                    <Link href="/app/settings/billing" className="self-start rounded-md bg-violet px-2.5 py-1 text-[12px] font-semibold text-white hover:opacity-90">Upgrade to use it</Link>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
