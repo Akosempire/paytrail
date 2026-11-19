@@ -1,6 +1,6 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { LayoutTemplate, Loader2, X } from "lucide-react";
+import { Check, LayoutTemplate, Loader2, X } from "lucide-react";
 import { Alert, Button, Card, cx } from "@/components/ui";
 import { useToast } from "@/components/ui-client";
 import { DocPreview } from "@/components/doc-preview";
@@ -24,7 +24,8 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
   const [asDefault, setAsDefault] = useState(false);
   const deferred = useDeferredValue(value);
   const model = useMemo(() => buildModel({ doc: { ...doc, ...deferred }, items, business, payLink }), [doc, items, business, payLink, deferred]);
-  const dirty = JSON.stringify(value) !== JSON.stringify(initial);
+  const opened = useRef(initial).current; // how it looked when this page opened (for "Undo changes")
+  const dirty = JSON.stringify(value) !== JSON.stringify(opened);
   const issued = !["draft", "pending_approval"].includes(doc.status);
 
   // "Image" (next to PDF): a full-size copy, off screen, is turned into a PNG
@@ -57,10 +58,33 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
     return () => window.removeEventListener(DOC_ACTION, on);
   }, [canEdit]);
 
-  const save = () => start(async () => {
-    const r = await saveDocumentLayout(doc.id, value, { asDefault });
-    if (r?.error) toast(r.error, "error"); else { toast(r.message); setOpen(false); }
-  });
+  // A pick saves straight away (no "Save layout" to forget), so the customer's
+  // link, the PDF and "Preview as customer" always show what's on screen.
+  const savedRef = useRef(JSON.stringify(initial));
+  const [status, setStatus] = useState("idle"); // idle | saving | saved
+  useEffect(() => {
+    const now = JSON.stringify(value);
+    if (now === savedRef.current) return;
+    setStatus("saving");
+    const t = setTimeout(() => start(async () => {
+      const r = await saveDocumentLayout(doc.id, value, { asDefault: false });
+      if (r?.error) {
+        toast(r.error, "error");
+        setValue(JSON.parse(savedRef.current)); // back to what's really saved
+        setStatus("idle");
+      } else { savedRef.current = now; setStatus("saved"); }
+    }), 500);
+    return () => clearTimeout(t);
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const makeDefault = (on) => {
+    setAsDefault(on);
+    if (!on) return;
+    start(async () => {
+      const r = await saveDocumentLayout(doc.id, value, { asDefault: true });
+      if (r?.error) { toast(r.error, "error"); setAsDefault(false); } else toast(r.message);
+    });
+  };
 
   return (
     <div ref={top} className="flex scroll-mt-20 flex-col gap-3">
@@ -92,13 +116,15 @@ export function DocumentLayoutEditor({ doc, items, business, payLink, canEdit, c
             <div className="mt-5 flex flex-col gap-3 border-t border-line pt-4">
               {canSetDefault && (
                 <label className="flex items-center gap-2 text-[13px] text-ink-2">
-                  <input type="checkbox" checked={asDefault} onChange={(e) => setAsDefault(e.target.checked)} className="size-4 accent-[var(--color-brand)]" />
+                  <input type="checkbox" checked={asDefault} disabled={pending} onChange={(e) => makeDefault(e.target.checked)} className="size-4 accent-[var(--color-brand)]" />
                   Use as default for new {doc.kind === "quote" ? "quotations" : "invoices"}
                 </label>
               )}
-              <div className="flex gap-2">
-                <Button variant="primary" icon={pending ? Loader2 : undefined} loading={pending} disabled={!dirty && !asDefault} onClick={save}>Save layout</Button>
-                <Button variant="ghost" disabled={!dirty} onClick={() => setValue(initial)}>Reset</Button>
+              <div className="flex items-center gap-3">
+                <p className="mr-auto inline-flex items-center gap-1.5 text-[13px] text-ink-3" role="status" aria-live="polite">
+                  {status === "saving" || pending ? <><Loader2 className="size-3.5 animate-spin" aria-hidden="true" />Saving…</> : status === "saved" ? <><Check className="size-3.5 text-success" aria-hidden="true" />Saved. Your customer sees this.</> : "Changes save as you pick."}
+                </p>
+                <Button variant="ghost" size="sm" disabled={!dirty || pending} onClick={() => setValue(opened)}>Undo changes</Button>
               </div>
             </div>
           </Card>
