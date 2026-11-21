@@ -32,6 +32,8 @@ export async function GET(request) {
   const awake = await keepAlive().catch((e) => ({ error: String(e?.message || e) }));
   // WhatsApp: blank message text older than 30 days, drop old link codes
   const whatsapp = await (async () => { const { createSupabaseService } = await import("@/lib/supabase/server"); const { error } = await createSupabaseService().rpc("whatsapp_cleanup"); return error ? { skipped: true } : { ok: true }; })().catch(() => ({ skipped: true }));
+  // WhatsApp community: remind people who haven't opened the group link yet
+  const community = await (async () => (await import("@/lib/community-run")).runCommunityReminders())().catch((e) => ({ error: String(e?.message || e) }));
   const health = await runChecks().then((h) => h.results.map((r) => `${r.key}:${r.status}`), (e) => ({ error: String(e?.message || e) }));
-  return Response.json({ checked: results.length, results, stock, purged, digests, invoiceReminders, vatReminders, sending, awake, whatsapp, health });
+  return Response.json({ checked: results.length, results, stock, purged, digests, invoiceReminders, vatReminders, sending, awake, whatsapp, community, health });
 }

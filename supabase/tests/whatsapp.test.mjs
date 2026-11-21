@@ -83,3 +83,12 @@ test("the AI provider can be Gemini or Groq too, nothing else", async () => {
     await assert.rejects(pool.query("update public.platform_settings set wa_ai_provider = 'mystery' where id"), /check/);
   } finally { await pool.query("rollback"); }
 });
+
+// ---- community sign-ups (20261121000100_community.sql)
+test("community sign-ups: server-only writes; only admins and co-founders read them", async () => {
+  const row = (await one("insert into public.community_signups(name, email, consent, token) values ('Ada', $1, true, $2) returning id", [`ada${stamp}@wa.test`, `tok${stamp}aaaaaaaaaaaaaaaa`])).id;
+  assert.equal((await as(owner, "select count(*)::int n from public.community_signups where id = $1", [row])).rows[0].n, 0, "an ordinary user sees nothing");
+  await assert.rejects(as(owner, "insert into public.community_signups(name, email, consent, token) values ('x', 'x@x.co', true, 'zzzzzzzzzzzzzzzzzzzzzz')"), /permission denied/);
+  await assert.rejects(pool.query("insert into public.community_signups(name, email, consent, token) values ('No', 'no@x.co', false, $1)", [`no${stamp}aaaaaaaaaaaaaaaa`]), /check/, "must agree to the rules");
+  await assert.rejects(pool.query("insert into public.community_signups(name, email, consent, token) values ('Dup', $1, true, $2)", [`ADA${stamp}@wa.test`, `dup${stamp}aaaaaaaaaaaaaaaa`]), /duplicate/, "one sign-up per email, any case");
+});

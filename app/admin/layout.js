@@ -16,6 +16,7 @@ const NAV = [
   { href: "/admin/announcements", label: "Announcements", icon: "announce", section: "announcements" },
   { href: "/admin/usage", label: "Usage", icon: "usage", section: "usage" },
   { href: "/admin/marketing", label: "Marketing", icon: "marketing", section: "marketing" },
+  { href: "/admin/community", label: "Community", icon: "community", section: "marketing" },
   { href: "/admin/integrations", label: "Integrations", icon: "integrations" },
   { href: "/admin/tax", label: "Tax filing", icon: "tax", section: "tax" },
   { href: "/admin/health", label: "Health & logs", icon: "health", section: "health" },
