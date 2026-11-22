@@ -2,6 +2,24 @@
 -- Safe to run more than once.
 
 
+-- "staff" = platform admins and managing co-founders. Defined in
+-- RUN_NEW_2026-11-12c.sql; created here too if that hasn't been run, so this
+-- file works on its own.
+do $do$
+begin
+  if not exists (select 1 from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and p.proname = 'is_platform_staff') then
+    create function public.is_platform_staff() returns boolean
+    language plpgsql stable security definer set search_path = public as $f$
+    begin
+      return public.is_platform_admin() or public.is_platform_manager();
+    exception when undefined_function then
+      return public.is_platform_admin(); -- before the co-founder SQL: admins only
+    end; $f$;
+    revoke all on function public.is_platform_staff() from public, anon;
+    grant execute on function public.is_platform_staff() to authenticated;
+  end if;
+end $do$;
+
 alter table public.platform_settings
   add column if not exists community_enabled boolean not null default false,
   add column if not exists community_link text not null default '',
