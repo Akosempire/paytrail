@@ -39,9 +39,9 @@ export function CommunityForm({ batches = [], stages, rules }) {
       <Field label="Name" htmlFor="c-name" error={e("name")}><Input id="c-name" autoComplete="name" value={f.name} onChange={set("name")} /></Field>
       <Field label="Email" htmlFor="c-email" hint="We send the group link here." error={e("email")}><Input id="c-email" type="email" inputMode="email" autoComplete="email" value={f.email} onChange={set("email")} /></Field>
       <Field label="Phone number (WhatsApp)" htmlFor="c-phone" error={e("phone")}><Input id="c-phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="0801 234 5678" value={f.phone} onChange={set("phone")} /></Field>
-      <Field label="Batch" htmlFor="c-batch" error={e("batch")}>
+      <Field label="Batch" htmlFor="c-batch" optional error={e("batch")}>
         {batches.length ? (
-          <Select id="c-batch" value={f.batch} onChange={set("batch")}><option value="" disabled>Choose your batch</option>{batches.map((b) => <option key={b} value={b}>{b}</option>)}</Select>
+          <Select id="c-batch" value={f.batch} onChange={set("batch")}><option value="">Choose your batch (optional)</option>{batches.map((b) => <option key={b} value={b}>{b}</option>)}</Select>
         ) : <Input id="c-batch" value={f.batch} onChange={set("batch")} placeholder="e.g. Batch 3" />}
       </Field>
       <Field label="Business name" htmlFor="c-biz" error={e("business_name")}><Input id="c-biz" autoComplete="organization" value={f.business_name} onChange={set("business_name")} /></Field>

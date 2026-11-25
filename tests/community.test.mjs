@@ -12,7 +12,8 @@ test("each field is checked, and No to the rules can't join", () => {
   assert.equal(checkSignup({ ...ok, email: "nope" }).field, "email");
   assert.equal(checkSignup({ ...ok, phone: "12" }).field, "phone");
   assert.equal(checkSignup({ ...ok, batch: "Batch 9" }, ["Batch 3"]).field, "batch");
-  assert.equal(checkSignup({ ...ok, batch: "" }).field, "batch");
+  assert.equal(checkSignup({ ...ok, batch: "" }).data?.batch, "", "batch is optional");
+  assert.equal(checkSignup({ ...ok, batch: "" }, ["Batch 3"]).data?.batch, "", "optional even with a list");
   assert.equal(checkSignup({ ...ok, stage: "Huge" }).field, "stage");
   assert.match(checkSignup({ ...ok, consent: "no" }).error, /only for people who agree/);
   assert.equal(checkSignup({ ...ok, consent: undefined }).field, "consent");
